@@ -5,6 +5,7 @@ import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
 import { Dashboard } from "@/components/dashboard/Dashboard";
+import { StatsNav } from "@/components/nav/StatsNav";
 
 export default async function Home() {
   // Reads go through lib/db in Server Components; analytics are pure.
@@ -37,6 +38,7 @@ export default async function Home() {
           New Round →
         </Link>
       </header>
+      <StatsNav current="dashboard" />
       <Dashboard data={data} />
     </main>
   );

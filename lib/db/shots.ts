@@ -37,3 +37,24 @@ export async function getAllShots(): Promise<ShotRow[]> {
 
   return ShotRowsSchema.parse(data);
 }
+
+/**
+ * Fetch all shots for a single round, ordered hole → shot number.
+ * Throws on DB or validation error.
+ */
+export async function getShotsByRound(roundId: string): Promise<ShotRow[]> {
+  const supabase = createServerClient();
+
+  const { data, error } = await supabase
+    .from("shots")
+    .select("*")
+    .eq("round_id", roundId)
+    .order("hole", { ascending: true })
+    .order("shot_no", { ascending: true });
+
+  if (error) {
+    throw new Error(`Failed to fetch shots for round: ${error.message}`);
+  }
+
+  return ShotRowsSchema.parse(data);
+}

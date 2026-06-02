@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { key: "dashboard", href: "/", label: "Dashboard" },
+  { key: "rounds", href: "/rounds", label: "Rounds" },
   { key: "holes", href: "/stats/holes", label: "Holes" },
   { key: "clubs", href: "/stats/clubs", label: "Clubs" },
   { key: "distance", href: "/stats/distance", label: "Distance" },

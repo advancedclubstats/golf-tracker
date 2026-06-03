@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
@@ -70,6 +70,10 @@ export function ShotEntryFlow({
     holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
   );
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Synchronous re-entry guard: `isSubmitting` flips the button to disabled only
+  // on the next render, so a same-tick double-tap can fire two submits before
+  // then. The ref blocks the second one immediately.
+  const submitting = useRef(false);
 
   const courseParKnown = parByHole[hole] != null;
   const par = parByHole[hole] ?? localPar[hole] ?? null;
@@ -93,6 +97,8 @@ export function ShotEntryFlow({
   async function handlePickUp() {
     const prev = logged[hole];
     if (!prev || prev.count === 0) return; // need at least one logged shot
+    if (submitting.current) return;
+    submitting.current = true;
     setIsSubmitting(true);
     try {
       await concedeHole(roundId, hole);
@@ -107,12 +113,15 @@ export function ShotEntryFlow({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to pick up hole.");
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   }
 
   async function handleShotSubmit(values: ShotFormValues) {
     // ShotForm guarantees club / par / result are present.
+    if (submitting.current) return;
+    submitting.current = true;
     setIsSubmitting(true);
     try {
       await createShot({
@@ -158,6 +167,7 @@ export function ShotEntryFlow({
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save shot.");
     } finally {
+      submitting.current = false;
       setIsSubmitting(false);
     }
   }

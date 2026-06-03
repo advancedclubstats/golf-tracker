@@ -28,9 +28,18 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
 
   const supabase = createServerClient();
 
+  // Idempotent on the (round_id, hole, shot_no) unique key. On a flaky mobile
+  // connection the row can commit while the action's response is lost — the
+  // client then sees an error, never advances its shot counter, and re-taps the
+  // same shot_no, which would 409 forever and trap the user on that shot. Upsert
+  // makes the retry update the existing slot to the on-screen values instead, so
+  // the flow advances. It's also race-safe against a double-tap.
   const { data: shot, error } = await supabase
     .from("shots")
-    .insert({ ...validated, user_id: V1_USER_ID })
+    .upsert(
+      { ...validated, user_id: V1_USER_ID },
+      { onConflict: "round_id,hole,shot_no" },
+    )
     .select("id")
     .single();
 

@@ -46,8 +46,13 @@ export const ShotInsertSchema = z.object({
   /** Distance to target in yards. Putts entered in yards (1 yd = 3 ft). */
   yardage: z.number().min(0).nullish(),
 
-  /** Shot quality: 1 = bad, 2 = okay, 3 = good, 4 = excellent. */
-  execution: z.number().int().min(1).max(4),
+  /**
+   * Shot quality: 1 = bad, 2 = okay, 3 = good, 4 = excellent.
+   * Optional: some imported sheet rows have a blank execution, and the
+   * analytics treat a missing rating as "unrated" (skipped). The shot-entry UI
+   * still requires it for newly entered shots.
+   */
+  execution: z.number().int().min(1).max(4).nullish(),
 
   /** Where the ball ended up. Blank is allowed for backward compatibility. */
   result: z.enum(RESULTS).nullish(),
@@ -89,7 +94,8 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   // Fields with DB defaults come back as concrete types, not optional.
   mulligan: z.boolean(),
   penalty: z.number().int().min(0),
-  // Nullable text fields come back as string | null from Postgres.
+  // Nullable fields come back as their type | null from Postgres.
+  execution: z.number().int().min(1).max(4).nullable(),
   yardage: z.number().nullable(),
   result: z.enum(RESULTS).nullable(),
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),

@@ -16,12 +16,13 @@ import {
   PUTT_SIDES,
   PUTT_LENGTHS,
 } from "@/lib/constants";
+import { uuidString } from "@/lib/schemas/common";
 
 // ─── Insert ───────────────────────────────────────────────────────────────────
 
 export const ShotInsertSchema = z.object({
   /** UUID of the round this shot belongs to. */
-  round_id: z.string().uuid(),
+  round_id: uuidString,
 
   /** Hole number (1–18). */
   hole: z.number().int().min(1).max(18),
@@ -89,8 +90,8 @@ export type ShotInsert = z.infer<typeof ShotInsertSchema>;
 // ─── Row (returned from DB) ───────────────────────────────────────────────────
 
 export const ShotRowSchema = ShotInsertSchema.extend({
-  id: z.string().uuid(),
-  user_id: z.string().uuid(),
+  id: uuidString,
+  user_id: uuidString,
   // Fields with DB defaults come back as concrete types, not optional.
   mulligan: z.boolean(),
   penalty: z.number().int().min(0),

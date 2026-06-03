@@ -10,6 +10,7 @@
 
 import { z } from "zod";
 import { SESSION_TYPES } from "@/lib/constants";
+import { uuidString } from "@/lib/schemas/common";
 
 // ─── Insert ───────────────────────────────────────────────────────────────────
 
@@ -26,10 +27,10 @@ export const RoundInsertSchema = z.object({
   notes: z.string().max(1000).nullish(),
 
   /** Optional course this round was played on (provides par/yardage defaults). */
-  course_id: z.string().uuid().nullish(),
+  course_id: uuidString.nullish(),
 
   /** Optional tee played from. */
-  tee_id: z.string().uuid().nullish(),
+  tee_id: uuidString.nullish(),
 });
 
 export type RoundInsert = z.infer<typeof RoundInsertSchema>;
@@ -37,12 +38,12 @@ export type RoundInsert = z.infer<typeof RoundInsertSchema>;
 // ─── Row (returned from DB) ───────────────────────────────────────────────────
 
 export const RoundRowSchema = RoundInsertSchema.extend({
-  id: z.string().uuid(),
-  user_id: z.string().uuid(),
+  id: uuidString,
+  user_id: uuidString,
   // notes comes back as string | null from Postgres
   notes: z.string().max(1000).nullable(),
-  course_id: z.string().uuid().nullable(),
-  tee_id: z.string().uuid().nullable(),
+  course_id: uuidString.nullable(),
+  tee_id: uuidString.nullable(),
   created_at: z.string(),
 });
 

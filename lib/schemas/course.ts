@@ -7,6 +7,7 @@
  */
 
 import { z } from "zod";
+import { uuidString } from "@/lib/schemas/common";
 
 // ─── Course ───────────────────────────────────────────────────────────────────
 
@@ -16,8 +17,8 @@ export const CourseInsertSchema = z.object({
 export type CourseInsert = z.infer<typeof CourseInsertSchema>;
 
 export const CourseRowSchema = CourseInsertSchema.extend({
-  id: z.string().uuid(),
-  user_id: z.string().uuid(),
+  id: uuidString,
+  user_id: uuidString,
   created_at: z.string(),
 });
 export type CourseRow = z.infer<typeof CourseRowSchema>;
@@ -25,7 +26,7 @@ export type CourseRow = z.infer<typeof CourseRowSchema>;
 // ─── Course hole (number + par) ───────────────────────────────────────────────
 
 export const CourseHoleInsertSchema = z.object({
-  course_id: z.string().uuid(),
+  course_id: uuidString,
   hole_number: z.number().int().min(1).max(18),
   par: z.number().int().refine((v) => [3, 4, 5].includes(v), {
     message: "Par must be 3, 4, or 5",
@@ -34,14 +35,14 @@ export const CourseHoleInsertSchema = z.object({
 export type CourseHoleInsert = z.infer<typeof CourseHoleInsertSchema>;
 
 export const CourseHoleRowSchema = CourseHoleInsertSchema.extend({
-  id: z.string().uuid(),
+  id: uuidString,
 });
 export type CourseHoleRow = z.infer<typeof CourseHoleRowSchema>;
 
 // ─── Tee (colour / name) ──────────────────────────────────────────────────────
 
 export const CourseTeeInsertSchema = z.object({
-  course_id: z.string().uuid(),
+  course_id: uuidString,
   /** Tee colour or name, e.g. "Blue", "White". Unique within a course. */
   name: z.string().min(1, "Tee name is required").max(40),
   /** Optional display colour (hex or CSS colour) for a swatch. */
@@ -52,7 +53,7 @@ export const CourseTeeInsertSchema = z.object({
 export type CourseTeeInsert = z.infer<typeof CourseTeeInsertSchema>;
 
 export const CourseTeeRowSchema = CourseTeeInsertSchema.extend({
-  id: z.string().uuid(),
+  id: uuidString,
   color: z.string().nullable(),
   sort_order: z.number().int(),
 });
@@ -61,13 +62,13 @@ export type CourseTeeRow = z.infer<typeof CourseTeeRowSchema>;
 // ─── Tee yardage (per hole; optional, filled over time) ───────────────────────
 
 export const TeeYardageInsertSchema = z.object({
-  tee_id: z.string().uuid(),
+  tee_id: uuidString,
   hole_number: z.number().int().min(1).max(18),
   yardage: z.number().int().positive(),
 });
 export type TeeYardageInsert = z.infer<typeof TeeYardageInsertSchema>;
 
 export const TeeYardageRowSchema = TeeYardageInsertSchema.extend({
-  id: z.string().uuid(),
+  id: uuidString,
 });
 export type TeeYardageRow = z.infer<typeof TeeYardageRowSchema>;

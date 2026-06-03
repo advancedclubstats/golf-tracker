@@ -31,7 +31,7 @@ export default async function RoundDetailPage({ params }: Props) {
     }));
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 p-4">
+    <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <header className="mb-4 flex items-center justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold tracking-tight">{round.date}</h1>

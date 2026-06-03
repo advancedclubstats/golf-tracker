@@ -83,7 +83,7 @@ export function Dashboard({ data }: { data: DashboardData }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
       <Section title="Snapshot">
         <Row label="Rounds Logged" value={snapshot.roundsLogged} />
         <Row label="Holes Logged" value={snapshot.holesLogged} />

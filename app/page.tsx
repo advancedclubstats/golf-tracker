@@ -35,7 +35,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-xl flex-1 p-4">
+    <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <PageHeader title="Dashboard" current="dashboard" />
       <Dashboard data={data} />
     </main>

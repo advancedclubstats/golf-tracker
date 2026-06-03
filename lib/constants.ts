@@ -46,6 +46,15 @@ export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
   Practice3: "Practice 3",
 };
 
+// Number of holes a session covers (used when a round has no course to define
+// the selectable hole range).
+export const SESSION_HOLE_COUNTS: Record<SessionType, number> = {
+  Full18: 18,
+  Practice9: 9,
+  Practice6: 6,
+  Practice3: 3,
+};
+
 // ─── Shot field enums ─────────────────────────────────────────────────────────
 
 export const RESULTS = [

@@ -24,6 +24,12 @@ export const RoundInsertSchema = z.object({
 
   /** Optional free-text notes about the round. */
   notes: z.string().max(1000).nullish(),
+
+  /** Optional course this round was played on (provides par/yardage defaults). */
+  course_id: z.string().uuid().nullish(),
+
+  /** Optional tee played from. */
+  tee_id: z.string().uuid().nullish(),
 });
 
 export type RoundInsert = z.infer<typeof RoundInsertSchema>;
@@ -35,6 +41,8 @@ export const RoundRowSchema = RoundInsertSchema.extend({
   user_id: z.string().uuid(),
   // notes comes back as string | null from Postgres
   notes: z.string().max(1000).nullable(),
+  course_id: z.string().uuid().nullable(),
+  tee_id: z.string().uuid().nullable(),
   created_at: z.string(),
 });
 

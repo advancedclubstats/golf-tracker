@@ -26,8 +26,7 @@ interface ShotEntryFlowProps {
   initialLogged: Record<number, HoleLog>;
 }
 
-function formatVsPar(strokes: number, par: number): string {
-  const diff = strokes - par;
+function formatDiff(diff: number): string {
   if (diff === 0) return "E";
   return diff > 0 ? `+${diff}` : `${diff}`;
 }
@@ -35,6 +34,26 @@ function formatVsPar(strokes: number, par: number): string {
 /** A hole is "done" for navigation once it's completed (Make) or picked up. */
 function holeDone(logged: Record<number, HoleLog>, h: number): boolean {
   return Boolean(logged[h]?.complete || logged[h]?.conceded);
+}
+
+/** Running round score over *completed* holes (conceded holes have no score). */
+function roundScore(
+  logged: Record<number, HoleLog>,
+  parByHole: Record<number, number>,
+  localPar: Record<number, number>,
+): { vsPar: number; holes: number } {
+  let strokes = 0;
+  let par = 0;
+  let holes = 0;
+  for (const [h, l] of Object.entries(logged)) {
+    if (!l.complete) continue;
+    const p = parByHole[Number(h)] ?? localPar[Number(h)];
+    if (p == null) continue;
+    strokes += l.count + l.penalties;
+    par += p;
+    holes += 1;
+  }
+  return { vsPar: strokes - par, holes };
 }
 
 export function ShotEntryFlow({
@@ -50,8 +69,6 @@ export function ShotEntryFlow({
   const [hole, setHole] = useState<number>(
     holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
   );
-  const [showSummary, setShowSummary] = useState(false);
-  const [lastStrokes, setLastStrokes] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const courseParKnown = parByHole[hole] != null;
@@ -60,11 +77,7 @@ export function ShotEntryFlow({
   const shotNo = (holeLog?.count ?? 0) + 1;
   // Par locks once the hole is known from the course or has a shot logged.
   const parLocked = courseParKnown || (holeLog?.count ?? 0) > 0;
-
-  function goToHole(h: number) {
-    setHole(h);
-    setShowSummary(false);
-  }
+  const { vsPar, holes: holesPlayed } = roundScore(logged, parByHole, localPar);
 
   function nextUnfinishedHole(
     map: Record<number, HoleLog>,
@@ -88,7 +101,6 @@ export function ShotEntryFlow({
       const target = nextUnfinishedHole(next, hole);
       if (target !== null) {
         setHole(target);
-        setShowSummary(false);
       } else {
         router.push(`/rounds/${roundId}`);
       }
@@ -123,14 +135,24 @@ export function ShotEntryFlow({
         logged[hole] ?? { count: 0, complete: false, conceded: false, penalties: 0 };
       const penalties = prev.penalties + values.penalty;
       const made = values.result === "Make";
-      setLogged({
+      const nextMap = {
         ...logged,
         [hole]: { count: shotNo, complete: made, conceded: prev.conceded, penalties },
-      });
+      };
+      setLogged(nextMap);
 
       if (made) {
-        setLastStrokes(shotNo + penalties);
-        setShowSummary(true);
+        // Brief per-hole feedback, then auto-advance — no confirmation screen.
+        const strokes = shotNo + penalties;
+        if (par !== null) {
+          toast.success(`Hole ${hole}: ${strokes} (${formatDiff(strokes - par)})`);
+        }
+        const target = nextUnfinishedHole(nextMap, hole);
+        if (target !== null) {
+          setHole(target);
+        } else {
+          router.push(`/rounds/${roundId}`);
+        }
       }
       // If not made, shotNo derives from the updated count and ShotForm remounts.
     } catch (err) {
@@ -138,57 +160,6 @@ export function ShotEntryFlow({
     } finally {
       setIsSubmitting(false);
     }
-  }
-
-  // ── Hole summary view ──────────────────────────────────────────────────────
-
-  if (showSummary) {
-    const next = nextUnfinishedHole(logged, hole);
-    return (
-      <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-8 p-6 pt-12">
-        <div className="flex flex-col items-center gap-2 text-center">
-          <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-            Hole {hole} complete
-          </p>
-          <p className="text-7xl font-bold leading-none">{lastStrokes}</p>
-          {par !== null && (
-            <p className="text-xl text-muted-foreground">
-              Par {par} &nbsp;·&nbsp;{" "}
-              <span
-                className={cn(
-                  "font-semibold",
-                  lastStrokes < par
-                    ? "text-green-600"
-                    : lastStrokes > par
-                    ? "text-destructive"
-                    : "text-foreground",
-                )}
-              >
-                {formatVsPar(lastStrokes, par)}
-              </span>
-            </p>
-          )}
-        </div>
-
-        <div className="flex w-full flex-col gap-3">
-          {next !== null && (
-            <Button
-              onClick={() => goToHole(next)}
-              className="h-14 w-full text-base font-semibold"
-            >
-              Hole {next} →
-            </Button>
-          )}
-          <Button
-            variant={next !== null ? "outline" : "default"}
-            onClick={() => router.push(`/rounds/${roundId}`)}
-            className="h-12 w-full text-sm"
-          >
-            Done
-          </Button>
-        </div>
-      </div>
-    );
   }
 
   // ── Shot entry view ────────────────────────────────────────────────────────
@@ -204,7 +175,26 @@ export function ShotEntryFlow({
             </span>
           )}
         </h2>
-        <span className="text-sm text-muted-foreground">Shot {shotNo}</span>
+        <div className="flex items-baseline gap-3 text-sm text-muted-foreground">
+          {holesPlayed > 0 && (
+            <span className="tabular-nums">
+              <span
+                className={cn(
+                  "font-semibold",
+                  vsPar < 0
+                    ? "text-green-600"
+                    : vsPar > 0
+                    ? "text-destructive"
+                    : "text-foreground",
+                )}
+              >
+                {formatDiff(vsPar)}
+              </span>
+              <span className="text-xs"> thru {holesPlayed}</span>
+            </span>
+          )}
+          <span>Shot {shotNo}</span>
+        </div>
       </div>
 
       {/* Hole selector — jump to any hole, resume where you left off */}
@@ -217,7 +207,7 @@ export function ShotEntryFlow({
               <button
                 key={h}
                 type="button"
-                onClick={() => goToHole(h)}
+                onClick={() => setHole(h)}
                 aria-current={isCurrent ? "true" : undefined}
                 className={cn(
                   "h-9 w-9 shrink-0 rounded-lg text-sm font-medium tabular-nums transition-colors",

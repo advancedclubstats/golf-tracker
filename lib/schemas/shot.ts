@@ -103,6 +103,8 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   putt_side: z.enum(PUTT_SIDES).nullable(),
   putt_length: z.enum(PUTT_LENGTHS).nullable(),
   notes: z.string().nullable(),
+  /** True if this shot marks the hole as picked up / conceded. */
+  conceded: z.boolean().optional(),
   created_at: z.string(),
 });
 

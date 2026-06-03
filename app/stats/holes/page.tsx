@@ -24,6 +24,9 @@ export default async function HoleSummaryPage() {
   const shots = await getAllShots();
   const summary = computeHoleSummary(shots);
 
+  const pickedUp = summary.excluded.filter((e) => e.conceded).length;
+  const unfinished = summary.excluded.length - pickedUp;
+
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <PageHeader title="Hole Summary" current="holes" />
@@ -36,8 +39,8 @@ export default async function HoleSummaryPage() {
       {summary.completeCount > 0 && (
         <p className="mt-3 text-xs text-muted-foreground">
           {summary.completeCount} complete hole{summary.completeCount === 1 ? "" : "s"} counted
-          {summary.excluded.length > 0 &&
-            ` · ${summary.excluded.length} partial hole${summary.excluded.length === 1 ? "" : "s"} excluded`}
+          {pickedUp > 0 && ` · ${pickedUp} picked up`}
+          {unfinished > 0 && ` · ${unfinished} unfinished excluded`}
         </p>
       )}
     </main>

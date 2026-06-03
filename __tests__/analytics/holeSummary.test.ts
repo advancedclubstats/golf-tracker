@@ -69,7 +69,7 @@ describe("computeHoleSummary", () => {
 
   it("counts complete round-holes and excludes incomplete ones", () => {
     expect(summary.completeCount).toBe(4);
-    expect(summary.excluded).toEqual([{ roundId: "r2", hole: 3 }]);
+    expect(summary.excluded).toEqual([{ roundId: "r2", hole: 3, conceded: false }]);
   });
 
   it("returns one row per hole, ascending", () => {

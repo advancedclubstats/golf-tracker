@@ -114,3 +114,37 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
 
   revalidateShotViews(roundId);
 }
+
+/**
+ * Mark a hole as picked up / conceded by flagging its last shot. The hole stays
+ * excluded from scoring (no Make), but is labelled "Picked up" rather than
+ * "In progress". Requires at least one logged shot on the hole.
+ * Cache: revalidates '/' and '/rounds/[id]'.
+ */
+export async function concedeHole(roundId: string, hole: number): Promise<void> {
+  const supabase = createServerClient();
+
+  const { data: last, error: findErr } = await supabase
+    .from("shots")
+    .select("id")
+    .eq("round_id", roundId)
+    .eq("hole", hole)
+    .order("shot_no", { ascending: false })
+    .limit(1);
+  if (findErr) {
+    throw new Error(`Failed to load hole shots: ${findErr.message}`);
+  }
+  if (!last || last.length === 0) {
+    throw new Error("Cannot pick up a hole with no shots logged.");
+  }
+
+  const { error: updErr } = await supabase
+    .from("shots")
+    .update({ conceded: true })
+    .eq("id", last[0].id);
+  if (updErr) {
+    throw new Error(`Failed to pick up hole: ${updErr.message}`);
+  }
+
+  revalidateShotViews(roundId);
+}

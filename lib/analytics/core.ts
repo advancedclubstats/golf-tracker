@@ -131,6 +131,12 @@ export interface RoundHole {
   lastShotResult: Result | null;
   /** A hole "counts" only if its last shot's result is 'Make'. */
   complete: boolean;
+  /**
+   * The hole was picked up / conceded (any shot flagged conceded). Such holes
+   * are not `complete` (no Make) so they stay excluded from scoring — this only
+   * distinguishes an intentional pickup from a data-entry gap for labelling.
+   */
+  conceded: boolean;
 }
 
 /** A round-hole enriched with derived per-hole stats (complete holes only). */
@@ -178,6 +184,7 @@ export function aggregateByRoundHole(shots: readonly ShotRow[]): RoundHole[] {
         lastShotNo: 0,
         lastShotResult: null,
         complete: false,
+        conceded: false,
       };
       byKey.set(key, rh);
     }
@@ -192,6 +199,7 @@ export function aggregateByRoundHole(shots: readonly ShotRow[]): RoundHole[] {
   for (const rh of byKey.values()) {
     rh.shots.sort((a, b) => a.shot_no - b.shot_no);
     rh.complete = rh.lastShotResult === "Make";
+    rh.conceded = rh.shots.some((s) => s.conceded === true);
     out.push(rh);
   }
   return out;

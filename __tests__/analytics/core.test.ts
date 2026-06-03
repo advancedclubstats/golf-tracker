@@ -153,6 +153,22 @@ describe("aggregateByRoundHole", () => {
     const h2 = holes.find((h) => h.hole === 2)!;
     expect(h2.complete).toBe(false); // last result is not 'Make'
   });
+
+  it("flags a hole as conceded if any shot is conceded (but not complete)", () => {
+    const holes = aggregateByRoundHole([
+      shot({ round_id: "r1", hole: 1, shot_no: 1, club: "D", result: "Rough" }),
+      shot({ round_id: "r1", hole: 1, shot_no: 2, club: "LW", result: "Bunker", conceded: true }),
+    ]);
+    expect(holes[0].complete).toBe(false); // no Make → not counted for scoring
+    expect(holes[0].conceded).toBe(true);
+  });
+
+  it("a normal unfinished hole is not conceded", () => {
+    const holes = aggregateByRoundHole([
+      shot({ round_id: "r1", hole: 1, shot_no: 1, club: "D", result: "Rough" }),
+    ]);
+    expect(holes[0].conceded).toBe(false);
+  });
 });
 
 // ─── strokesToReachGreen — D-04 three paths ───────────────────────────────────

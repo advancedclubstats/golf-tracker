@@ -46,6 +46,8 @@ export interface HoleSummaryRow {
 export interface ExcludedRoundHole {
   roundId: string;
   hole: number;
+  /** True if intentionally picked up / conceded (vs an unfinished log). */
+  conceded: boolean;
 }
 
 export interface HoleSummary {
@@ -128,7 +130,7 @@ export function computeHoleSummary(shots: readonly ShotRow[]): HoleSummary {
   }
 
   const excluded: ExcludedRoundHole[] = incomplete
-    .map((r) => ({ roundId: r.roundId, hole: r.hole }))
+    .map((r) => ({ roundId: r.roundId, hole: r.hole, conceded: r.conceded }))
     .sort((a, b) =>
       `${a.roundId}${a.hole}`.localeCompare(`${b.roundId}${b.hole}`),
     );

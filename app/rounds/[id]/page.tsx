@@ -26,6 +26,7 @@ export default async function RoundDetailPage({ params }: Props) {
       hole: h.hole,
       par: h.par,
       complete: h.complete,
+      conceded: h.conceded,
       strokes: h.complete ? enrichRoundHole(h).strokes : null,
       shots: h.shots,
     }));

@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
-import { createShot } from "@/actions/shots";
+import { createShot, concedeHole } from "@/actions/shots";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 export interface HoleLog {
   count: number; // highest shot number logged on the hole
   complete: boolean; // last shot was a Make
+  conceded: boolean; // hole was picked up / conceded
   penalties: number; // total penalty strokes on the hole
 }
 
@@ -31,6 +32,11 @@ function formatVsPar(strokes: number, par: number): string {
   return diff > 0 ? `+${diff}` : `${diff}`;
 }
 
+/** A hole is "done" for navigation once it's completed (Make) or picked up. */
+function holeDone(logged: Record<number, HoleLog>, h: number): boolean {
+  return Boolean(logged[h]?.complete || logged[h]?.conceded);
+}
+
 export function ShotEntryFlow({
   roundId,
   parByHole,
@@ -42,7 +48,7 @@ export function ShotEntryFlow({
   const [logged, setLogged] = useState<Record<number, HoleLog>>(initialLogged);
   const [localPar, setLocalPar] = useState<Record<number, number>>({});
   const [hole, setHole] = useState<number>(
-    holeNumbers.find((h) => !initialLogged[h]?.complete) ?? holeNumbers[0],
+    holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
   );
   const [showSummary, setShowSummary] = useState(false);
   const [lastStrokes, setLastStrokes] = useState(0);
@@ -60,12 +66,37 @@ export function ShotEntryFlow({
     setShowSummary(false);
   }
 
-  function nextIncompleteHole(after: number): number | null {
+  function nextUnfinishedHole(
+    map: Record<number, HoleLog>,
+    after: number,
+  ): number | null {
     return (
-      holeNumbers.find((h) => h > after && !logged[h]?.complete) ??
-      holeNumbers.find((h) => !logged[h]?.complete) ??
+      holeNumbers.find((h) => h > after && !holeDone(map, h)) ??
+      holeNumbers.find((h) => !holeDone(map, h)) ??
       null
     );
+  }
+
+  async function handlePickUp() {
+    const prev = logged[hole];
+    if (!prev || prev.count === 0) return; // need at least one logged shot
+    setIsSubmitting(true);
+    try {
+      await concedeHole(roundId, hole);
+      const next = { ...logged, [hole]: { ...prev, conceded: true } };
+      setLogged(next);
+      const target = nextUnfinishedHole(next, hole);
+      if (target !== null) {
+        setHole(target);
+        setShowSummary(false);
+      } else {
+        router.push(`/rounds/${roundId}`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to pick up hole.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   async function handleShotSubmit(values: ShotFormValues) {
@@ -88,12 +119,13 @@ export function ShotEntryFlow({
         penalty: values.penalty,
       });
 
-      const prev = logged[hole] ?? { count: 0, complete: false, penalties: 0 };
+      const prev =
+        logged[hole] ?? { count: 0, complete: false, conceded: false, penalties: 0 };
       const penalties = prev.penalties + values.penalty;
       const made = values.result === "Make";
       setLogged({
         ...logged,
-        [hole]: { count: shotNo, complete: made, penalties },
+        [hole]: { count: shotNo, complete: made, conceded: prev.conceded, penalties },
       });
 
       if (made) {
@@ -111,7 +143,7 @@ export function ShotEntryFlow({
   // ── Hole summary view ──────────────────────────────────────────────────────
 
   if (showSummary) {
-    const next = nextIncompleteHole(hole);
+    const next = nextUnfinishedHole(logged, hole);
     return (
       <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-8 p-6 pt-12">
         <div className="flex flex-col items-center gap-2 text-center">
@@ -193,6 +225,8 @@ export function ShotEntryFlow({
                     ? "bg-primary text-primary-foreground"
                     : l?.complete
                     ? "bg-muted text-muted-foreground ring-1 ring-green-600/40"
+                    : l?.conceded
+                    ? "bg-muted text-muted-foreground line-through ring-1 ring-foreground/25"
                     : l?.count
                     ? "bg-muted text-foreground ring-1 ring-foreground/20"
                     : "bg-muted/50 text-muted-foreground hover:bg-muted",
@@ -240,8 +274,21 @@ export function ShotEntryFlow({
         onSubmit={handleShotSubmit}
       />
 
+      {(logged[hole]?.count ?? 0) > 0 &&
+        !logged[hole]?.complete &&
+        !logged[hole]?.conceded && (
+          <Button
+            variant="outline"
+            onClick={handlePickUp}
+            disabled={isSubmitting}
+            className="h-11 w-full text-sm"
+          >
+            Pick up hole →
+          </Button>
+        )}
+
       <Button
-        variant="outline"
+        variant="ghost"
         onClick={() => router.push(`/rounds/${roundId}`)}
         className="h-11 w-full text-sm"
       >

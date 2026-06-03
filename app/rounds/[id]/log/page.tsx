@@ -32,6 +32,7 @@ export default async function LogPage({ params }: Props) {
     initialLogged[rh.hole] = {
       count: rh.lastShotNo,
       complete: rh.complete,
+      conceded: rh.conceded,
       penalties: totalPenalties(rh.shots),
     };
     if (parByHole[rh.hole] == null) parByHole[rh.hole] = rh.par;

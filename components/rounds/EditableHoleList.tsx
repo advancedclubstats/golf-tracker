@@ -10,6 +10,7 @@ export interface HoleView {
   hole: number;
   par: number;
   complete: boolean;
+  conceded: boolean;
   strokes: number | null;
   shots: ShotRow[];
 }
@@ -43,6 +44,8 @@ export function EditableHoleList({
                     ({fmtVsPar(h.strokes - h.par)})
                   </span>
                 </span>
+              ) : h.conceded ? (
+                <span className="text-xs text-muted-foreground">Picked up</span>
               ) : (
                 <span className="text-xs text-muted-foreground">In progress</span>
               )}

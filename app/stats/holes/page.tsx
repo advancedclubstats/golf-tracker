@@ -1,25 +1,24 @@
 import { getAllShots } from "@/lib/db/shots";
 import { computeHoleSummary, type HoleSummaryRow } from "@/lib/analytics/holeSummary";
-import { DataTable, type Column } from "@/components/stats/DataTable";
+import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
 import { PageHeader } from "@/components/nav/PageHeader";
-import { fmtVsParAvg, fmtPct, fmtNum } from "@/lib/format";
-
-const columns: Column<HoleSummaryRow>[] = [
-  { header: "Hole", cell: (r) => r.hole },
-  { header: "Par", cell: (r) => r.par, align: "right" },
-  { header: "Rds", cell: (r) => r.rounds, align: "right" },
-  { header: "Avg", cell: (r) => fmtNum(r.avgScore), align: "right" },
-  { header: "Best", cell: (r) => r.best, align: "right" },
-  { header: "vs Par", cell: (r) => fmtVsParAvg(r.avgVsPar), align: "right" },
-  { header: "FW%", cell: (r) => fmtPct(r.fwPct), align: "right" },
-  { header: "GIR%", cell: (r) => fmtPct(r.girPct), align: "right" },
-  { header: "Scr%", cell: (r) => fmtPct(r.scramblePct), align: "right" },
-  { header: "Putts", cell: (r) => fmtNum(r.avgPutts), align: "right" },
-  { header: "3pt%", cell: (r) => fmtPct(r.threePuttPct), align: "right" },
-  { header: "Qual", cell: (r) => fmtNum(r.shotQuality), align: "right" },
-];
 
 export const dynamic = "force-dynamic";
+
+const columns: ColumnConfig<HoleSummaryRow>[] = [
+  { header: "Hole", key: "hole", align: "left" },
+  { header: "Par", key: "par", align: "right" },
+  { header: "Rds", key: "rounds", align: "right" },
+  { header: "Avg", key: "avgScore", format: "num", align: "right" },
+  { header: "Best", key: "best", format: "num", align: "right" },
+  { header: "vs Par", key: "avgVsPar", format: "vsParAvg", align: "right" },
+  { header: "FW%", key: "fwPct", format: "pct", align: "right" },
+  { header: "GIR%", key: "girPct", format: "pct", align: "right" },
+  { header: "Scr%", key: "scramblePct", format: "pct", align: "right" },
+  { header: "Putts", key: "avgPutts", format: "num", align: "right" },
+  { header: "3pt%", key: "threePuttPct", format: "pct", align: "right" },
+  { header: "Qual", key: "shotQuality", format: "num", align: "right" },
+];
 
 export default async function HoleSummaryPage() {
   const shots = await getAllShots();
@@ -31,7 +30,7 @@ export default async function HoleSummaryPage() {
       <DataTable
         columns={columns}
         rows={summary.rows}
-        getKey={(r) => r.hole}
+        rowKey="hole"
         empty="No complete holes logged yet."
       />
       {summary.completeCount > 0 && (

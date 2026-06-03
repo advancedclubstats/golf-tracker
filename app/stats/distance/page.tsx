@@ -7,75 +7,73 @@ import {
   type AroundGreenRow,
   type ApproachRow,
 } from "@/lib/analytics/distanceSummary";
-import { DataTable, type Column } from "@/components/stats/DataTable";
+import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
 import { PageHeader } from "@/components/nav/PageHeader";
-import { fmtPct, fmtNum } from "@/lib/format";
 
-const makeRateCols: Column<PuttMakeRateRow>[] = [
-  { header: "Distance", cell: (r) => r.label },
-  { header: "Putts", cell: (r) => r.putts, align: "right" },
-  { header: "Makes", cell: (r) => r.makes, align: "right" },
-  { header: "Make%", cell: (r) => fmtPct(r.makePct), align: "right" },
+export const dynamic = "force-dynamic";
+
+// Distance/bucket label columns keep their natural order (sortable: false).
+const makeRateCols: ColumnConfig<PuttMakeRateRow>[] = [
+  { header: "Distance", key: "label", align: "left", sortable: false },
+  { header: "Putts", key: "putts", align: "right" },
+  { header: "Makes", key: "makes", align: "right" },
+  { header: "Make%", key: "makePct", format: "pct", align: "right" },
 ];
 
-const firstPuttCols: Column<FirstPuttRow>[] = [
-  { header: "Distance", cell: (r) => r.label },
-  { header: "Faced", cell: (r) => r.faced, align: "right" },
-  { header: "Avg Putts", cell: (r) => fmtNum(r.avgPutts), align: "right" },
-  { header: "1-Putt%", cell: (r) => fmtPct(r.onePuttPct), align: "right" },
-  { header: "3-Putt%", cell: (r) => fmtPct(r.threePuttPct), align: "right" },
+const firstPuttCols: ColumnConfig<FirstPuttRow>[] = [
+  { header: "Distance", key: "label", align: "left", sortable: false },
+  { header: "Faced", key: "faced", align: "right" },
+  { header: "Avg Putts", key: "avgPutts", format: "num", align: "right" },
+  { header: "1-Putt%", key: "onePuttPct", format: "pct", align: "right" },
+  { header: "3-Putt%", key: "threePuttPct", format: "pct", align: "right" },
 ];
 
-const missCols: Column<PuttMissRow>[] = [
-  { header: "Distance", cell: (r) => r.label },
-  { header: "Misses", cell: (r) => r.misses, align: "right" },
-  { header: "High%", cell: (r) => fmtPct(r.highPct), align: "right" },
-  { header: "Low%", cell: (r) => fmtPct(r.lowPct), align: "right" },
-  { header: "Short%", cell: (r) => fmtPct(r.shortPct), align: "right" },
-  { header: "Long%", cell: (r) => fmtPct(r.longPct), align: "right" },
+const missCols: ColumnConfig<PuttMissRow>[] = [
+  { header: "Distance", key: "label", align: "left", sortable: false },
+  { header: "Misses", key: "misses", align: "right" },
+  { header: "High%", key: "highPct", format: "pct", align: "right" },
+  { header: "Low%", key: "lowPct", format: "pct", align: "right" },
+  { header: "Short%", key: "shortPct", format: "pct", align: "right" },
+  { header: "Long%", key: "longPct", format: "pct", align: "right" },
 ];
 
-const aroundGreenCols: Column<AroundGreenRow>[] = [
-  { header: "Distance", cell: (r) => r.label },
-  { header: "Shots", cell: (r) => r.shots, align: "right" },
-  { header: "Qual", cell: (r) => fmtNum(r.avgQuality), align: "right" },
-  { header: "On Green%", cell: (r) => fmtPct(r.onGreenPct), align: "right" },
-  { header: "Up&Down%", cell: (r) => fmtPct(r.upDownPct), align: "right" },
+const aroundGreenCols: ColumnConfig<AroundGreenRow>[] = [
+  { header: "Distance", key: "label", align: "left", sortable: false },
+  { header: "Shots", key: "shots", align: "right" },
+  { header: "Qual", key: "avgQuality", format: "num", align: "right" },
+  { header: "On Green%", key: "onGreenPct", format: "pct", align: "right" },
+  { header: "Up&Down%", key: "upDownPct", format: "pct", align: "right" },
 ];
 
-const approachCols: Column<ApproachRow>[] = [
-  { header: "Distance", cell: (r) => r.label },
-  { header: "Shots", cell: (r) => r.shots, align: "right" },
-  { header: "Qual", cell: (r) => fmtNum(r.avgQuality), align: "right" },
-  { header: "Green%", cell: (r) => fmtPct(r.greenHitPct), align: "right" },
-  { header: "Miss L", cell: (r) => fmtPct(r.missLPct), align: "right" },
-  { header: "Miss R", cell: (r) => fmtPct(r.missRPct), align: "right" },
-  { header: "Long", cell: (r) => fmtPct(r.missLongPct), align: "right" },
-  { header: "Short", cell: (r) => fmtPct(r.missShortPct), align: "right" },
+const approachCols: ColumnConfig<ApproachRow>[] = [
+  { header: "Distance", key: "label", align: "left", sortable: false },
+  { header: "Shots", key: "shots", align: "right" },
+  { header: "Qual", key: "avgQuality", format: "num", align: "right" },
+  { header: "Green%", key: "greenHitPct", format: "pct", align: "right" },
+  { header: "Miss L", key: "missLPct", format: "pct", align: "right" },
+  { header: "Miss R", key: "missRPct", format: "pct", align: "right" },
+  { header: "Long", key: "missLongPct", format: "pct", align: "right" },
+  { header: "Short", key: "missShortPct", format: "pct", align: "right" },
 ];
 
-function SubTable<T>({
+function SubTable<T extends { label: string }>({
   title,
   columns,
   rows,
-  getKey,
 }: {
   title: string;
-  columns: Column<T>[];
+  columns: ColumnConfig<T>[];
   rows: T[];
-  getKey: (row: T, index: number) => string | number;
 }) {
   return (
     <section className="mb-6">
       <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         {title}
       </h2>
-      <DataTable columns={columns} rows={rows} getKey={getKey} />
+      <DataTable columns={columns} rows={rows} rowKey="label" />
     </section>
   );
 }
-
-export const dynamic = "force-dynamic";
 
 export default async function DistanceSummaryPage() {
   const shots = await getAllShots();
@@ -93,33 +91,28 @@ export default async function DistanceSummaryPage() {
         title="Putting — Make Rate by Distance"
         columns={makeRateCols}
         rows={summary.makeRate}
-        getKey={(r) => r.label}
       />
       <SubTable
         title="Putting — Performance by First-Putt Distance"
         columns={firstPuttCols}
         rows={summary.firstPutt}
-        getKey={(r) => r.label}
       />
       {showMissPatterns && (
         <SubTable
           title="Putting — Miss Patterns"
           columns={missCols}
           rows={summary.missPatterns}
-          getKey={(r) => r.label}
         />
       )}
       <SubTable
         title="Around the Green (under 30 yds)"
         columns={aroundGreenCols}
         rows={summary.aroundGreen}
-        getKey={(r) => r.label}
       />
       <SubTable
         title="Approach Shots (30+ yds)"
         columns={approachCols}
         rows={summary.approaches}
-        getKey={(r) => r.label}
       />
     </main>
   );

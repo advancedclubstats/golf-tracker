@@ -1,24 +1,23 @@
 import { getAllShots } from "@/lib/db/shots";
 import { computeClubSummary, type ClubSummaryRow } from "@/lib/analytics/clubSummary";
-import { DataTable, type Column } from "@/components/stats/DataTable";
+import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
 import { PageHeader } from "@/components/nav/PageHeader";
-import { fmtPct, fmtNum } from "@/lib/format";
-
-const columns: Column<ClubSummaryRow>[] = [
-  { header: "Club", cell: (r) => r.club },
-  { header: "Shots", cell: (r) => r.shots, align: "right" },
-  { header: "Qual", cell: (r) => fmtNum(r.avgQuality), align: "right" },
-  { header: "Yds", cell: (r) => fmtNum(r.avgYds), align: "right" },
-  { header: "FW%", cell: (r) => fmtPct(r.fwPct), align: "right" },
-  { header: "Grn%", cell: (r) => fmtPct(r.greenPct), align: "right" },
-  { header: "Miss L", cell: (r) => fmtPct(r.missLPct), align: "right" },
-  { header: "Miss R", cell: (r) => fmtPct(r.missRPct), align: "right" },
-  { header: "Long", cell: (r) => fmtPct(r.missLongPct), align: "right" },
-  { header: "Short", cell: (r) => fmtPct(r.missShortPct), align: "right" },
-  { header: "Bnkr", cell: (r) => fmtPct(r.bunkerPct), align: "right" },
-];
 
 export const dynamic = "force-dynamic";
+
+const columns: ColumnConfig<ClubSummaryRow>[] = [
+  { header: "Club", key: "club", align: "left" },
+  { header: "Shots", key: "shots", align: "right" },
+  { header: "Qual", key: "avgQuality", format: "num", align: "right" },
+  { header: "Yds", key: "avgYds", format: "num", align: "right" },
+  { header: "FW%", key: "fwPct", format: "pct", align: "right" },
+  { header: "Grn%", key: "greenPct", format: "pct", align: "right" },
+  { header: "Miss L", key: "missLPct", format: "pct", align: "right" },
+  { header: "Miss R", key: "missRPct", format: "pct", align: "right" },
+  { header: "Long", key: "missLongPct", format: "pct", align: "right" },
+  { header: "Short", key: "missShortPct", format: "pct", align: "right" },
+  { header: "Bnkr", key: "bunkerPct", format: "pct", align: "right" },
+];
 
 export default async function ClubSummaryPage() {
   const shots = await getAllShots();
@@ -30,7 +29,7 @@ export default async function ClubSummaryPage() {
       <DataTable
         columns={columns}
         rows={rows}
-        getKey={(r) => r.club}
+        rowKey="club"
         empty="No shots logged yet."
       />
     </main>

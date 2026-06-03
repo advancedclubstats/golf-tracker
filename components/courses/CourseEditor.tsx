@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { PRESET_TEE_COLORS } from "@/lib/constants";
 import {
   renameCourse,
   setHolePar,
@@ -59,7 +61,7 @@ export function CourseEditor({
 
   // New-tee form state.
   const [newTeeName, setNewTeeName] = useState("");
-  const [newTeeColor, setNewTeeColor] = useState("#2563eb");
+  const [newTeeColor, setNewTeeColor] = useState<string>(PRESET_TEE_COLORS[0].hex);
 
   async function run(fn: () => Promise<unknown>, errMsg: string) {
     try {
@@ -168,23 +170,39 @@ export function CourseEditor({
         ) : (
           <p className="text-sm text-muted-foreground">No tees yet.</p>
         )}
-        <form onSubmit={onAddTee} className="mt-1 flex items-center gap-2">
-          <input
-            type="color"
-            aria-label="Tee colour"
-            value={newTeeColor}
-            onChange={(e) => setNewTeeColor(e.target.value)}
-            className="h-10 w-10 shrink-0 cursor-pointer rounded-lg border border-input bg-background p-1"
-          />
-          <Input
-            value={newTeeName}
-            onChange={(e) => setNewTeeName(e.target.value)}
-            placeholder="Tee name (e.g. Blue)"
-            className="h-10"
-          />
-          <Button type="submit" disabled={!newTeeName.trim()} className="h-10 shrink-0">
-            Add tee
-          </Button>
+        <form onSubmit={onAddTee} className="mt-1 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {PRESET_TEE_COLORS.map((c) => (
+              <button
+                key={c.hex}
+                type="button"
+                aria-label={c.name}
+                title={c.name}
+                onClick={() => {
+                  setNewTeeColor(c.hex);
+                  if (!newTeeName.trim()) setNewTeeName(c.name);
+                }}
+                style={{ backgroundColor: c.hex }}
+                className={cn(
+                  "size-7 shrink-0 rounded-full ring-offset-1 ring-offset-background transition-all",
+                  newTeeColor === c.hex
+                    ? "ring-2 ring-foreground"
+                    : "ring-1 ring-foreground/20",
+                )}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <Input
+              value={newTeeName}
+              onChange={(e) => setNewTeeName(e.target.value)}
+              placeholder="Tee name (e.g. Blue)"
+              className="h-10"
+            />
+            <Button type="submit" disabled={!newTeeName.trim()} className="h-10 shrink-0">
+              Add tee
+            </Button>
+          </div>
         </form>
       </div>
 

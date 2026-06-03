@@ -109,6 +109,19 @@ export const APPROACH_BUCKETS = [
 /** Multiply putt yardage by this to convert to feet for bucketing. */
 export const PUTT_YD_TO_FT = 3;
 
+// ─── Tee colours ──────────────────────────────────────────────────────────────
+// Preset swatches for the course tee picker (the usual golf tee colours).
+
+export const PRESET_TEE_COLORS = [
+  { name: "Black", hex: "#000000" },
+  { name: "Blue", hex: "#2563eb" },
+  { name: "White", hex: "#ffffff" },
+  { name: "Red", hex: "#dc2626" },
+  { name: "Gold", hex: "#d4af37" },
+  { name: "Green", hex: "#16a34a" },
+  { name: "Silver", hex: "#9ca3af" },
+] as const;
+
 // ─── Hardcoded v1 user ────────────────────────────────────────────────────────
 // Used in server actions when inserting rows. Replace with auth.uid() post-v1.
 

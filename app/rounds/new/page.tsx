@@ -1,15 +1,27 @@
-import { NewRoundForm } from "./NewRoundForm";
+import { getCourses, getCourseTees } from "@/lib/db/courses";
+import { NewRoundForm, type CourseOption } from "./NewRoundForm";
 
-export default function NewRoundPage() {
+export const dynamic = "force-dynamic";
+
+export default async function NewRoundPage() {
+  const courses = await getCourses();
+  const options: CourseOption[] = await Promise.all(
+    courses.map(async (c) => ({
+      id: c.id,
+      name: c.name,
+      tees: (await getCourseTees(c.id)).map((t) => ({ id: t.id, name: t.name })),
+    })),
+  );
+
   return (
-    <main className="flex flex-col gap-6 p-6 max-w-lg mx-auto w-full">
+    <main className="mx-auto flex w-full max-w-lg flex-col gap-6 p-6">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">New Round</h1>
         <p className="text-sm text-muted-foreground">
           Fill in the details, then log your shots hole by hole.
         </p>
       </div>
-      <NewRoundForm />
+      <NewRoundForm courses={options} />
     </main>
   );
 }

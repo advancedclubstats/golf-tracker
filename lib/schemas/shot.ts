@@ -106,3 +106,22 @@ export const ShotRowSchema = ShotInsertSchema.extend({
 });
 
 export type ShotRow = z.infer<typeof ShotRowSchema>;
+
+// ─── Update (editable fields only) ────────────────────────────────────────────
+// Structural fields (round_id, hole, par, shot_no) are NOT editable per-shot:
+// par is hole-level (D-09 trigger), and shot_no is managed by the renumber
+// logic on delete. Only the descriptive fields can be edited.
+
+export const ShotUpdateSchema = ShotInsertSchema.pick({
+  club: true,
+  yardage: true,
+  execution: true,
+  result: true,
+  miss_direction: true,
+  putt_side: true,
+  putt_length: true,
+  mulligan: true,
+  penalty: true,
+});
+
+export type ShotUpdate = z.infer<typeof ShotUpdateSchema>;

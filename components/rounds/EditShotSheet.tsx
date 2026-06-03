@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
+import { updateShot, deleteShot } from "@/actions/shots";
+import type { ShotRow } from "@/lib/schemas/shot";
+
+interface EditShotSheetProps {
+  /** The shot being edited, or null when the sheet is closed. */
+  shot: ShotRow | null;
+  roundId: string;
+  onClose: () => void;
+}
+
+export function EditShotSheet({ shot, roundId, onClose }: EditShotSheetProps) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+
+  async function handleSave(values: ShotFormValues) {
+    if (!shot) return;
+    setBusy(true);
+    try {
+      await updateShot(shot.id, roundId, {
+        club: values.club!,
+        yardage: values.yardage,
+        execution: values.execution,
+        result: values.result,
+        miss_direction: values.missDirection,
+        putt_side: values.puttSide,
+        putt_length: values.puttLength,
+        mulligan: values.mulligan,
+        penalty: values.penalty,
+      });
+      toast.success("Shot updated.");
+      onClose();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update shot.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!shot) return;
+    if (
+      !window.confirm(
+        "Delete this shot? The remaining shots on this hole will be renumbered.",
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      await deleteShot(shot.id, roundId);
+      toast.success("Shot deleted.");
+      onClose();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to delete shot.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet open={shot !== null} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+        {shot && (
+          <>
+            <SheetHeader>
+              <SheetTitle>
+                Edit shot · Hole {shot.hole}, shot {shot.shot_no}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <ShotForm
+                key={shot.id}
+                par={shot.par}
+                shotNo={shot.shot_no}
+                requireExecution={false}
+                busy={busy}
+                submitLabel={() => "Save changes"}
+                onSubmit={handleSave}
+                initial={{
+                  club: shot.club,
+                  yardage: shot.yardage,
+                  execution: shot.execution,
+                  result: shot.result,
+                  missDirection: shot.miss_direction,
+                  puttSide: shot.putt_side,
+                  puttLength: shot.putt_length,
+                  mulligan: shot.mulligan,
+                  penalty: shot.penalty,
+                }}
+                secondaryAction={
+                  <Button
+                    variant="destructive"
+                    onClick={handleDelete}
+                    disabled={busy}
+                    className="h-11 w-full"
+                  >
+                    Delete shot
+                  </Button>
+                }
+              />
+            </div>
+          </>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}

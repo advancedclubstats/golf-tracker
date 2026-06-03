@@ -1,9 +1,21 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { ShotInsertSchema, type ShotInsert } from "@/lib/schemas/shot";
+import {
+  ShotInsertSchema,
+  ShotUpdateSchema,
+  type ShotInsert,
+  type ShotUpdate,
+} from "@/lib/schemas/shot";
 import { V1_USER_ID } from "@/lib/constants";
 import { createServerClient } from "@/lib/supabase/server";
+import { renumberContiguous } from "@/lib/shots/sequence";
+
+/** Revalidate the views that depend on shot data (cache hard rule). */
+function revalidateShotViews(roundId: string) {
+  revalidatePath("/");
+  revalidatePath(`/rounds/${roundId}`);
+}
 
 /**
  * Save a single shot. Validates with ShotInsertSchema before touching the DB.
@@ -26,8 +38,79 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
     throw new Error(`Failed to save shot: ${error.message}`);
   }
 
-  revalidatePath("/");
-  revalidatePath(`/rounds/${validated.round_id}`);
+  revalidateShotViews(validated.round_id);
 
   return { id: shot.id };
+}
+
+/**
+ * Update a shot's descriptive fields (not its position). Validates with
+ * ShotUpdateSchema. Throws on validation or DB error.
+ *
+ * `roundId` is passed so we can revalidate the round view without a second
+ * fetch. Cache: revalidates '/' and '/rounds/[id]'.
+ */
+export async function updateShot(
+  id: string,
+  roundId: string,
+  data: ShotUpdate,
+): Promise<void> {
+  const validated = ShotUpdateSchema.parse(data);
+
+  const supabase = createServerClient();
+
+  const { error } = await supabase.from("shots").update(validated).eq("id", id);
+
+  if (error) {
+    throw new Error(`Failed to update shot: ${error.message}`);
+  }
+
+  revalidateShotViews(roundId);
+}
+
+/**
+ * Delete a shot and renumber the remaining shots on its hole so shot numbers
+ * stay a contiguous 1..n sequence (a gap would inflate the hole's score).
+ * Throws on DB error. Cache: revalidates '/' and '/rounds/[id]'.
+ */
+export async function deleteShot(id: string, roundId: string): Promise<void> {
+  const supabase = createServerClient();
+
+  // Need the hole to find siblings to renumber.
+  const { data: shot, error: findErr } = await supabase
+    .from("shots")
+    .select("hole")
+    .eq("id", id)
+    .single();
+  if (findErr) {
+    throw new Error(`Failed to load shot: ${findErr.message}`);
+  }
+
+  const { error: delErr } = await supabase.from("shots").delete().eq("id", id);
+  if (delErr) {
+    throw new Error(`Failed to delete shot: ${delErr.message}`);
+  }
+
+  const { data: remaining, error: listErr } = await supabase
+    .from("shots")
+    .select("id, shot_no")
+    .eq("round_id", roundId)
+    .eq("hole", shot.hole)
+    .order("shot_no", { ascending: true });
+  if (listErr) {
+    throw new Error(`Failed to load hole shots: ${listErr.message}`);
+  }
+
+  // Apply ascending so each target slot is free before we move into it.
+  for (const update of renumberContiguous(remaining ?? [])) {
+    const { error: renumErr } = await supabase
+      .from("shots")
+      .update({ shot_no: update.shot_no })
+      .eq("id", update.id);
+    if (renumErr) {
+      throw new Error(`Failed to renumber shot: ${renumErr.message}`);
+    }
+  }
+
+  revalidateShotViews(roundId);
 }

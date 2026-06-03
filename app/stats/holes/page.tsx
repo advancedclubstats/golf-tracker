@@ -19,6 +19,8 @@ const columns: Column<HoleSummaryRow>[] = [
   { header: "Qual", cell: (r) => fmtNum(r.shotQuality), align: "right" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function HoleSummaryPage() {
   const shots = await getAllShots();
   const summary = computeHoleSummary(shots);

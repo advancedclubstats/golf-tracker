@@ -8,6 +8,8 @@ import { StatsNav } from "@/components/nav/StatsNav";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 import { fmtVsPar } from "@/lib/format";
 
+export const dynamic = "force-dynamic";
+
 export default async function RoundsPage() {
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
   const list = computeRoundList(shots, rounds);

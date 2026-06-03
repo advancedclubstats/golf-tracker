@@ -18,6 +18,8 @@ const columns: Column<ClubSummaryRow>[] = [
   { header: "Bnkr", cell: (r) => fmtPct(r.bunkerPct), align: "right" },
 ];
 
+export const dynamic = "force-dynamic";
+
 export default async function ClubSummaryPage() {
   const shots = await getAllShots();
   const rows = computeClubSummary(shots);

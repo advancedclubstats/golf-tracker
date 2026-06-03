@@ -75,6 +75,8 @@ function SubTable<T>({
   );
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function DistanceSummaryPage() {
   const shots = await getAllShots();
   const summary = computeDistanceSummary(shots);

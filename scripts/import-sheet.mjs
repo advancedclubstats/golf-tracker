@@ -121,7 +121,7 @@ export function buildImport(csvPath) {
 if (import.meta.url === `file://${process.argv[1]}`) {
   const path = process.argv[2];
   if (!path) { console.error("usage: node scripts/import-sheet.mjs <csv>"); process.exit(1); }
-  const { rounds, shots, summary } = buildImport(path);
+  const { rounds, shots } = buildImport(path);
   const q = (v) => (v == null ? "NULL" : typeof v === "number" ? String(v) : typeof v === "boolean" ? v : `'${String(v).replace(/'/g, "''")}'`);
   const roundVals = rounds.map((r) => `  (${q(r.id)}, ${q(r.user_id)}, ${q(r.date)}, ${q(r.session_type)}, NULL)`);
   const shotVals = shots.map((s) =>

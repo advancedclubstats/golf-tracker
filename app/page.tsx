@@ -7,6 +7,10 @@ import { computeDashboard } from "@/lib/analytics/dashboard";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { StatsNav } from "@/components/nav/StatsNav";
 
+// Render on every request so direct DB changes (e.g. the sheet import) and
+// app writes are always reflected. Single-user app — dynamic cost is negligible.
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   // Reads go through lib/db in Server Components; analytics are pure.
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);

@@ -8,7 +8,7 @@ import {
   type ApproachRow,
 } from "@/lib/analytics/distanceSummary";
 import { DataTable, type Column } from "@/components/stats/DataTable";
-import { StatsNav } from "@/components/nav/StatsNav";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { fmtPct, fmtNum } from "@/lib/format";
 
 const makeRateCols: Column<PuttMakeRateRow>[] = [
@@ -87,8 +87,7 @@ export default async function DistanceSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <h1 className="mb-3 text-xl font-semibold tracking-tight">Distance Summary</h1>
-      <StatsNav current="distance" />
+      <PageHeader title="Distance Summary" current="distance" />
 
       <SubTable
         title="Putting — Make Rate by Distance"

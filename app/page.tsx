@@ -5,7 +5,7 @@ import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
 import { Dashboard } from "@/components/dashboard/Dashboard";
-import { StatsNav } from "@/components/nav/StatsNav";
+import { PageHeader } from "@/components/nav/PageHeader";
 
 // Render on every request so direct DB changes (e.g. the sheet import) and
 // app writes are always reflected. Single-user app — dynamic cost is negligible.
@@ -36,13 +36,7 @@ export default async function Home() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 p-4">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Dashboard</h1>
-        <Link href="/rounds/new" className={cn(buttonVariants({ size: "sm" }))}>
-          New Round →
-        </Link>
-      </header>
-      <StatsNav current="dashboard" />
+      <PageHeader title="Dashboard" current="dashboard" />
       <Dashboard data={data} />
     </main>
   );

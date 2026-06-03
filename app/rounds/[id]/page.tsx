@@ -31,12 +31,20 @@ export default async function RoundDetailPage({ params }: Props) {
             {SESSION_TYPE_LABELS[round.session_type]}
           </p>
         </div>
-        <Link
-          href={`/rounds/${id}/log`}
-          className={cn(buttonVariants({ size: "sm" }))}
-        >
-          Add shots →
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <Link
+            href={`/rounds/${id}/log`}
+            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+          >
+            Add shots →
+          </Link>
+          <Link
+            href="/rounds/new"
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            New Round →
+          </Link>
+        </div>
       </header>
       <StatsNav current="rounds" />
 

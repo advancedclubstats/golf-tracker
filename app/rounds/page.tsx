@@ -1,10 +1,8 @@
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeRoundList } from "@/lib/analytics/rounds";
-import { StatsNav } from "@/components/nav/StatsNav";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 import { fmtVsPar } from "@/lib/format";
 
@@ -16,13 +14,7 @@ export default async function RoundsPage() {
 
   return (
     <main className="mx-auto w-full max-w-xl flex-1 p-4">
-      <header className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold tracking-tight">Rounds</h1>
-        <Link href="/rounds/new" className={cn(buttonVariants({ size: "sm" }))}>
-          New Round →
-        </Link>
-      </header>
-      <StatsNav current="rounds" />
+      <PageHeader title="Rounds" current="rounds" />
 
       {list.length === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">

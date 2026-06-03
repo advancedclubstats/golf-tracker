@@ -1,7 +1,7 @@
 import { getAllShots } from "@/lib/db/shots";
 import { computeHoleSummary, type HoleSummaryRow } from "@/lib/analytics/holeSummary";
 import { DataTable, type Column } from "@/components/stats/DataTable";
-import { StatsNav } from "@/components/nav/StatsNav";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { fmtVsParAvg, fmtPct, fmtNum } from "@/lib/format";
 
 const columns: Column<HoleSummaryRow>[] = [
@@ -27,8 +27,7 @@ export default async function HoleSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <h1 className="mb-3 text-xl font-semibold tracking-tight">Hole Summary</h1>
-      <StatsNav current="holes" />
+      <PageHeader title="Hole Summary" current="holes" />
       <DataTable
         columns={columns}
         rows={summary.rows}

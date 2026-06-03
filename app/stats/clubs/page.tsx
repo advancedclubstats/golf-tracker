@@ -1,7 +1,7 @@
 import { getAllShots } from "@/lib/db/shots";
 import { computeClubSummary, type ClubSummaryRow } from "@/lib/analytics/clubSummary";
 import { DataTable, type Column } from "@/components/stats/DataTable";
-import { StatsNav } from "@/components/nav/StatsNav";
+import { PageHeader } from "@/components/nav/PageHeader";
 import { fmtPct, fmtNum } from "@/lib/format";
 
 const columns: Column<ClubSummaryRow>[] = [
@@ -26,8 +26,7 @@ export default async function ClubSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <h1 className="mb-3 text-xl font-semibold tracking-tight">Club Summary</h1>
-      <StatsNav current="clubs" />
+      <PageHeader title="Club Summary" current="clubs" />
       <DataTable
         columns={columns}
         rows={rows}

@@ -1,23 +1,23 @@
 "use client";
 
-import { CLUBS, type Club } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface ClubSelectorProps {
-  value: Club | null;
-  onChange: (club: Club) => void;
+  /** The user's bag, in order (from the Setup page). */
+  clubs: string[];
+  value: string | null;
+  onChange: (club: string) => void;
 }
-
-// Mid-bag clubs shown in a 3-column grid between Driver and Putter.
-const MID_CLUBS = CLUBS.filter((c) => c !== "D" && c !== "Putter");
 
 function ClubButton({
   club,
+  label,
   selected,
   onClick,
   className,
 }: {
   club: string;
+  label?: string;
   selected: boolean;
   onClick: () => void;
   className?: string;
@@ -31,45 +31,55 @@ function ClubButton({
         selected
           ? "bg-primary text-primary-foreground"
           : "bg-muted text-foreground hover:bg-muted/70 active:bg-muted/50",
-        className
+        className,
       )}
     >
-      {club}
+      {label ?? club}
     </button>
   );
 }
 
-export function ClubSelector({ value, onChange }: ClubSelectorProps) {
+export function ClubSelector({ clubs, value, onChange }: ClubSelectorProps) {
+  const hasDriver = clubs.includes("D");
+  const hasPutter = clubs.includes("Putter");
+  // Driver and Putter get prominent full-width rows; everything else (in bag
+  // order) sits in the 3-up grid between them.
+  const midClubs = clubs.filter((c) => c !== "D" && c !== "Putter");
+
   return (
     <div className="flex flex-col gap-2">
-      {/* Driver — full-width prominent */}
-      <ClubButton
-        club="Driver"
-        selected={value === "D"}
-        onClick={() => onChange("D")}
-        className="h-14 w-full text-base font-semibold"
-      />
+      {hasDriver && (
+        <ClubButton
+          club="D"
+          label="Driver"
+          selected={value === "D"}
+          onClick={() => onChange("D")}
+          className="h-14 w-full text-base font-semibold"
+        />
+      )}
 
-      {/* Mid-bag — 3 per row */}
-      <div className="grid grid-cols-3 gap-2">
-        {MID_CLUBS.map((club) => (
-          <ClubButton
-            key={club}
-            club={club}
-            selected={value === club}
-            onClick={() => onChange(club)}
-            className="h-12 text-sm"
-          />
-        ))}
-      </div>
+      {midClubs.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {midClubs.map((club) => (
+            <ClubButton
+              key={club}
+              club={club}
+              selected={value === club}
+              onClick={() => onChange(club)}
+              className="h-12 text-sm"
+            />
+          ))}
+        </div>
+      )}
 
-      {/* Putter — full-width prominent */}
-      <ClubButton
-        club="Putter"
-        selected={value === "Putter"}
-        onClick={() => onChange("Putter")}
-        className="h-14 w-full text-base font-semibold"
-      />
+      {hasPutter && (
+        <ClubButton
+          club="Putter"
+          selected={value === "Putter"}
+          onClick={() => onChange("Putter")}
+          className="h-14 w-full text-base font-semibold"
+        />
+      )}
     </div>
   );
 }

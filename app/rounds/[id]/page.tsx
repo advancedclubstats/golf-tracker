@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getRound } from "@/lib/db/rounds";
 import { getShotsByRound } from "@/lib/db/shots";
+import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, enrichRoundHole } from "@/lib/analytics/core";
 import { StatsNav } from "@/components/nav/StatsNav";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
@@ -18,7 +19,7 @@ export default async function RoundDetailPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const shots = await getShotsByRound(id);
+  const [shots, clubs] = await Promise.all([getShotsByRound(id), getClubNames()]);
   // aggregateByRoundHole sorts each hole's shots; sort holes ascending for display.
   const holes: HoleView[] = aggregateByRoundHole(shots)
     .sort((a, b) => a.hole - b.hole)
@@ -74,7 +75,7 @@ export default async function RoundDetailPage({ params }: Props) {
       ) : (
         <>
           <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
-          <EditableHoleList roundId={id} holes={holes} />
+          <EditableHoleList roundId={id} clubs={clubs} holes={holes} />
         </>
       )}
     </main>

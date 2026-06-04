@@ -18,12 +18,19 @@ interface EditShotSheetProps {
   /** The shot being edited, or null when the sheet is closed. */
   shot: ShotRow | null;
   roundId: string;
+  /** The user's club bag (from the Setup page). */
+  clubs: string[];
   onClose: () => void;
 }
 
-export function EditShotSheet({ shot, roundId, onClose }: EditShotSheetProps) {
+export function EditShotSheet({ shot, roundId, clubs, onClose }: EditShotSheetProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+
+  // Keep a shot's own club selectable even if it's since been removed from the
+  // bag (so old shots stay editable without their club vanishing).
+  const formClubs =
+    shot && shot.club && !clubs.includes(shot.club) ? [...clubs, shot.club] : clubs;
 
   async function handleSave(values: ShotFormValues) {
     if (!shot) return;
@@ -84,6 +91,7 @@ export function EditShotSheet({ shot, roundId, onClose }: EditShotSheetProps) {
             <div className="px-4 pb-6">
               <ShotForm
                 key={shot.id}
+                clubs={formClubs}
                 par={shot.par}
                 shotNo={shot.shot_no}
                 requireExecution={false}

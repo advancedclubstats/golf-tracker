@@ -1,16 +1,25 @@
 import Link from "next/link";
 import { getCourses } from "@/lib/db/courses";
+import { getClubs } from "@/lib/db/clubs";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { NewCourseForm } from "@/components/courses/NewCourseForm";
+import { ClubsEditor } from "@/components/clubs/ClubsEditor";
 
 export const dynamic = "force-dynamic";
 
-export default async function CoursesPage() {
-  const courses = await getCourses();
+export default async function SetupPage() {
+  const [courses, clubs] = await Promise.all([getCourses(), getClubs()]);
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Courses" current="courses" />
+      <PageHeader title="Setup" current="courses" />
+
+      <section className="mb-8">
+        <h2 className="eyebrow mb-3">Your bag</h2>
+        <ClubsEditor initialClubs={clubs.map((c) => ({ id: c.id, name: c.name }))} />
+      </section>
+
+      <h2 className="eyebrow mb-3">Courses</h2>
       <NewCourseForm />
 
       <ul className="mt-4 flex flex-col gap-2">

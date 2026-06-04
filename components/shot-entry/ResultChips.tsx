@@ -1,11 +1,11 @@
 "use client";
 
-import { RESULTS, type Club, type Result } from "@/lib/constants";
+import { RESULTS, type Result } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface ResultChipsProps {
   // Passed through for context — used in Phase 4 (P4-T3) to reorder chips.
-  club: Club | null;
+  club: string | null;
   shotNo: number;
   par: number | null;
   value: Result | null;

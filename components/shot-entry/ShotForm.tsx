@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Toggle } from "@/components/ui/toggle";
 import {
-  type Club,
   type Result,
   type MissDirection,
   type PuttSide,
@@ -21,7 +20,7 @@ import { cn } from "@/lib/utils";
 
 /** The descriptive fields of a single shot (no hole/par/shot_no). */
 export interface ShotFormValues {
-  club: Club | null;
+  club: string | null;
   yardage: number | null;
   execution: number | null;
   result: Result | null;
@@ -46,6 +45,8 @@ const MISS_RESULTS = new Set<Result>([
 ]);
 
 interface ShotFormProps {
+  /** The user's club bag, in order (from the Setup page). */
+  clubs: string[];
   /** Hole par — context for the result chips and validation. */
   par: number | null;
   /** Shot number — context (e.g. tee-shot logic in the result chips). */
@@ -71,6 +72,7 @@ interface ShotFormProps {
  * new-shot entry flow and the edit sheet so those rules live in one place.
  */
 export function ShotForm({
+  clubs,
   par,
   shotNo,
   initial,
@@ -80,7 +82,7 @@ export function ShotForm({
   onSubmit,
   secondaryAction,
 }: ShotFormProps) {
-  const [club, setClub] = useState<Club | null>(initial?.club ?? null);
+  const [club, setClub] = useState<string | null>(initial?.club ?? null);
   const [yardage, setYardage] = useState<number | null>(initial?.yardage ?? null);
   const [execution, setExecution] = useState<number | null>(initial?.execution ?? null);
   const [result, setResult] = useState<Result | null>(initial?.result ?? null);
@@ -103,7 +105,7 @@ export function ShotForm({
     setPenalty(r && PENALTY_RESULTS.has(r) ? 1 : 0);
   }
 
-  function handleClubChange(c: Club) {
+  function handleClubChange(c: string) {
     setClub(c);
     if (c !== "Putter") {
       setPuttSide(null);
@@ -140,7 +142,7 @@ export function ShotForm({
     <div className="flex flex-col gap-5">
       <div className="flex flex-col gap-2">
         <Label>Club</Label>
-        <ClubSelector value={club} onChange={handleClubChange} />
+        <ClubSelector clubs={clubs} value={club} onChange={handleClubChange} />
       </div>
 
       <div className="flex flex-col gap-2">

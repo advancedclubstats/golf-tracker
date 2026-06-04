@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { getRound } from "@/lib/db/rounds";
 import { getShotsByRound } from "@/lib/db/shots";
 import { getCourseHoles } from "@/lib/db/courses";
+import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, totalPenalties } from "@/lib/analytics/core";
 import { SESSION_HOLE_COUNTS } from "@/lib/constants";
 import { ShotEntryFlow, type HoleLog } from "./ShotEntryFlow";
@@ -17,9 +18,10 @@ export default async function LogPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, courseHoles] = await Promise.all([
+  const [shots, courseHoles, clubs] = await Promise.all([
     getShotsByRound(id),
     round.course_id ? getCourseHoles(round.course_id) : Promise.resolve([]),
+    getClubNames(),
   ]);
 
   // Known par per hole: course pars preferred, then any already-logged shot's par.
@@ -49,6 +51,7 @@ export default async function LogPage({ params }: Props) {
   return (
     <ShotEntryFlow
       roundId={id}
+      clubs={clubs}
       parByHole={parByHole}
       holeNumbers={holeNumbers}
       initialLogged={initialLogged}

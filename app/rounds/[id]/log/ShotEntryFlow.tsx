@@ -5,12 +5,10 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createShot, concedeHole } from "@/actions/shots";
 import {
-  CLUBS,
   RESULTS,
   MISS_DIRECTIONS,
   PUTT_SIDES,
   PUTT_LENGTHS,
-  type Club,
   type Result,
   type MissDirection,
   type PuttSide,
@@ -28,6 +26,8 @@ export interface HoleLog {
 
 interface ShotEntryFlowProps {
   roundId: string;
+  /** The user's club bag, in order (from the Setup page). */
+  clubs: string[];
   /** Known par per hole (from the course, or from already-logged shots). */
   parByHole: Record<number, number>;
   /** Selectable holes, ascending. */
@@ -47,7 +47,7 @@ const MISS_RESULTS = new Set<Result>([
   "Unplayable",
 ]);
 /** Clubs that, off the tee on a par 4/5, skip the yardage step. */
-const TEE_NO_YARDAGE = new Set<Club>(["D", "3W", "5W"]);
+const TEE_NO_YARDAGE = new Set<string>(["D", "3W", "5W"]);
 
 /**
  * Putt distance buckets → a representative numeric yardage (stored in
@@ -100,6 +100,7 @@ function roundScore(
 
 export function ShotEntryFlow({
   roundId,
+  clubs,
   parByHole,
   holeNumbers,
   initialLogged,
@@ -114,7 +115,7 @@ export function ShotEntryFlow({
 
   // Draft (the shot being entered) ------------------------------------------
   const [step, setStep] = useState<Step>("club");
-  const [club, setClub] = useState<Club | null>(null);
+  const [club, setClub] = useState<string | null>(null);
   const [yards, setYards] = useState<string>("");
   const [skipYards, setSkipYards] = useState(false);
   const [execution, setExecution] = useState<number | null>(null);
@@ -166,7 +167,7 @@ export function ShotEntryFlow({
   // ── Persisting a shot ──────────────────────────────────────────────────────
 
   interface ShotDraft {
-    club: Club;
+    club: string;
     yardage?: number;
     execution?: number;
     result?: Result;
@@ -237,7 +238,7 @@ export function ShotEntryFlow({
 
   // ── Step handlers ──────────────────────────────────────────────────────────
 
-  function chooseClub(c: Club) {
+  function chooseClub(c: string) {
     setClub(c);
     if (c === "Putter") {
       // Logging a putt directly → putt mode (e.g. resuming on the green).
@@ -512,35 +513,41 @@ export function ShotEntryFlow({
       {step === "club" && par !== null && (
         <div className="flex flex-col gap-3">
           <h3 className="font-heading text-2xl font-bold">Which club?</h3>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => chooseClub("D")}
-            className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
-          >
-            Driver
-          </button>
+          {clubs.includes("D") && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => chooseClub("D")}
+              className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
+            >
+              Driver
+            </button>
+          )}
           <div className="grid grid-cols-3 gap-2.5">
-            {CLUBS.filter((c) => c !== "D" && c !== "Putter").map((c) => (
-              <button
-                key={c}
-                type="button"
-                disabled={busy}
-                onClick={() => chooseClub(c)}
-                className="h-14 rounded-2xl border-2 border-border bg-card font-mono text-lg font-semibold transition-transform active:scale-[0.97]"
-              >
-                {c}
-              </button>
-            ))}
+            {clubs
+              .filter((c) => c !== "D" && c !== "Putter")
+              .map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => chooseClub(c)}
+                  className="h-14 rounded-2xl border-2 border-border bg-card font-mono text-lg font-semibold transition-transform active:scale-[0.97]"
+                >
+                  {c}
+                </button>
+              ))}
           </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => chooseClub("Putter")}
-            className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
-          >
-            Putter
-          </button>
+          {clubs.includes("Putter") && (
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => chooseClub("Putter")}
+              className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
+            >
+              Putter
+            </button>
+          )}
 
           {/* Pick up / Done */}
           <div className="mt-1 flex flex-col gap-2">

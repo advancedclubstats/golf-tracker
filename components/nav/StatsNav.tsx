@@ -14,7 +14,7 @@ const LINKS = [
   { key: "holes", href: "/stats/holes", label: "Holes" },
   { key: "clubs", href: "/stats/clubs", label: "Clubs" },
   { key: "distance", href: "/stats/distance", label: "Distance" },
-  { key: "courses", href: "/courses", label: "Courses" },
+  { key: "courses", href: "/courses", label: "Setup" },
 ] as const;
 
 export type NavKey = (typeof LINKS)[number]["key"];

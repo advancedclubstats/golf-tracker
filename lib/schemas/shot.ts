@@ -10,13 +10,13 @@
 
 import { z } from "zod";
 import {
-  CLUBS,
   RESULTS,
   MISS_DIRECTIONS,
   PUTT_SIDES,
   PUTT_LENGTHS,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
+import { ClubNameSchema } from "@/lib/schemas/club";
 
 // ─── Insert ───────────────────────────────────────────────────────────────────
 
@@ -39,10 +39,12 @@ export const ShotInsertSchema = z.object({
   shot_no: z.number().int().min(1),
 
   /**
-   * Club used. Validated here (D-02); no CHECK constraint in the DB.
-   * To add a new club: edit CLUBS in lib/constants.ts and redeploy.
+   * Club used. A free string (not a closed enum) so the bag is user-editable
+   * via the Setup page (`clubs` table). No FK to `clubs` — removing a club from
+   * the bag leaves logged shots and analytics untouched. The entry/edit UI only
+   * offers clubs from the current bag, so values stay clean in practice.
    */
-  club: z.enum(CLUBS),
+  club: ClubNameSchema,
 
   /** Distance to target in yards. Putts entered in yards (1 yd = 3 ft). */
   yardage: z.number().min(0).nullish(),

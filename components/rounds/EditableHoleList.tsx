@@ -17,9 +17,11 @@ export interface HoleView {
 
 export function EditableHoleList({
   roundId,
+  clubs,
   holes,
 }: {
   roundId: string;
+  clubs: string[];
   holes: HoleView[];
 }) {
   const [editing, setEditing] = useState<ShotRow | null>(null);
@@ -84,6 +86,7 @@ export function EditableHoleList({
       <EditShotSheet
         shot={editing}
         roundId={roundId}
+        clubs={clubs}
         onClose={() => setEditing(null)}
       />
     </>

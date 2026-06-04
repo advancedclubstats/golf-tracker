@@ -53,6 +53,54 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
 }
 
 /**
+ * Insert a shot at a given position on a hole, shifting the shot at that
+ * position and everything after it up by one (so shot numbers stay a
+ * contiguous 1..n sequence). `data.shot_no` is the target slot. Used by the
+ * round-detail "+ shot" control to drop in a missed shot.
+ *
+ * Cache: revalidates '/' and '/rounds/[id]'.
+ */
+export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
+  const validated = ShotInsertSchema.parse(data);
+  const supabase = createServerClient();
+
+  // Shift existing shots at/after the target slot up by one. Apply descending
+  // so each move lands in a free slot (never colliding on the unique key).
+  const { data: toShift, error: listErr } = await supabase
+    .from("shots")
+    .select("id, shot_no")
+    .eq("round_id", validated.round_id)
+    .eq("hole", validated.hole)
+    .gte("shot_no", validated.shot_no)
+    .order("shot_no", { ascending: false });
+  if (listErr) {
+    throw new Error(`Failed to load hole shots: ${listErr.message}`);
+  }
+
+  for (const s of toShift ?? []) {
+    const { error: bumpErr } = await supabase
+      .from("shots")
+      .update({ shot_no: s.shot_no + 1 })
+      .eq("id", s.id);
+    if (bumpErr) {
+      throw new Error(`Failed to renumber shot: ${bumpErr.message}`);
+    }
+  }
+
+  const { data: shot, error } = await supabase
+    .from("shots")
+    .insert({ ...validated, user_id: V1_USER_ID })
+    .select("id")
+    .single();
+  if (error) {
+    throw new Error(`Failed to insert shot: ${error.message}`);
+  }
+
+  revalidateShotViews(validated.round_id);
+  return { id: shot.id };
+}
+
+/**
  * Update a shot's descriptive fields (not its position). Validates with
  * ShotUpdateSchema. Throws on validation or DB error.
  *

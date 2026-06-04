@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createShot, concedeHole } from "@/actions/shots";
@@ -125,12 +125,19 @@ export function ShotEntryFlow({
   const [puttNo, setPuttNo] = useState(1);
   const [puttPhase, setPuttPhase] = useState<"main" | "miss">("main");
   const [puttDist, setPuttDist] = useState<string | null>(null);
+  const [puttExec, setPuttExec] = useState<number | null>(null);
   const [puttSide, setPuttSide] = useState<PuttSide | null>(null);
   const [puttLength, setPuttLength] = useState<PuttLength | null>(null);
 
   const [busy, setBusy] = useState(false);
   // Synchronous re-entry guard against same-tick double-taps.
   const submitting = useRef(false);
+
+  // Keep the active hole chip visible in the horizontal strip.
+  const currentChipRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    currentChipRef.current?.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [hole]);
 
   const courseParKnown = parByHole[hole] != null;
   const par = parByHole[hole] ?? localPar[hole] ?? null;
@@ -148,6 +155,7 @@ export function ShotEntryFlow({
     setMulligan(false);
     setPuttPhase("main");
     setPuttDist(null);
+    setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
     setStep("club");
@@ -245,6 +253,7 @@ export function ShotEntryFlow({
       setPuttNo(1);
       setPuttPhase("main");
       setPuttDist(null);
+      setPuttExec(null);
       setPuttSide(null);
       setPuttLength(null);
       setStep("putt");
@@ -299,6 +308,7 @@ export function ShotEntryFlow({
     setPuttNo(1);
     setPuttPhase("main");
     setPuttDist(null);
+    setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
     setStep("putt");
@@ -306,7 +316,12 @@ export function ShotEntryFlow({
 
   async function holePutt() {
     const yardage = PUTT_DIST.find((d) => d.label === puttDist)?.yards;
-    const res = await commitShot({ club: "Putter", yardage, result: "Make" });
+    const res = await commitShot({
+      club: "Putter",
+      yardage,
+      execution: puttExec ?? undefined,
+      result: "Make",
+    });
     if (!res.ok) return;
     completeHole(res.map, res.strokes);
   }
@@ -316,12 +331,14 @@ export function ShotEntryFlow({
     const res = await commitShot({
       club: "Putter",
       yardage,
+      execution: puttExec ?? undefined,
       puttSide: puttSide ?? undefined,
       puttLength: puttLength ?? undefined,
     });
     if (!res.ok) return;
     setPuttNo((n) => n + 1);
     setPuttDist(null);
+    setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
     setPuttPhase("main");
@@ -461,6 +478,7 @@ export function ShotEntryFlow({
             return (
               <button
                 key={h}
+                ref={isCurrent ? currentChipRef : undefined}
                 type="button"
                 onClick={() => jumpToHole(h)}
                 aria-current={isCurrent ? "true" : undefined}
@@ -743,7 +761,9 @@ export function ShotEntryFlow({
 
           {puttPhase === "main" ? (
             <>
-              <p className="text-sm text-muted-foreground">Pick the distance, then the result.</p>
+              <p className="text-sm text-muted-foreground">
+                Pick the distance (and strike, if you like), then the result.
+              </p>
               <div className="grid grid-cols-3 gap-2.5">
                 {PUTT_DIST.map((d) => (
                   <button
@@ -760,6 +780,28 @@ export function ShotEntryFlow({
                     {d.label}
                   </button>
                 ))}
+              </div>
+              {/* Optional strike rating — putts are on the green; this keeps the
+                  flow fast (tap if you want it) but lets you rate the stroke. */}
+              <div className="flex items-center gap-2">
+                <span className="eyebrow shrink-0">Strike</span>
+                <div className="grid flex-1 grid-cols-4 gap-2">
+                  {[1, 2, 3, 4].map((e) => (
+                    <button
+                      key={e}
+                      type="button"
+                      onClick={() => setPuttExec((cur) => (cur === e ? null : e))}
+                      className={cn(
+                        "h-10 rounded-xl border-2 font-mono text-base font-semibold transition-transform active:scale-[0.97]",
+                        puttExec === e
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border bg-card",
+                      )}
+                    >
+                      {e}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2.5">
                 <button

@@ -11,21 +11,38 @@ import {
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
-import { updateShot, deleteShot } from "@/actions/shots";
+import { updateShot, deleteShot, insertShot } from "@/actions/shots";
 import type { ShotRow } from "@/lib/schemas/shot";
 
+/** Where to drop a new shot in: the hole, its par, and the target shot number. */
+export interface InsertTarget {
+  hole: number;
+  par: number;
+  shotNo: number;
+}
+
 interface EditShotSheetProps {
-  /** The shot being edited, or null when the sheet is closed. */
+  /** The shot being edited (edit mode), or null. */
   shot: ShotRow | null;
+  /** A position to insert a new shot at (insert mode), or null. */
+  insertAt: InsertTarget | null;
   roundId: string;
   /** The user's club bag (from the Setup page). */
   clubs: string[];
   onClose: () => void;
 }
 
-export function EditShotSheet({ shot, roundId, clubs, onClose }: EditShotSheetProps) {
+export function EditShotSheet({
+  shot,
+  insertAt,
+  roundId,
+  clubs,
+  onClose,
+}: EditShotSheetProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
+
+  const open = shot !== null || insertAt !== null;
 
   // Keep a shot's own club selectable even if it's since been removed from the
   // bag (so old shots stay editable without their club vanishing).
@@ -57,6 +74,35 @@ export function EditShotSheet({ shot, roundId, clubs, onClose }: EditShotSheetPr
     }
   }
 
+  async function handleInsert(values: ShotFormValues) {
+    if (!insertAt) return;
+    setBusy(true);
+    try {
+      await insertShot({
+        round_id: roundId,
+        hole: insertAt.hole,
+        par: insertAt.par,
+        shot_no: insertAt.shotNo,
+        club: values.club!,
+        yardage: values.yardage ?? undefined,
+        execution: values.execution ?? undefined,
+        result: values.result ?? undefined,
+        miss_direction: values.missDirection ?? undefined,
+        putt_side: values.puttSide ?? undefined,
+        putt_length: values.puttLength ?? undefined,
+        mulligan: values.mulligan,
+        penalty: values.penalty,
+      });
+      toast.success("Shot inserted.");
+      onClose();
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to insert shot.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function handleDelete() {
     if (!shot) return;
     if (
@@ -79,7 +125,7 @@ export function EditShotSheet({ shot, roundId, clubs, onClose }: EditShotSheetPr
   }
 
   return (
-    <Sheet open={shot !== null} onOpenChange={(open) => !open && onClose()}>
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
         {shot && (
           <>
@@ -119,6 +165,27 @@ export function EditShotSheet({ shot, roundId, clubs, onClose }: EditShotSheetPr
                     Delete shot
                   </Button>
                 }
+              />
+            </div>
+          </>
+        )}
+
+        {!shot && insertAt && (
+          <>
+            <SheetHeader>
+              <SheetTitle>
+                Insert shot · Hole {insertAt.hole}, position {insertAt.shotNo}
+              </SheetTitle>
+            </SheetHeader>
+            <div className="px-4 pb-6">
+              <ShotForm
+                key={`insert-${insertAt.hole}-${insertAt.shotNo}`}
+                clubs={clubs}
+                par={insertAt.par}
+                shotNo={insertAt.shotNo}
+                busy={busy}
+                submitLabel={() => "Add shot"}
+                onSubmit={handleInsert}
               />
             </div>
           </>

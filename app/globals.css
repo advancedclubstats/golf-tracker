@@ -172,3 +172,14 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  /* Yardage-book "eyebrow": tracked-out mono data label. The negative
+     word-spacing counters Martian Mono's wide spaces so multi-word labels
+     don't read as double-spaced or wrap. */
+  .eyebrow {
+    @apply font-mono text-[0.66rem] font-semibold uppercase text-muted-foreground;
+    letter-spacing: 0.04em;
+    word-spacing: -0.16em;
+  }
+}

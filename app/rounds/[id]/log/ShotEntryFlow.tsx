@@ -187,7 +187,7 @@ export function ShotEntryFlow({
         </h2>
         <div className="flex items-baseline gap-3 text-sm text-muted-foreground">
           {holesPlayed > 0 && (
-            <span className="tabular-nums">
+            <span className="font-mono tabular-nums">
               <span
                 className={cn(
                   "font-semibold",

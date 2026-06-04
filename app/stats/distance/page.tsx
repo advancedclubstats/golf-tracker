@@ -67,9 +67,7 @@ function SubTable<T extends { label: string }>({
 }) {
   return (
     <section className="mb-6">
-      <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {title}
-      </h2>
+      <h2 className="eyebrow mb-2">{title}</h2>
       <DataTable columns={columns} rows={rows} rowKey="label" />
     </section>
   );

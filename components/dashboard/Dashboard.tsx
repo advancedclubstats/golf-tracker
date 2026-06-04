@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum } from "@/lib/format";
 import type {
   DashboardData,
@@ -23,20 +24,30 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card size="sm">
       <CardHeader>
-        <CardTitle className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </CardTitle>
+        <CardTitle className="eyebrow">{title}</CardTitle>
       </CardHeader>
       <CardContent className="divide-y divide-border/40">{children}</CardContent>
     </Card>
   );
 }
 
-function Row({ label, value }: { label: string; value: ReactNode }) {
+/** A label/value row. `mono` (default) sets stat values in the data face;
+ *  pass `mono={false}` for descriptive sentence values. */
+function Row({
+  label,
+  value,
+  mono = true,
+}: {
+  label: string;
+  value: ReactNode;
+  mono?: boolean;
+}) {
   return (
     <div className="flex items-center justify-between gap-4 py-2 text-sm">
       <span className="text-muted-foreground">{label}</span>
-      <span className="text-right font-medium tabular-nums">{value}</span>
+      <span className={cn("text-right font-medium tabular-nums", mono && "font-mono")}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -124,20 +135,38 @@ export function Dashboard({ data }: { data: DashboardData }) {
         )}
       </Section>
 
-      <Section title="What to Work On">
-        {workItems.length > 0 ? (
-          workItems.map((w) => <Row key={w.area} label={w.area} value={w.detail} />)
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            Not enough data yet — log a few more rounds.
-          </p>
-        )}
-      </Section>
+      {/* The one lime "edge" moment per screen — the insight that earns it. */}
+      <Card size="sm" className="border-transparent bg-highlight text-highlight-foreground shadow-sm">
+        <CardHeader>
+          <CardTitle className="eyebrow text-highlight-foreground/70">
+            What to Work On
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="divide-y divide-highlight-foreground/15">
+          {workItems.length > 0 ? (
+            workItems.map((w) => (
+              <div
+                key={w.area}
+                className="flex items-center justify-between gap-4 py-2 text-sm"
+              >
+                <span className="font-medium">{w.area}</span>
+                <span className="text-right text-highlight-foreground/80">
+                  {w.detail}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="py-2 text-sm text-highlight-foreground/70">
+              Not enough data yet — log a few more rounds.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       <Section title="Recent Rounds">
         {recentRounds.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm tabular-nums">
+            <table className="w-full font-mono text-sm tabular-nums">
               <thead>
                 <tr className="text-left text-xs text-muted-foreground">
                   <th className="py-2 pr-2 font-medium">Date</th>
@@ -167,18 +196,21 @@ export function Dashboard({ data }: { data: DashboardData }) {
         {records.bestRound && (
           <Row
             label="Best Round"
+            mono={false}
             value={`${records.bestRound.holes} holes · ${records.bestRound.strokes} (${fmtVsPar(records.bestRound.vsPar)})`}
           />
         )}
         {records.worstRound && (
           <Row
             label="Worst Round"
+            mono={false}
             value={`${records.worstRound.holes} holes · ${records.worstRound.strokes} (${fmtVsPar(records.worstRound.vsPar)})`}
           />
         )}
         {records.bestHole && (
           <Row
             label="Best Hole"
+            mono={false}
             value={`Hole ${records.bestHole.hole} (par ${records.bestHole.par}) · ${fmtVsPar(records.bestHole.vsPar)} across ${records.bestHole.rounds} round${records.bestHole.rounds === 1 ? "" : "s"}`}
           />
         )}

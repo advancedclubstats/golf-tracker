@@ -145,6 +145,8 @@ export function DataTable<T>({
                   className={cn(
                     "whitespace-nowrap px-2 py-2",
                     c.align === "right" ? "text-right" : "text-left",
+                    // Numbers in the data face; text columns stay sans.
+                    c.format && c.format !== "text" && "font-mono",
                   )}
                 >
                   {renderCell(row[c.key], c.format)}

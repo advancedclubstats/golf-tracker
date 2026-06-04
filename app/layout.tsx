@@ -1,15 +1,27 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {
+  Hanken_Grotesk,
+  Martian_Mono,
+  Bricolage_Grotesque,
+} from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
+// Modern Clubhouse type system: Hanken (UI/body), Martian Mono (data/stats),
+// Bricolage Grotesque (display headings). The mono keeps the --font-geist-mono
+// variable name so @theme inline's --font-mono mapping needs no change.
+const sans = Hanken_Grotesk({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const mono = Martian_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const heading = Bricolage_Grotesque({
+  variable: "--font-heading-bricolage",
   subsets: ["latin"],
 });
 
@@ -27,7 +39,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#ffffff",
+  themeColor: "#F6F3EC",
 };
 
 export default function RootLayout({
@@ -38,7 +50,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${sans.variable} ${mono.variable} ${heading.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}

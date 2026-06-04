@@ -192,7 +192,7 @@ export function ShotEntryFlow({
                 className={cn(
                   "font-semibold",
                   vsPar < 0
-                    ? "text-green-600"
+                    ? "text-positive"
                     : vsPar > 0
                     ? "text-destructive"
                     : "text-foreground",
@@ -224,7 +224,7 @@ export function ShotEntryFlow({
                   isCurrent
                     ? "bg-primary text-primary-foreground"
                     : l?.complete
-                    ? "bg-muted text-muted-foreground ring-1 ring-green-600/40"
+                    ? "bg-muted text-muted-foreground ring-1 ring-positive/40"
                     : l?.conceded
                     ? "bg-muted text-muted-foreground line-through ring-1 ring-foreground/25"
                     : l?.count

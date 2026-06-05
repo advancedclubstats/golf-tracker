@@ -57,11 +57,15 @@ export const SESSION_HOLE_COUNTS: Record<SessionType, number> = {
 
 // ─── Shot field enums ─────────────────────────────────────────────────────────
 
+// Finish zone (where the ball came to rest). `Fringe` and `Recovery` were added
+// for the strokes-gained shot chain (Fringe ≠ Green; Recovery = trees/punch-out).
 export const RESULTS = [
   "Fairway",
   "Green",
+  "Fringe",
   "Rough",
   "Bunker",
+  "Recovery",
   "OB",
   "Hazard",
   "Lost",
@@ -79,6 +83,50 @@ export type PuttSide = (typeof PUTT_SIDES)[number];
 
 export const PUTT_LENGTHS = ["Short", "Long"] as const;
 export type PuttLength = (typeof PUTT_LENGTHS)[number];
+
+// ─── Strokes-gained shot-chain fields (Option A; captured going forward) ──────
+
+/** Where a shot starts from. Carries forward from the prior shot's finish. */
+export const START_LIES = [
+  "Tee",
+  "Fairway",
+  "First cut",
+  "Rough",
+  "Fairway bunker",
+  "Greenside bunker",
+  "Sand",
+  "Recovery",
+  "Fringe",
+  "Green",
+  "Native",
+] as const;
+export type StartLie = (typeof START_LIES)[number];
+
+/** The "domino" field: did this shot improve or compound the situation? */
+export const SITUATIONS = [
+  "Improved",
+  "Neutral",
+  "Constrained",
+  "Severe trouble",
+] as const;
+export type Situation = (typeof SITUATIONS)[number];
+
+/** Display/entry unit for `distance_to_hole`. `yardage` is always stored in
+ *  yards; `ft` means show/enter as yardage×3 (used for putts / on the green). */
+export const DISTANCE_UNITS = ["yd", "ft"] as const;
+export type DistanceUnit = (typeof DISTANCE_UNITS)[number];
+
+/** Course-level trouble flanking a hole (entered once in Setup, per side). */
+export const HOLE_TROUBLE = [
+  "None",
+  "Trees",
+  "Rough",
+  "Bunker",
+  "Water",
+  "OB",
+  "Native",
+] as const;
+export type HoleTrouble = (typeof HOLE_TROUBLE)[number];
 
 // ─── Analytics bucket definitions ────────────────────────────────────────────
 // Boundaries must match golf_stats.gs exactly (D-05).

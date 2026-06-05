@@ -14,6 +14,9 @@ import {
   MISS_DIRECTIONS,
   PUTT_SIDES,
   PUTT_LENGTHS,
+  START_LIES,
+  SITUATIONS,
+  DISTANCE_UNITS,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
 import { ClubNameSchema } from "@/lib/schemas/club";
@@ -46,8 +49,38 @@ export const ShotInsertSchema = z.object({
    */
   club: ClubNameSchema,
 
-  /** Distance to target in yards. Putts entered in yards (1 yd = 3 ft). */
+  /**
+   * Distance to the hole before this shot, stored canonically in YARDS (putts
+   * too: 1 yd = 3 ft). Skippable — SG just can't be computed for a shot (and
+   * its predecessor's leave) without it. See `distance_unit` for display.
+   */
   yardage: z.number().min(0).nullish(),
+
+  /**
+   * Display/entry unit for `yardage`. `ft` (putts / on the green) means show as
+   * yardage×3; `yd` otherwise. `yardage` is always stored in yards regardless,
+   * so legacy analytics are untouched.
+   */
+  distance_unit: z.enum(DISTANCE_UNITS).nullish(),
+
+  /**
+   * Where this shot starts from. Carries forward from the prior shot's finish
+   * (one tap to override). The single highest-value SG add. Null on historical
+   * shots the chain couldn't recover (penalty drops, untagged sequences).
+   */
+  start_lie: z.enum(START_LIES).nullish(),
+
+  /**
+   * The "domino" field: did this shot improve or compound the position?
+   * One tap, default Neutral. Captured going forward only.
+   */
+  situation_created: z.enum(SITUATIONS).nullish(),
+
+  /**
+   * Short-sided flag for greenside / missed-approach context. Captured going
+   * forward only.
+   */
+  short_sided: z.boolean().nullish(),
 
   /**
    * Shot quality: 1 = bad, 2 = okay, 3 = good, 4 = excellent.
@@ -100,6 +133,10 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   // Nullable fields come back as their type | null from Postgres.
   execution: z.number().int().min(1).max(4).nullable(),
   yardage: z.number().nullable(),
+  distance_unit: z.enum(DISTANCE_UNITS).nullable(),
+  start_lie: z.enum(START_LIES).nullable(),
+  situation_created: z.enum(SITUATIONS).nullable(),
+  short_sided: z.boolean().nullable(),
   result: z.enum(RESULTS).nullable(),
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),
   putt_side: z.enum(PUTT_SIDES).nullable(),
@@ -120,6 +157,10 @@ export type ShotRow = z.infer<typeof ShotRowSchema>;
 export const ShotUpdateSchema = ShotInsertSchema.pick({
   club: true,
   yardage: true,
+  distance_unit: true,
+  start_lie: true,
+  situation_created: true,
+  short_sided: true,
   execution: true,
   result: true,
   miss_direction: true,

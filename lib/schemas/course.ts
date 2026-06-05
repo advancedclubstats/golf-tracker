@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { uuidString } from "@/lib/schemas/common";
+import { HOLE_TROUBLE } from "@/lib/constants";
 
 // ─── Course ───────────────────────────────────────────────────────────────────
 
@@ -31,11 +32,17 @@ export const CourseHoleInsertSchema = z.object({
   par: z.number().int().refine((v) => [3, 4, 5].includes(v), {
     message: "Par must be 3, 4, or 5",
   }),
+  /** Trouble flanking the hole, per side — for "did the miss bring known
+   *  trouble into play" derivations. Entered once in Setup. */
+  trouble_left: z.array(z.enum(HOLE_TROUBLE)).default([]),
+  trouble_right: z.array(z.enum(HOLE_TROUBLE)).default([]),
 });
 export type CourseHoleInsert = z.infer<typeof CourseHoleInsertSchema>;
 
 export const CourseHoleRowSchema = CourseHoleInsertSchema.extend({
   id: uuidString,
+  trouble_left: z.array(z.enum(HOLE_TROUBLE)),
+  trouble_right: z.array(z.enum(HOLE_TROUBLE)),
 });
 export type CourseHoleRow = z.infer<typeof CourseHoleRowSchema>;
 

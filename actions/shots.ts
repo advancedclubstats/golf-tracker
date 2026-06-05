@@ -18,6 +18,23 @@ function revalidateShotViews(roundId: string) {
 }
 
 /**
+ * Re-derive the start-lie chain for a hole after its shot positions change
+ * (insert / delete). The carry-forward logic lives in the Postgres function so
+ * there's a single source of truth (see migration 007).
+ */
+async function recomputeHoleStartLie(
+  supabase: ReturnType<typeof createServerClient>,
+  roundId: string,
+  hole: number,
+): Promise<void> {
+  const { error } = await supabase.rpc("recompute_hole_start_lie", {
+    p_round: roundId,
+    p_hole: hole,
+  });
+  if (error) throw new Error(`Failed to recompute start lies: ${error.message}`);
+}
+
+/**
  * Save a single shot. Validates with ShotInsertSchema before touching the DB.
  * Throws on validation failure or DB error — never returns silently.
  *
@@ -96,6 +113,9 @@ export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
     throw new Error(`Failed to insert shot: ${error.message}`);
   }
 
+  // Positions shifted → re-derive the hole's start-lie chain (carry-forward).
+  await recomputeHoleStartLie(supabase, validated.round_id, validated.hole);
+
   revalidateShotViews(validated.round_id);
   return { id: shot.id };
 }
@@ -168,6 +188,9 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
       throw new Error(`Failed to renumber shot: ${renumErr.message}`);
     }
   }
+
+  // Positions shifted → re-derive the hole's start-lie chain (carry-forward).
+  await recomputeHoleStartLie(supabase, roundId, shot.hole);
 
   revalidateShotViews(roundId);
 }

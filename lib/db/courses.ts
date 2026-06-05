@@ -73,6 +73,22 @@ export async function getCourseHoles(courseId: string): Promise<CourseHoleRow[]>
   return CourseHoleRowsSchema.parse(data);
 }
 
+/** Every tee across all courses (small table; used to map tee → course). */
+export async function getAllCourseTees(): Promise<CourseTeeRow[]> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase.from("course_tees").select("*");
+  if (error) throw new Error(`Failed to fetch tees: ${error.message}`);
+  return CourseTeeRowsSchema.parse(data);
+}
+
+/** Every tee yardage across all courses (used to default tee-shot distances). */
+export async function getAllTeeYardages(): Promise<TeeYardageRow[]> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase.from("tee_yardages").select("*");
+  if (error) throw new Error(`Failed to fetch tee yardages: ${error.message}`);
+  return TeeYardageRowsSchema.parse(data);
+}
+
 /** A course's tees, ordered back-to-forward. */
 export async function getCourseTees(courseId: string): Promise<CourseTeeRow[]> {
   const supabase = createServerClient();

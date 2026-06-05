@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
+import { getStrokesGained } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { PageHeader } from "@/components/nav/PageHeader";
 
@@ -15,6 +16,7 @@ export default async function Home() {
   // Reads go through lib/db in Server Components; analytics are pure.
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
   const data = computeDashboard(shots, rounds);
+  const sg = await getStrokesGained({ shots, rounds });
 
   // Empty state — no complete holes logged yet.
   if (data.snapshot.holesLogged === 0) {
@@ -37,7 +39,7 @@ export default async function Home() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <PageHeader title="Dashboard" current="dashboard" />
-      <Dashboard data={data} />
+      <Dashboard data={data} sg={sg} />
     </main>
   );
 }

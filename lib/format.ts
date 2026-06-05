@@ -28,3 +28,14 @@ export function fmtPct(n: number | null): string {
 export function fmtNum(n: number | null): string {
   return n == null ? "—" : String(n);
 }
+
+/** Strokes gained, signed 2-dp: 0.31 → "+0.31", -1.13 → "-1.13". */
+export function fmtSg(n: number): string {
+  const r = Math.round(n * 100) / 100;
+  return `${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
+}
+
+/** Tailwind text colour for an SG value: green gain / red loss / neutral. */
+export function sgColorClass(n: number): string {
+  return n > 0.001 ? "text-positive" : n < -0.001 ? "text-destructive" : "text-foreground";
+}

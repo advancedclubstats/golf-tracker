@@ -7,6 +7,7 @@
  */
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -14,11 +15,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum } from "@/lib/format";
+import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/lib/format";
 import type {
   DashboardData,
   MulliganCategory,
 } from "@/lib/analytics/dashboard";
+import type { StrokesGained } from "@/lib/analytics/sg";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -59,9 +61,8 @@ const MULLIGAN_LABELS: Record<MulliganCategory, string> = {
   putt: "Putts",
 };
 
-export function Dashboard({ data }: { data: DashboardData }) {
-  const { snapshot, statLine, strokesLost, whatToWorkOn, recentRounds, records, mulligans } =
-    data;
+export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained }) {
+  const { snapshot, statLine, whatToWorkOn, recentRounds, records, mulligans } = data;
 
   const workItems: { area: string; detail: string }[] = [];
   if (whatToWorkOn.worstHole) {
@@ -111,29 +112,54 @@ export function Dashboard({ data }: { data: DashboardData }) {
         <Row label="3-Putt %" value={fmtPct(statLine.threePuttPct)} />
       </Section>
 
-      <Section title="Strokes Lost">
-        {strokesLost.total > 0 ? (
-          <>
-            <Row
-              label="Tee / Long Game"
-              value={`${strokesLost.tee} · ${fmtPct(strokesLost.teePct)}`}
-            />
-            <Row
-              label="Approach / Short Game"
-              value={`${strokesLost.approach} · ${fmtPct(strokesLost.approachPct)}`}
-            />
-            <Row
-              label="Putting"
-              value={`${strokesLost.putting} · ${fmtPct(strokesLost.puttingPct)}`}
-            />
-            <Row label="Total" value={strokesLost.total} />
-          </>
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            At or under par across all logged holes — nothing lost yet.
-          </p>
-        )}
-      </Section>
+      {/* Strokes gained by category — the real diagnosis (replaces the old
+          par-relative "strokes lost"). Per round vs the PGA Tour benchmark. */}
+      <Card size="sm">
+        <CardHeader>
+          <CardTitle className="eyebrow">
+            <Link href="/stats/sg" className="transition-colors hover:text-foreground">
+              Strokes Gained →
+            </Link>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="divide-y divide-border/40">
+          {sg.coveredShots > 0 ? (
+            <>
+              {sg.byCategory.map((c) => (
+                <div
+                  key={c.category}
+                  className="flex items-center justify-between gap-4 py-2 text-sm"
+                >
+                  <span className="text-muted-foreground">{c.category}</span>
+                  <span
+                    className={cn(
+                      "text-right font-mono font-medium tabular-nums",
+                      sgColorClass(c.perRound),
+                    )}
+                  >
+                    {c.shots > 0 ? fmtSg(c.perRound) : "—"}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-4 py-2 text-sm">
+                <span className="font-medium">Per round vs tour</span>
+                <span
+                  className={cn(
+                    "text-right font-mono font-semibold tabular-nums",
+                    sgColorClass(sg.perRound),
+                  )}
+                >
+                  {fmtSg(sg.perRound)}
+                </span>
+              </div>
+            </>
+          ) : (
+            <p className="py-2 text-sm text-muted-foreground">
+              Log a round with a start lie and distance to see strokes gained.
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* The one lime "edge" moment per screen — the insight that earns it. */}
       <Card size="sm" className="border-transparent bg-highlight text-highlight-foreground shadow-sm">

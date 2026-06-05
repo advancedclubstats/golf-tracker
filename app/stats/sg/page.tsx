@@ -1,66 +1,13 @@
-import { getAllShots } from "@/lib/db/shots";
-import { getAllRounds } from "@/lib/db/rounds";
-import { getAllCourseTees, getAllTeeYardages } from "@/lib/db/courses";
-import { computeStrokesGained, fillTeeDistances } from "@/lib/analytics/sg";
+import { getStrokesGained } from "@/lib/sg-server";
+import { fmtSg, sgColorClass as sgColor } from "@/lib/format";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-/** round_id → hole → representative tee yardage, for defaulting tee-shot
- *  distances (average across a course's tees; tee precision isn't needed). */
-function buildTeeYardages(
-  rounds: { id: string; course_id: string | null }[],
-  tees: { id: string; course_id: string }[],
-  yardages: { tee_id: string; hole_number: number; yardage: number }[],
-): Record<string, Record<number, number>> {
-  const teeCourse = new Map(tees.map((t) => [t.id, t.course_id]));
-  const byCourseHole: Record<string, Record<number, number[]>> = {};
-  for (const y of yardages) {
-    const course = teeCourse.get(y.tee_id);
-    if (!course) continue;
-    ((byCourseHole[course] ??= {})[y.hole_number] ??= []).push(y.yardage);
-  }
-  const repByCourse: Record<string, Record<number, number>> = {};
-  for (const [course, holes] of Object.entries(byCourseHole)) {
-    repByCourse[course] = {};
-    for (const [hole, arr] of Object.entries(holes)) {
-      repByCourse[course][Number(hole)] = Math.round(
-        arr.reduce((a, b) => a + b, 0) / arr.length,
-      );
-    }
-  }
-  const out: Record<string, Record<number, number>> = {};
-  for (const r of rounds) {
-    if (r.course_id && repByCourse[r.course_id]) out[r.id] = repByCourse[r.course_id];
-  }
-  return out;
-}
-
-/** Signed, 2-dp strokes-gained string. */
-function fmtSg(n: number): string {
-  const r = Math.round(n * 100) / 100;
-  return `${r >= 0 ? "+" : ""}${r.toFixed(2)}`;
-}
-
-function sgColor(n: number): string {
-  return n > 0.001 ? "text-positive" : n < -0.001 ? "text-destructive" : "text-foreground";
-}
-
 export default async function StrokesGainedPage() {
-  const [shots, rounds, tees, yardages] = await Promise.all([
-    getAllShots(),
-    getAllRounds(),
-    getAllCourseTees(),
-    getAllTeeYardages(),
-  ]);
-  // Default skipped tee-shot distances from the course so off-the-tee SG works.
-  const enriched = fillTeeDistances(
-    shots,
-    buildTeeYardages(rounds, tees, yardages),
-  );
-  const sg = computeStrokesGained(enriched);
+  const sg = await getStrokesGained();
 
   if (sg.coveredShots === 0) {
     return (

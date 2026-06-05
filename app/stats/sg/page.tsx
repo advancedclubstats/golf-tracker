@@ -88,7 +88,7 @@ export default async function StrokesGainedPage() {
       {/* Headline: total per round vs the scratch baseline */}
       <Card size="sm" className="mb-4">
         <CardHeader>
-          <CardTitle className="eyebrow">Per round vs scratch</CardTitle>
+          <CardTitle className="eyebrow">Per round vs tour</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex items-end justify-between gap-4">
@@ -197,9 +197,10 @@ export default async function StrokesGainedPage() {
       )}
 
       <p className="px-1 text-xs text-muted-foreground">
-        Strokes gained vs a scratch baseline. Positive = better than scratch from
-        that spot. Coverage is below 100% where historical shots lack a start lie
-        or distance; new rounds capture both.
+        Strokes gained vs the PGA Tour benchmark (Broadie). Positive = better than
+        tour average from that spot; a scratch player reads negative, and the
+        category ranking is the actionable part. Coverage is below 100% where
+        historical shots lack a start lie or distance; new rounds capture both.
       </p>
     </main>
   );

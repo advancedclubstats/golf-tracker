@@ -61,20 +61,11 @@ const OVERRIDE_LIES = START_LIES.filter((l) => l !== "Green");
 /** Clubs that, off the tee on a par 4/5, skip the yardage step. */
 const TEE_NO_YARDAGE = new Set<string>(["D", "3W", "5W"]);
 
-/**
- * Putt distance buckets → a representative numeric yardage (stored in
- * `yardage`, in yards). Each value sits squarely inside the matching feet
- * bucket once analytics multiply by 3, so make-rate / first-putt distance
- * analytics keep working. Distance is therefore captured as a bucket, not an
- * exact figure (the fast cart-entry tradeoff).
- */
-const PUTT_DIST: { label: string; yards: number }[] = [
-  { label: "≤3 ft", yards: 1 }, //  3 ft → 0–3
-  { label: "3–6 ft", yards: 2 }, //  6 ft → 3–6
-  { label: "6–10 ft", yards: 3 }, //  9 ft → 6–10
-  { label: "10–20 ft", yards: 5 }, // 15 ft → 10–20
-  { label: "20+ ft", yards: 8 }, // 24 ft → 20+
-];
+/** Putts are entered in feet (stored canonically as yards = feet / 3). Feet
+ *  gives 1-ft resolution where the expected-strokes curve is steepest — the
+ *  3–8 ft range — which buckets threw away. */
+const puttYardsFromFeet = (feet: string): number | undefined =>
+  feet === "" ? undefined : Number(feet) / 3;
 
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
@@ -145,7 +136,7 @@ export function ShotEntryFlow({
   // Putt mode
   const [puttNo, setPuttNo] = useState(1);
   const [puttPhase, setPuttPhase] = useState<"main" | "miss">("main");
-  const [puttDist, setPuttDist] = useState<string | null>(null);
+  const [puttFeet, setPuttFeet] = useState<string>("");
   const [puttExec, setPuttExec] = useState<number | null>(null);
   const [puttSide, setPuttSide] = useState<PuttSide | null>(null);
   const [puttLength, setPuttLength] = useState<PuttLength | null>(null);
@@ -194,7 +185,7 @@ export function ShotEntryFlow({
     setLieOpen(false);
     setShortSided(false);
     setPuttPhase("main");
-    setPuttDist(null);
+    setPuttFeet("");
     setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
@@ -308,7 +299,7 @@ export function ShotEntryFlow({
       // Logging a putt directly → putt mode (e.g. resuming on the green).
       setPuttNo(1);
       setPuttPhase("main");
-      setPuttDist(null);
+      setPuttFeet("");
       setPuttExec(null);
       setPuttSide(null);
       setPuttLength(null);
@@ -373,7 +364,7 @@ export function ShotEntryFlow({
     setLieOpen(false);
     setPuttNo(1);
     setPuttPhase("main");
-    setPuttDist(null);
+    setPuttFeet("");
     setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
@@ -381,10 +372,9 @@ export function ShotEntryFlow({
   }
 
   async function holePutt() {
-    const yardage = PUTT_DIST.find((d) => d.label === puttDist)?.yards;
     const res = await commitShot({
       club: "Putter",
-      yardage,
+      yardage: puttYardsFromFeet(puttFeet),
       execution: puttExec ?? undefined,
       result: "Make",
     });
@@ -393,7 +383,7 @@ export function ShotEntryFlow({
   }
 
   async function nextPutt() {
-    const yardage = PUTT_DIST.find((d) => d.label === puttDist)?.yards;
+    const yardage = puttYardsFromFeet(puttFeet);
     const res = await commitShot({
       club: "Putter",
       yardage,
@@ -403,7 +393,7 @@ export function ShotEntryFlow({
     });
     if (!res.ok) return;
     setPuttNo((n) => n + 1);
-    setPuttDist(null);
+    setPuttFeet("");
     setPuttExec(null);
     setPuttSide(null);
     setPuttLength(null);
@@ -915,24 +905,52 @@ export function ShotEntryFlow({
           {puttPhase === "main" ? (
             <>
               <p className="text-sm text-muted-foreground">
-                Pick the distance (and strike, if you like), then the result.
+                How far, in feet? (step off long ones — a pace ≈ 3 ft)
               </p>
-              <div className="grid grid-cols-3 gap-2.5">
-                {PUTT_DIST.map((d) => (
+              <div className="text-center">
+                <div className="font-mono text-5xl font-extrabold tabular-nums">
+                  {puttFeet === "" ? "—" : puttFeet}
+                  <span className="ml-1 align-baseline text-xl text-muted-foreground">
+                    ft
+                  </span>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
                   <button
-                    key={d.label}
+                    key={k}
                     type="button"
-                    onClick={() => setPuttDist(d.label)}
-                    className={cn(
-                      "h-12 rounded-2xl border-2 font-mono text-sm font-semibold transition-transform active:scale-[0.97]",
-                      puttDist === d.label
-                        ? "border-highlight bg-highlight text-highlight-foreground"
-                        : "border-border bg-card",
-                    )}
+                    onClick={() =>
+                      setPuttFeet((f) => (f.length < 2 ? (f + k).replace(/^0+/, "") : f))
+                    }
+                    className="h-11 rounded-xl bg-muted font-mono text-xl font-semibold transition-transform active:scale-[0.96]"
                   >
-                    {d.label}
+                    {k}
                   </button>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => setPuttFeet("")}
+                  className="h-11 rounded-xl bg-muted font-mono text-sm text-muted-foreground transition-transform active:scale-[0.96]"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPuttFeet((f) => (f.length < 2 ? (f + "0").replace(/^0+/, "") : f))
+                  }
+                  className="h-11 rounded-xl bg-muted font-mono text-xl font-semibold transition-transform active:scale-[0.96]"
+                >
+                  0
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPuttFeet((f) => f.slice(0, -1))}
+                  className="h-11 rounded-xl bg-muted font-mono text-lg text-muted-foreground transition-transform active:scale-[0.96]"
+                >
+                  ⌫
+                </button>
               </div>
               {/* Optional strike rating — putts are on the green; this keeps the
                   flow fast (tap if you want it) but lets you rate the stroke. */}
@@ -959,7 +977,7 @@ export function ShotEntryFlow({
               <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  disabled={busy || !puttDist}
+                  disabled={busy || puttFeet === ""}
                   onClick={() => setPuttPhase("miss")}
                   className="h-16 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97] disabled:opacity-40"
                 >
@@ -967,7 +985,7 @@ export function ShotEntryFlow({
                 </button>
                 <button
                   type="button"
-                  disabled={busy || !puttDist}
+                  disabled={busy || puttFeet === ""}
                   onClick={holePutt}
                   className="h-16 rounded-2xl border-2 border-primary bg-primary text-lg font-bold text-primary-foreground transition-transform active:scale-[0.97] disabled:opacity-40"
                 >

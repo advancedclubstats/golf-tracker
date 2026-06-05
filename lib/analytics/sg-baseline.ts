@@ -1,16 +1,15 @@
 /**
- * Strokes-gained baseline: expected strokes to hole out from a given lie and
- * distance, for a ~scratch golfer.
+ * Strokes-gained baseline: expected strokes to hole out from a lie + distance.
  *
- * These are Broadie-shaped (from "Every Shot Counts") and leveled to roughly a
- * scratch (0-handicap) player — deliberately NOT the PGA Tour table, which
- * would make a scratch player look perpetually negative. Absolute SG magnitudes
- * are approximate; the per-category *shapes* are what make the cross-category
- * leak ranking valid (lose-most-on-approach vs putting vs driving). Swap the
- * tables to recalibrate without touching the SG logic.
+ * These are Mark Broadie's published **PGA Tour** benchmark values (ShotLink
+ * 2004–2012, from "Assessing Golfer Performance on the PGA Tour" / "Every Shot
+ * Counts"). SG computed against this table reads as "vs Tour average" — a real,
+ * citable, correctly-cross-calibrated reference. A scratch/amateur reads
+ * negative against it, which is honest; the category leak ranking is the point.
+ * Source: Broadie, columbia.edu/~mnb2/broadie.
  *
  * Non-green lies are keyed by YARDS; the Green (putting) table is keyed by FEET.
- * `expectedStrokes` takes a distance in yards and converts for putts.
+ * `expectedStrokes` takes yards and converts for putts.
  */
 
 import type { StartLie } from "@/lib/constants";
@@ -18,39 +17,39 @@ import type { StartLie } from "@/lib/constants";
 type Table = Record<number, number>;
 
 const TABLES: Record<"Tee" | "Fairway" | "Rough" | "Sand" | "Recovery" | "Green", Table> = {
-  // Par 4/5 tee shots (yards).
+  // Par 4/5 tee shots (yards). 400 yd ≈ 3.99 (a 400-yd hole averages ~4.0).
   Tee: {
-    120: 3.1, 150: 3.2, 180: 3.3, 200: 3.4, 220: 3.5, 240: 3.62, 260: 3.74,
-    280: 3.86, 300: 3.95, 320: 4.05, 340: 4.13, 360: 4.2, 380: 4.27, 400: 4.33,
-    420: 4.4, 440: 4.47, 460: 4.55, 480: 4.62, 500: 4.68, 540: 4.8, 580: 4.9, 620: 5.0,
+    100: 2.92, 120: 2.99, 140: 2.97, 160: 2.99, 180: 3.05, 200: 3.12, 220: 3.17,
+    240: 3.25, 260: 3.45, 280: 3.65, 300: 3.71, 320: 3.79, 340: 3.86, 360: 3.92,
+    380: 3.96, 400: 3.99, 420: 4.02, 440: 4.08, 460: 4.13, 480: 4.19, 500: 4.25,
+    540: 4.34, 580: 4.43, 620: 4.5,
   },
-  // Fairway / first cut / fringe (yards).
+  // Fairway / first cut / fringe (yards). 150 ≈ 2.95, 100 = 2.80.
   Fairway: {
-    10: 2.3, 20: 2.5, 30: 2.58, 40: 2.66, 50: 2.72, 60: 2.78, 75: 2.85, 90: 2.9,
-    100: 2.94, 120: 3.0, 140: 3.08, 160: 3.18, 175: 3.25, 200: 3.4, 225: 3.55,
-    250: 3.7, 275: 3.83, 300: 3.95,
+    10: 2.18, 20: 2.4, 30: 2.52, 40: 2.6, 60: 2.7, 80: 2.75, 100: 2.8, 120: 2.85,
+    140: 2.91, 160: 2.98, 180: 3.08, 200: 3.19, 220: 3.32, 240: 3.45, 260: 3.58,
+    280: 3.69, 300: 3.78,
   },
-  // Rough (yards).
+  // Rough (yards). 100 = 3.02.
   Rough: {
-    10: 2.5, 20: 2.7, 30: 2.8, 40: 2.88, 50: 2.95, 60: 3.02, 75: 3.1, 90: 3.16,
-    100: 3.2, 120: 3.3, 140: 3.4, 160: 3.52, 175: 3.6, 200: 3.75, 225: 3.9,
-    250: 4.05, 275: 4.18, 300: 4.3,
+    10: 2.34, 20: 2.59, 30: 2.7, 40: 2.78, 60: 2.91, 80: 2.96, 100: 3.02, 120: 3.08,
+    140: 3.15, 160: 3.23, 180: 3.31, 200: 3.42, 220: 3.53, 240: 3.64, 260: 3.74,
+    280: 3.83, 300: 3.9,
   },
-  // Bunkers / sand (yards).
+  // Bunkers / sand (yards). Crosses rough: worse than rough under ~15 / over ~34 yd.
   Sand: {
-    10: 2.6, 20: 2.8, 30: 2.95, 40: 3.05, 50: 3.12, 60: 3.2, 75: 3.3, 90: 3.38,
-    100: 3.43, 120: 3.5, 140: 3.6, 160: 3.72, 180: 3.85, 200: 3.98, 225: 4.12, 250: 4.28,
+    10: 2.43, 20: 2.53, 30: 2.66, 40: 2.82, 60: 3.15, 80: 3.21, 100: 3.23, 120: 3.24,
+    140: 3.27, 160: 3.31, 180: 3.39, 200: 3.47, 220: 3.56, 240: 3.66,
   },
-  // Recovery / trees / native (yards).
+  // Recovery / trees / native (yards) — roughly flat, then rising.
   Recovery: {
-    20: 3.6, 50: 3.7, 75: 3.8, 100: 3.85, 130: 3.95, 160: 4.05, 200: 4.2,
-    250: 4.4, 300: 4.6,
+    100: 3.8, 150: 3.81, 200: 3.87, 250: 3.97, 300: 4.15,
   },
-  // Putting (FEET).
+  // Putting (FEET). 8 ft = 1.50, 20 ft = 1.87.
   Green: {
-    1: 1.0, 2: 1.03, 3: 1.07, 4: 1.18, 5: 1.3, 6: 1.42, 7: 1.5, 8: 1.57, 9: 1.62,
-    10: 1.67, 12: 1.74, 15: 1.83, 20: 1.93, 25: 2.0, 30: 2.07, 40: 2.19, 50: 2.29,
-    60: 2.37, 70: 2.45, 80: 2.52, 90: 2.58,
+    1: 1.0, 2: 1.01, 3: 1.04, 4: 1.13, 5: 1.23, 6: 1.34, 7: 1.42, 8: 1.5, 9: 1.56,
+    10: 1.61, 12: 1.7, 15: 1.78, 20: 1.87, 25: 1.94, 30: 2.0, 40: 2.09, 50: 2.18,
+    60: 2.25, 70: 2.32, 80: 2.38, 90: 2.44,
   },
 };
 

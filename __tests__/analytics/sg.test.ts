@@ -51,8 +51,8 @@ describe("categoryOf", () => {
 
 describe("expectedStrokes", () => {
   it("uses feet for putts and yards otherwise; null for unknown lies", () => {
-    expect(expectedStrokes("Green", 2)).toBeCloseTo(1.42, 5); // 6 ft
-    expect(expectedStrokes("Fairway", 150)).toBeCloseTo(3.13, 5); // interp 140/160
+    expect(expectedStrokes("Green", 2)).toBeCloseTo(1.34, 5); // 6 ft (Broadie)
+    expect(expectedStrokes("Fairway", 150)).toBeCloseTo(2.945, 5); // interp 140/160
     expect(expectedStrokes(null, 100)).toBeNull();
     expect(expectedStrokes("Fairway", null)).toBeNull();
   });
@@ -61,15 +61,18 @@ describe("expectedStrokes", () => {
 describe("shotSG", () => {
   it("a holed putt gains the expected strokes minus one", () => {
     const putt = shot({ start_lie: "Green", yardage: 2, club: "Putter", result: "Make" });
-    expect(shotSG(putt, null)).toBeCloseTo(1.42 - 1, 5); // +0.42
+    expect(shotSG(putt, null)).toBeCloseTo(1.34 - 1, 5); // +0.34 (6-ft putt)
   });
 
   it("subtracts the finish term from the next shot", () => {
     const approach = shot({ start_lie: "Fairway", yardage: 150, result: "Green" });
     const next = shot({ start_lie: "Green", yardage: 6, shot_no: 2 }); // ~18 ft
-    // 3.13 − E(Green,18ft) − 1
+    // E(Fairway,150) − E(Green,18ft) − 1
     const sg = shotSG(approach, next)!;
-    expect(sg).toBeCloseTo(3.13 - expectedStrokes("Green", 6)! - 1, 5);
+    expect(sg).toBeCloseTo(
+      expectedStrokes("Fairway", 150)! - expectedStrokes("Green", 6)! - 1,
+      5,
+    );
   });
 
   it("is uncomputable when the lie or a distance is missing", () => {

@@ -107,7 +107,11 @@ export function EditableHoleList({
                             {s.shot_no}.
                           </span>{" "}
                           <span className="text-foreground">{s.club}</span>
-                          {s.yardage != null ? ` · ${s.yardage}y` : ""}
+                          {s.yardage != null
+                            ? s.distance_unit === "ft"
+                              ? ` · ${Math.round(s.yardage * 3)} ft`
+                              : ` · ${s.yardage}y`
+                            : ""}
                           {s.miss_direction ? ` · ${s.miss_direction}` : ""}
                           {s.penalty > 0 ? ` · +${s.penalty} pen` : ""}
                         </span>

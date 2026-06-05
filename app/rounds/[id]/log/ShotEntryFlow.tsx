@@ -9,11 +9,16 @@ import {
   MISS_DIRECTIONS,
   PUTT_SIDES,
   PUTT_LENGTHS,
+  START_LIES,
+  SITUATIONS,
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
+  type StartLie,
+  type Situation,
 } from "@/lib/constants";
+import { nextStartLie, type PrevFinish } from "@/lib/shots/lie";
 import { cn } from "@/lib/utils";
 
 /** Per-hole progress, seeded from already-logged shots so entry can resume. */
@@ -33,6 +38,8 @@ interface ShotEntryFlowProps {
   /** Selectable holes, ascending. */
   holeNumbers: number[];
   initialLogged: Record<number, HoleLog>;
+  /** Last logged shot per hole, to seed the start-lie carry-forward on resume. */
+  lastShotByHole: Record<number, PrevFinish | null>;
 }
 
 /** Results that auto-incur a penalty stroke (matches ShotForm / SPEC). */
@@ -41,11 +48,16 @@ const PENALTY_RESULTS = new Set<Result>(["OB", "Hazard", "Lost", "Unplayable"]);
 const MISS_RESULTS = new Set<Result>([
   "Rough",
   "Bunker",
+  "Recovery",
   "OB",
   "Hazard",
   "Lost",
   "Unplayable",
 ]);
+/** Start lies that are around the green (drive the short-sided prompt). */
+const GREENSIDE_LIES = new Set<StartLie>(["Greenside bunker", "Fringe", "Sand"]);
+/** Lies offered in the override picker (Tee is auto for shot 1; Green = putt). */
+const OVERRIDE_LIES = START_LIES.filter((l) => l !== "Green");
 /** Clubs that, off the tee on a par 4/5, skip the yardage step. */
 const TEE_NO_YARDAGE = new Set<string>(["D", "3W", "5W"]);
 
@@ -66,7 +78,7 @@ const PUTT_DIST: { label: string; yards: number }[] = [
 
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
-type Step = "club" | "yards" | "strike" | "result" | "miss" | "putt";
+type Step = "club" | "yards" | "strike" | "result" | "miss" | "situation" | "putt";
 
 function formatDiff(diff: number): string {
   if (diff === 0) return "E";
@@ -104,11 +116,14 @@ export function ShotEntryFlow({
   parByHole,
   holeNumbers,
   initialLogged,
+  lastShotByHole,
 }: ShotEntryFlowProps) {
   const router = useRouter();
 
   const [logged, setLogged] = useState<Record<number, HoleLog>>(initialLogged);
   const [localPar, setLocalPar] = useState<Record<number, number>>({});
+  const [lastShot, setLastShot] =
+    useState<Record<number, PrevFinish | null>>(lastShotByHole);
   const [hole, setHole] = useState<number>(
     holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
   );
@@ -120,7 +135,13 @@ export function ShotEntryFlow({
   const [skipYards, setSkipYards] = useState(false);
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
+  const [missDirection, setMissDirection] = useState<MissDirection | null>(null);
   const [mulligan, setMulligan] = useState(false);
+  // Start lie: `lieOverride` is the player's one-tap override (else the
+  // carry-forward default is used). Domino fields default to no-trouble.
+  const [lieOverride, setLieOverride] = useState<StartLie | null>(null);
+  const [lieOpen, setLieOpen] = useState(false);
+  const [shortSided, setShortSided] = useState(false);
   // Putt mode
   const [puttNo, setPuttNo] = useState(1);
   const [puttPhase, setPuttPhase] = useState<"main" | "miss">("main");
@@ -146,13 +167,32 @@ export function ShotEntryFlow({
   const parLocked = courseParKnown || (holeLog?.count ?? 0) > 0;
   const { vsPar, holes: holesPlayed } = roundScore(logged, parByHole, localPar);
 
+  // Start-lie default carries forward from the prior shot's finish; the player
+  // can override (one tap). Null default = penalty drop / unknown → set it.
+  const defaultLie: StartLie | null =
+    shotNo === 1 ? "Tee" : nextStartLie(lastShot[hole] ?? null);
+  const effectiveLie: StartLie | null = lieOverride ?? defaultLie;
+  // Short-sided is a green-side concept: shown when the shot missed the green
+  // from an approach distance or a greenside lie.
+  const distNum = yards === "" ? null : Number(yards);
+  const showShortSided =
+    !!result &&
+    result !== "Green" &&
+    result !== "Make" &&
+    ((effectiveLie != null && GREENSIDE_LIES.has(effectiveLie)) ||
+      (distNum != null && distNum <= 175));
+
   function resetDraft() {
     setClub(null);
     setYards("");
     setSkipYards(false);
     setExecution(null);
     setResult(null);
+    setMissDirection(null);
     setMulligan(false);
+    setLieOverride(null);
+    setLieOpen(false);
+    setShortSided(false);
     setPuttPhase("main");
     setPuttDist(null);
     setPuttExec(null);
@@ -184,6 +224,8 @@ export function ShotEntryFlow({
     puttLength?: PuttLength;
     mulligan?: boolean;
     penalty?: number;
+    situation?: Situation;
+    shortSided?: boolean;
   }
 
   /** Write the shot, update local progress, return the fresh map + made flag. */
@@ -195,6 +237,10 @@ export function ShotEntryFlow({
     submitting.current = true;
     setBusy(true);
     const sn = (logged[hole]?.count ?? 0) + 1;
+    // Start lie: putts are always on the green; otherwise the effective lie
+    // (override or carry-forward default). distance_unit: feet for putts.
+    const isPutt = d.club === "Putter";
+    const lie: StartLie | null = isPutt ? "Green" : effectiveLie;
     try {
       await createShot({
         round_id: roundId,
@@ -203,6 +249,11 @@ export function ShotEntryFlow({
         shot_no: sn,
         club: d.club,
         yardage: d.yardage,
+        distance_unit: isPutt ? "ft" : "yd",
+        start_lie: lie ?? undefined,
+        start_lie_manual: !isPutt && lieOverride !== null,
+        situation_created: d.situation,
+        short_sided: d.shortSided,
         execution: d.execution,
         result: d.result,
         miss_direction: d.missDirection,
@@ -220,6 +271,11 @@ export function ShotEntryFlow({
         [hole]: { count: sn, complete: made, conceded: prev.conceded, penalties },
       };
       setLogged(map);
+      // Remember this finish so the next shot's start-lie carries forward.
+      setLastShot((m) => ({
+        ...m,
+        [hole]: { result: d.result ?? null, club: d.club, yardage: d.yardage ?? null },
+      }));
       return { ok: true, made, map, strokes: sn + penalties };
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save shot.");
@@ -271,40 +327,50 @@ export function ShotEntryFlow({
 
   async function chooseResult(r: Result) {
     setResult(r);
-    if (MISS_RESULTS.has(r)) {
-      setStep("miss");
+    // Terminal results commit immediately; everything else gathers a
+    // miss-direction (if relevant) and the "situation created" before saving.
+    if (r === "Make" || r === "Green") {
+      const res = await commitShot({
+        club: club!,
+        yardage: yards === "" ? undefined : Number(yards),
+        execution: execution ?? undefined,
+        result: r,
+        mulligan,
+      });
+      if (!res.ok) return;
+      if (r === "Make") completeHole(res.map, res.strokes);
+      else enterPutt();
       return;
     }
-    const res = await commitShot({
-      club: club!,
-      yardage: yards === "" ? undefined : Number(yards),
-      execution: execution ?? undefined,
-      result: r,
-      mulligan,
-      penalty: 0,
-    });
-    if (!res.ok) return;
-    if (r === "Make") completeHole(res.map, res.strokes);
-    else if (r === "Green") enterPutt();
-    else resetDraft(); // Fairway → next shot
+    setStep(MISS_RESULTS.has(r) ? "miss" : "situation");
   }
 
-  async function chooseMiss(dir: MissDirection) {
+  function chooseMiss(dir: MissDirection) {
+    setMissDirection(dir);
+    setStep("situation");
+  }
+
+  /** Final step for a non-terminal shot: record the domino field, then save. */
+  async function chooseSituation(sit: Situation) {
     const r = result!;
     const res = await commitShot({
       club: club!,
       yardage: yards === "" ? undefined : Number(yards),
       execution: execution ?? undefined,
       result: r,
-      missDirection: dir,
+      missDirection: missDirection ?? undefined,
+      situation: sit,
+      shortSided: showShortSided ? shortSided : undefined,
       mulligan,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
     });
     if (!res.ok) return;
-    resetDraft(); // miss results are never Make/Green → next shot
+    resetDraft(); // non-terminal → next shot
   }
 
   function enterPutt() {
+    setLieOverride(null);
+    setLieOpen(false);
     setPuttNo(1);
     setPuttPhase("main");
     setPuttDist(null);
@@ -374,6 +440,7 @@ export function ShotEntryFlow({
     else if (step === "strike") setStep("yards");
     else if (step === "result") setStep("strike");
     else if (step === "miss") setStep("result");
+    else if (step === "situation") setStep(missDirection ? "miss" : "result");
   }
 
   function jumpToHole(h: number) {
@@ -384,7 +451,9 @@ export function ShotEntryFlow({
   // ── Rendering ──────────────────────────────────────────────────────────────
 
   const STEP_ORDER: Step[] = ["club", "yards", "strike", "result"];
-  const stepperIdx = STEP_ORDER.indexOf(step === "miss" ? "result" : step);
+  const stepperIdx = STEP_ORDER.indexOf(
+    step === "miss" || step === "situation" ? "result" : step,
+  );
   const canPickUp =
     (logged[hole]?.count ?? 0) > 0 &&
     !logged[hole]?.complete &&
@@ -466,6 +535,44 @@ export function ShotEntryFlow({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Start lie — carries forward; one tap to override */}
+      {step !== "putt" && effectiveLie !== "Green" && (
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => setLieOpen((o) => !o)}
+            className="flex items-center gap-2 self-start rounded-full bg-muted px-3 py-1.5 text-sm transition-colors hover:bg-muted/70"
+          >
+            <span className="eyebrow">Lie</span>
+            <span className="font-medium">{effectiveLie ?? "Set lie"}</span>
+            {lieOverride && <span className="text-[10px] text-muted-foreground">edited</span>}
+            <span className="text-xs text-muted-foreground">▾</span>
+          </button>
+          {lieOpen && (
+            <div className="grid grid-cols-3 gap-2">
+              {OVERRIDE_LIES.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  onClick={() => {
+                    setLieOverride(l);
+                    setLieOpen(false);
+                  }}
+                  className={cn(
+                    "h-10 rounded-xl border-2 px-2 text-xs font-medium transition-colors",
+                    effectiveLie === l
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-card hover:bg-muted/50",
+                  )}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -597,7 +704,7 @@ export function ShotEntryFlow({
             <div className="font-mono text-6xl font-extrabold tabular-nums">
               {yards === "" ? "—" : yards}
             </div>
-            <div className="eyebrow mt-1">yards to target</div>
+            <div className="eyebrow mt-1">yards to the hole</div>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
@@ -749,6 +856,52 @@ export function ShotEntryFlow({
             <span className="col-start-2 row-start-2 flex items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground/50">
               Pin
             </span>
+          </div>
+        </div>
+      )}
+
+      {step === "situation" && (
+        <div className="flex flex-col gap-3">
+          <h3 className="font-heading text-2xl font-bold">What did it leave you?</h3>
+          <p className="-mt-1 text-sm text-muted-foreground">
+            One tap — did this shot help or hurt your next one?
+          </p>
+
+          {showShortSided && (
+            <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card px-4 py-2.5">
+              <span className="text-sm font-medium">Short-sided?</span>
+              <button
+                type="button"
+                onClick={() => setShortSided((s) => !s)}
+                className={cn(
+                  "h-9 rounded-lg border-2 px-4 text-sm font-bold transition-colors",
+                  shortSided
+                    ? "border-chart-3 bg-chart-3 text-white"
+                    : "border-input bg-card text-muted-foreground",
+                )}
+              >
+                {shortSided ? "Yes" : "No"}
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2.5">
+            {SITUATIONS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={busy}
+                onClick={() => chooseSituation(s)}
+                className={cn(
+                  "h-16 rounded-2xl border-2 text-base font-bold transition-transform active:scale-[0.97]",
+                  s === "Neutral"
+                    ? "border-primary/40 bg-card"
+                    : "border-border bg-card",
+                )}
+              >
+                {s}
+              </button>
+            ))}
           </div>
         </div>
       )}

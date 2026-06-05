@@ -5,6 +5,7 @@ import { getCourseHoles } from "@/lib/db/courses";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, totalPenalties } from "@/lib/analytics/core";
 import { SESSION_HOLE_COUNTS } from "@/lib/constants";
+import type { PrevFinish } from "@/lib/shots/lie";
 import { ShotEntryFlow, type HoleLog } from "./ShotEntryFlow";
 
 interface Props {
@@ -28,8 +29,10 @@ export default async function LogPage({ params }: Props) {
   const parByHole: Record<number, number> = {};
   for (const h of courseHoles) parByHole[h.hole_number] = h.par;
 
-  // Per-hole progress so the flow can resume and skip completed holes.
+  // Per-hole progress so the flow can resume and skip completed holes, plus the
+  // last shot per hole to seed the start-lie carry-forward on resume.
   const initialLogged: Record<number, HoleLog> = {};
+  const lastShotByHole: Record<number, PrevFinish | null> = {};
   for (const rh of aggregateByRoundHole(shots)) {
     initialLogged[rh.hole] = {
       count: rh.lastShotNo,
@@ -37,6 +40,10 @@ export default async function LogPage({ params }: Props) {
       conceded: rh.conceded,
       penalties: totalPenalties(rh.shots),
     };
+    const last = rh.shots[rh.shots.length - 1];
+    lastShotByHole[rh.hole] = last
+      ? { result: last.result, club: last.club, yardage: last.yardage }
+      : null;
     if (parByHole[rh.hole] == null) parByHole[rh.hole] = rh.par;
   }
 
@@ -55,6 +62,7 @@ export default async function LogPage({ params }: Props) {
       parByHole={parByHole}
       holeNumbers={holeNumbers}
       initialLogged={initialLogged}
+      lastShotByHole={lastShotByHole}
     />
   );
 }

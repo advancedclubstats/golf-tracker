@@ -71,6 +71,13 @@ export const ShotInsertSchema = z.object({
   start_lie: z.enum(START_LIES).nullish(),
 
   /**
+   * True when the player overrode the carry-forward `start_lie`. The chain
+   * recompute (on insert/delete) preserves manual lies. Optional — the DB
+   * defaults it to false, so non-wizard inserts needn't set it.
+   */
+  start_lie_manual: z.boolean().optional(),
+
+  /**
    * The "domino" field: did this shot improve or compound the position?
    * One tap, default Neutral. Captured going forward only.
    */
@@ -135,6 +142,7 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   yardage: z.number().nullable(),
   distance_unit: z.enum(DISTANCE_UNITS).nullable(),
   start_lie: z.enum(START_LIES).nullable(),
+  start_lie_manual: z.boolean(),
   situation_created: z.enum(SITUATIONS).nullable(),
   short_sided: z.boolean().nullable(),
   result: z.enum(RESULTS).nullable(),

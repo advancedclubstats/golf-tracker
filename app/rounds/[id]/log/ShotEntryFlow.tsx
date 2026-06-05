@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createShot, concedeHole } from "@/actions/shots";
+import { createShot, updateShot, concedeHole } from "@/actions/shots";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
 import {
   RESULTS,
   MISS_DIRECTIONS,
@@ -145,6 +152,16 @@ export function ShotEntryFlow({
   // Synchronous re-entry guard against same-tick double-taps.
   const submitting = useRef(false);
 
+  // The just-committed shot, so it can be reopened/edited from the next shot's
+  // club step (the common "wait, I mis-tapped that" case).
+  const [lastCommitted, setLastCommitted] = useState<{
+    id: string;
+    hole: number;
+    shotNo: number;
+    values: ShotFormValues;
+  } | null>(null);
+  const [editingLast, setEditingLast] = useState(false);
+
   // Keep the active hole chip visible in the horizontal strip.
   const currentChipRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -233,7 +250,7 @@ export function ShotEntryFlow({
     const isPutt = d.club === "Putter";
     const lie: StartLie | null = isPutt ? "Green" : effectiveLie;
     try {
-      await createShot({
+      const { id } = await createShot({
         round_id: roundId,
         hole,
         par,
@@ -267,6 +284,23 @@ export function ShotEntryFlow({
         ...m,
         [hole]: { result: d.result ?? null, club: d.club, yardage: d.yardage ?? null },
       }));
+      // Remember the row so it can be edited from the next shot's club step.
+      setLastCommitted({
+        id,
+        hole,
+        shotNo: sn,
+        values: {
+          club: d.club,
+          yardage: d.yardage ?? null,
+          execution: d.execution ?? null,
+          result: d.result ?? null,
+          missDirection: d.missDirection ?? null,
+          puttSide: d.puttSide ?? null,
+          puttLength: d.puttLength ?? null,
+          mulligan: d.mulligan ?? false,
+          penalty: d.penalty ?? 0,
+        },
+      });
       return { ok: true, made, map, strokes: sn + penalties };
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save shot.");
@@ -433,6 +467,53 @@ export function ShotEntryFlow({
     else if (step === "situation") setStep(missDirection ? "miss" : "result");
   }
 
+  /** Save edits to the just-committed shot (reopened from the club step). */
+  async function saveLastEdit(values: ShotFormValues) {
+    if (!lastCommitted || submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    try {
+      await updateShot(lastCommitted.id, roundId, {
+        club: values.club!,
+        yardage: values.yardage,
+        execution: values.execution,
+        result: values.result,
+        miss_direction: values.missDirection,
+        putt_side: values.puttSide,
+        putt_length: values.puttLength,
+        mulligan: values.mulligan,
+        penalty: values.penalty,
+      });
+      const h = lastCommitted.hole;
+      const penaltyDelta = (values.penalty ?? 0) - (lastCommitted.values.penalty ?? 0);
+      // Re-sync the bits of local state this shot drives: carry-forward lie,
+      // the hole's penalty total, and completeness if it became a Make.
+      setLastShot((m) => ({
+        ...m,
+        [h]: { result: values.result, club: values.club!, yardage: values.yardage },
+      }));
+      setLogged((m) => {
+        const cur = m[h] ?? { count: 0, complete: false, conceded: false, penalties: 0 };
+        return {
+          ...m,
+          [h]: {
+            ...cur,
+            penalties: cur.penalties + penaltyDelta,
+            complete: values.result === "Make" ? true : cur.complete,
+          },
+        };
+      });
+      setLastCommitted({ ...lastCommitted, values });
+      setEditingLast(false);
+      toast.success("Shot updated.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to update shot.");
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+
   function jumpToHole(h: number) {
     setHole(h);
     resetDraft();
@@ -448,6 +529,11 @@ export function ShotEntryFlow({
     (logged[hole]?.count ?? 0) > 0 &&
     !logged[hole]?.complete &&
     !logged[hole]?.conceded;
+  // The just-committed shot is the previous one on this hole → offer a quick edit.
+  const editLastEligible =
+    lastCommitted != null &&
+    lastCommitted.hole === hole &&
+    lastCommitted.shotNo === shotNo - 1;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-10 pt-4">
@@ -664,8 +750,22 @@ export function ShotEntryFlow({
             </button>
           )}
 
-          {/* Pick up / Done */}
+          {/* Edit just-logged shot / Pick up / Done */}
           <div className="mt-1 flex flex-col gap-2">
+            {editLastEligible && lastCommitted && (
+              <button
+                type="button"
+                onClick={() => setEditingLast(true)}
+                disabled={busy}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-muted/60 text-sm font-medium transition-colors hover:bg-muted"
+              >
+                ← Edit shot {lastCommitted.shotNo}
+                <span className="font-mono text-xs text-muted-foreground">
+                  {lastCommitted.values.club}
+                  {lastCommitted.values.result ? ` · ${lastCommitted.values.result}` : ""}
+                </span>
+              </button>
+            )}
             {canPickUp && (
               <button
                 type="button"
@@ -1060,6 +1160,34 @@ export function ShotEntryFlow({
           )}
         </div>
       )}
+
+      {/* Quick-edit the just-logged shot (core fields). */}
+      <Sheet open={editingLast} onOpenChange={(o) => !o && setEditingLast(false)}>
+        <SheetContent side="bottom" className="max-h-[92vh] overflow-y-auto">
+          {lastCommitted && (
+            <>
+              <SheetHeader>
+                <SheetTitle>
+                  Edit shot {lastCommitted.shotNo} · Hole {lastCommitted.hole}
+                </SheetTitle>
+              </SheetHeader>
+              <div className="px-4 pb-6">
+                <ShotForm
+                  key={lastCommitted.id}
+                  clubs={clubs}
+                  par={par}
+                  shotNo={lastCommitted.shotNo}
+                  requireExecution={false}
+                  busy={busy}
+                  initial={lastCommitted.values}
+                  submitLabel={() => "Save changes"}
+                  onSubmit={saveLastEdit}
+                />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

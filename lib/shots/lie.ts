@@ -11,12 +11,16 @@ export interface PrevFinish {
   result: Result | null;
   club: string;
   yardage: number | null;
+  /** The lie this shot was played *from* — used to replay stroke-and-distance
+   *  penalties (OB / Lost), where you re-hit from the same spot. */
+  startLie?: StartLie | null;
 }
 
 /**
  * The default start lie for the next shot given the previous shot's finish.
- * Returns null when it can't be inferred (penalty drop, untagged finish) — the
- * caller should fall back to a safe default and let the player set it.
+ * Returns null when it can't be inferred (drop of unknown lie, untagged
+ * finish) — the caller should fall back to a safe default and let the player
+ * set it.
  *
  * Bunker defaults to greenside (the common case); a long fairway bunker is one
  * tap to override. (The backfill SQL refines this by distance, but distance
@@ -39,8 +43,13 @@ export function nextStartLie(prev: PrevFinish | null): StartLie | null {
       return "Greenside bunker";
     case "Recovery":
       return "Recovery";
-    // Penalty drops (OB / Hazard / Lost / Unplayable) and an untagged finish
-    // (null) leave the next lie unknown — caller falls back / prompts.
+    // Stroke-and-distance: you replay from where you just hit, so the next
+    // shot's lie is this shot's own start lie (a re-tee stays on the Tee).
+    case "OB":
+    case "Lost":
+      return prev.startLie ?? null;
+    // Hazard / Unplayable get a drop of an ambiguous lie, and an untagged
+    // finish (null) is unknown — caller falls back / prompts.
     default:
       return null;
   }

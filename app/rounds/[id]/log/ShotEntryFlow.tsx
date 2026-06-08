@@ -51,6 +51,10 @@ interface ShotEntryFlowProps {
 
 /** Results that auto-incur a penalty stroke (matches ShotForm / SPEC). */
 const PENALTY_RESULTS = new Set<Result>(["OB", "Hazard", "Lost", "Unplayable"]);
+/** Stroke-and-distance penalties: you replay from the same spot (same lie, same
+ *  distance), so the next shot is a do-over — skip the "what did it leave you?"
+ *  step (nothing changed) and carry the lie forward unchanged. */
+const STROKE_AND_DISTANCE = new Set<Result>(["OB", "Lost"]);
 /** Results that warrant a miss-direction tag. */
 const MISS_RESULTS = new Set<Result>([
   "Rough",
@@ -280,9 +284,16 @@ export function ShotEntryFlow({
       };
       setLogged(map);
       // Remember this finish so the next shot's start-lie carries forward.
+      // `startLie` (the lie this shot played from) lets a stroke-and-distance
+      // penalty replay from the same spot — a re-tee stays on the Tee.
       setLastShot((m) => ({
         ...m,
-        [hole]: { result: d.result ?? null, club: d.club, yardage: d.yardage ?? null },
+        [hole]: {
+          result: d.result ?? null,
+          club: d.club,
+          yardage: d.yardage ?? null,
+          startLie: lie,
+        },
       }));
       // Remember the row so it can be edited from the next shot's club step.
       setLastCommitted({
@@ -340,7 +351,11 @@ export function ShotEntryFlow({
       setStep("putt");
       return;
     }
-    const teeNoYardage = shotNo === 1 && (par ?? 0) >= 4 && TEE_NO_YARDAGE.has(c);
+    // A tee shot with a long club on a par 4/5 skips yardage — including a
+    // re-tee after an OB/Lost penalty (effectiveLie carries "Tee" forward),
+    // which is the same shot played again.
+    const teeNoYardage =
+      effectiveLie === "Tee" && (par ?? 0) >= 4 && TEE_NO_YARDAGE.has(c);
     setSkipYards(teeNoYardage);
     setStep(teeNoYardage ? "strike" : "yards");
   }
@@ -370,20 +385,30 @@ export function ShotEntryFlow({
     setStep(MISS_RESULTS.has(r) ? "miss" : "situation");
   }
 
-  function chooseMiss(dir: MissDirection) {
+  async function chooseMiss(dir: MissDirection) {
     setMissDirection(dir);
+    // Stroke-and-distance (OB / Lost): the next shot is a replay from the same
+    // spot, so the "what did it leave you?" step is meaningless — skip it and
+    // save with a Neutral situation. (Pass `dir` explicitly; the setState above
+    // hasn't applied yet this tick.)
+    if (STROKE_AND_DISTANCE.has(result!)) {
+      await commitNonTerminal("Neutral", dir);
+      return;
+    }
     setStep("situation");
   }
 
-  /** Final step for a non-terminal shot: record the domino field, then save. */
-  async function chooseSituation(sit: Situation) {
+  /** Save a non-terminal shot (records the domino field), then advance to the
+   *  next shot. `missDir` overrides the `missDirection` state for callers that
+   *  commit in the same tick they set it. */
+  async function commitNonTerminal(sit: Situation, missDir?: MissDirection) {
     const r = result!;
     const res = await commitShot({
       club: club!,
       yardage: yards === "" ? undefined : Number(yards),
       execution: execution ?? undefined,
       result: r,
-      missDirection: missDirection ?? undefined,
+      missDirection: missDir ?? missDirection ?? undefined,
       situation: sit,
       shortSided: showShortSided ? shortSided : undefined,
       mulligan,
@@ -391,6 +416,11 @@ export function ShotEntryFlow({
     });
     if (!res.ok) return;
     resetDraft(); // non-terminal → next shot
+  }
+
+  /** Final step for a non-terminal shot: record the domino field, then save. */
+  async function chooseSituation(sit: Situation) {
+    await commitNonTerminal(sit);
   }
 
   function enterPutt() {

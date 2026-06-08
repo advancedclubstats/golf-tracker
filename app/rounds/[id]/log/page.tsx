@@ -42,7 +42,12 @@ export default async function LogPage({ params }: Props) {
     };
     const last = rh.shots[rh.shots.length - 1];
     lastShotByHole[rh.hole] = last
-      ? { result: last.result, club: last.club, yardage: last.yardage }
+      ? {
+          result: last.result,
+          club: last.club,
+          yardage: last.yardage,
+          startLie: last.start_lie,
+        }
       : null;
     if (parByHole[rh.hole] == null) parByHole[rh.hole] = rh.par;
   }

@@ -22,9 +22,28 @@ describe("nextStartLie (carry-forward default)", () => {
     expect(nextStartLie({ result: null, club: "Putter", yardage: 5 })).toBe("Green");
   });
 
-  it("penalty finishes have an unknown drop lie", () => {
+  it("penalty finishes have an unknown drop lie without a known start lie", () => {
     for (const result of ["OB", "Hazard", "Lost", "Unplayable"] as const) {
       expect(nextStartLie({ result, club: "D", yardage: null })).toBeNull();
+    }
+  });
+
+  it("stroke-and-distance (OB / Lost) replays from the same lie", () => {
+    // A re-tee after an OB drive stays on the tee.
+    expect(
+      nextStartLie({ result: "OB", club: "D", yardage: null, startLie: "Tee" }),
+    ).toBe("Tee");
+    // An approach replayed after a lost ball stays where it was played from.
+    expect(
+      nextStartLie({ result: "Lost", club: "7i", yardage: 160, startLie: "Fairway" }),
+    ).toBe("Fairway");
+  });
+
+  it("Hazard / Unplayable still drop to an unknown lie even with a start lie", () => {
+    for (const result of ["Hazard", "Unplayable"] as const) {
+      expect(
+        nextStartLie({ result, club: "D", yardage: null, startLie: "Tee" }),
+      ).toBeNull();
     }
   });
 

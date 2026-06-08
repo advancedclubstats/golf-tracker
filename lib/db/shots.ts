@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
+import { withRetry } from "@/lib/supabase/retry";
 import { ShotRowSchema, type ShotRow } from "@/lib/schemas/shot";
 import { V1_USER_ID } from "@/lib/constants";
 
@@ -23,13 +24,15 @@ const ShotRowsSchema = z.array(ShotRowSchema);
 export async function getAllShots(): Promise<ShotRow[]> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
-    .from("shots")
-    .select("*")
-    .eq("user_id", V1_USER_ID)
-    .order("round_id", { ascending: true })
-    .order("hole", { ascending: true })
-    .order("shot_no", { ascending: true });
+  const { data, error } = await withRetry(() =>
+    supabase
+      .from("shots")
+      .select("*")
+      .eq("user_id", V1_USER_ID)
+      .order("round_id", { ascending: true })
+      .order("hole", { ascending: true })
+      .order("shot_no", { ascending: true }),
+  );
 
   if (error) {
     throw new Error(`Failed to fetch shots: ${error.message}`);
@@ -45,12 +48,14 @@ export async function getAllShots(): Promise<ShotRow[]> {
 export async function getShotsByRound(roundId: string): Promise<ShotRow[]> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
-    .from("shots")
-    .select("*")
-    .eq("round_id", roundId)
-    .order("hole", { ascending: true })
-    .order("shot_no", { ascending: true });
+  const { data, error } = await withRetry(() =>
+    supabase
+      .from("shots")
+      .select("*")
+      .eq("round_id", roundId)
+      .order("hole", { ascending: true })
+      .order("shot_no", { ascending: true }),
+  );
 
   if (error) {
     throw new Error(`Failed to fetch shots for round: ${error.message}`);

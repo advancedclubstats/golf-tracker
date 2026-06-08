@@ -6,6 +6,7 @@
 
 import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
+import { withRetry } from "@/lib/supabase/retry";
 import { RoundRowSchema, type RoundRow } from "@/lib/schemas/round";
 import { V1_USER_ID } from "@/lib/constants";
 
@@ -18,11 +19,9 @@ const RoundRowsSchema = z.array(RoundRowSchema);
 export async function getRound(id: string): Promise<RoundRow | null> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("id", id)
-    .single();
+  const { data, error } = await withRetry(() =>
+    supabase.from("rounds").select("*").eq("id", id).single(),
+  );
 
   if (error) {
     // PGRST116 = no rows returned by .single()
@@ -42,11 +41,13 @@ export async function getRound(id: string): Promise<RoundRow | null> {
 export async function getAllRounds(): Promise<RoundRow[]> {
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
-    .from("rounds")
-    .select("*")
-    .eq("user_id", V1_USER_ID)
-    .order("date", { ascending: false });
+  const { data, error } = await withRetry(() =>
+    supabase
+      .from("rounds")
+      .select("*")
+      .eq("user_id", V1_USER_ID)
+      .order("date", { ascending: false }),
+  );
 
   if (error) {
     throw new Error(`Failed to fetch rounds: ${error.message}`);

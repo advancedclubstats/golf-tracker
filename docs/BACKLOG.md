@@ -61,6 +61,15 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ## Tech debt / data integrity
 
+- **Post-save server re-render is wasted work (optional follow-up).** The fix for
+  the intermittent "Server Components render" save crash added a read-retry
+  wrapper (`lib/supabase/retry.ts`) + error boundaries (`app/error.tsx`,
+  `app/rounds/[id]/log/error.tsx`). Root cause: every server action re-renders the
+  `force-dynamic` log page, re-running its Supabase reads; a transient blip threw
+  mid-render. Retry + boundaries absorb it. The deeper cleanup — not refetching the
+  log page on save at all, since the wizard runs on client state — is left
+  undone; do it if save latency or DB load becomes a concern. (Data was checked:
+  the bug created no duplicate shots.)
 - **Drop the legacy `result` / `miss_direction` / `putt_*` DB CHECK constraints**
   in favor of Zod-only validation. These drifted from the constants and caused the
   Fringe/Recovery production crash (fixed in migration 009). Either remove them, or

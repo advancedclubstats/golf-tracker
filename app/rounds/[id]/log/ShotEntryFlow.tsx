@@ -178,6 +178,13 @@ export function ShotEntryFlow({
   const shotNo = (holeLog?.count ?? 0) + 1;
   const parLocked = courseParKnown || (holeLog?.count ?? 0) > 0;
   const { vsPar, holes: holesPlayed } = roundScore(logged, parByHole, localPar);
+  const canPickUp =
+    (holeLog?.count ?? 0) > 0 && !holeLog?.complete && !holeLog?.conceded;
+  // The just-committed shot is the previous one on this hole → offer a quick edit.
+  const editLastEligible =
+    lastCommitted != null &&
+    lastCommitted.hole === hole &&
+    lastCommitted.shotNo === shotNo - 1;
 
   // Start-lie default carries forward from the prior shot's finish; the player
   // can override (one tap). Null default = penalty drop / unknown → set it.
@@ -489,12 +496,23 @@ export function ShotEntryFlow({
     }
   }
 
+  /**
+   * Always-available back. Within a shot it walks the sub-steps back; at the
+   * start of a shot (club picker / first putt) it reopens the just-logged shot
+   * for editing, and on the very first shot of a hole it exits to the round.
+   */
   function back() {
-    if (step === "yards" || (step === "strike" && skipYards)) setStep("club");
-    else if (step === "strike") setStep("yards");
-    else if (step === "result") setStep("strike");
-    else if (step === "miss") setStep("result");
-    else if (step === "situation") setStep(missDirection ? "miss" : "result");
+    // Sub-steps of the shot being entered.
+    if (step === "yards" || (step === "strike" && skipYards)) return setStep("club");
+    if (step === "strike") return setStep("yards");
+    if (step === "result") return setStep("strike");
+    if (step === "miss") return setStep("result");
+    if (step === "situation") return setStep(missDirection ? "miss" : "result");
+    // Putt miss detail → back to the putt's distance screen.
+    if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
+    // Start of a shot: reopen the previous shot to edit, else leave the flow.
+    if (editLastEligible && lastCommitted) return setEditingLast(true);
+    router.push(`/rounds/${roundId}`);
   }
 
   /** Save edits to the just-committed shot (reopened from the club step). */
@@ -555,30 +573,19 @@ export function ShotEntryFlow({
   const stepperIdx = STEP_ORDER.indexOf(
     step === "miss" || step === "situation" ? "result" : step,
   );
-  const canPickUp =
-    (logged[hole]?.count ?? 0) > 0 &&
-    !logged[hole]?.complete &&
-    !logged[hole]?.conceded;
-  // The just-committed shot is the previous one on this hole → offer a quick edit.
-  const editLastEligible =
-    lastCommitted != null &&
-    lastCommitted.hole === hole &&
-    lastCommitted.shotNo === shotNo - 1;
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-10 pt-4">
       {/* Context header */}
       <div className="flex items-center gap-3">
-        {step !== "club" && step !== "putt" && (
-          <button
-            type="button"
-            onClick={back}
-            aria-label="Back"
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg transition-colors hover:bg-muted/70"
-          >
-            ←
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={back}
+          aria-label="Back"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg transition-colors hover:bg-muted/70"
+        >
+          ←
+        </button>
         <div className="flex-1">
           <h2 className="font-heading text-xl font-bold leading-none">Hole {hole}</h2>
           {par !== null && (

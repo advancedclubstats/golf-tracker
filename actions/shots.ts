@@ -136,11 +136,27 @@ export async function updateShot(
 
   const supabase = createServerClient();
 
+  // Need the hole to re-derive the start-lie chain after the edit.
+  const { data: shot, error: findErr } = await supabase
+    .from("shots")
+    .select("hole")
+    .eq("id", id)
+    .single();
+  if (findErr) {
+    throw new Error(`Failed to load shot: ${findErr.message}`);
+  }
+
   const { error } = await supabase.from("shots").update(validated).eq("id", id);
 
   if (error) {
     throw new Error(`Failed to update shot: ${error.message}`);
   }
+
+  // Editing a shot's result/club changes the lie it leaves, so the NEXT shot's
+  // carry-forward start_lie can go stale. Re-derive the hole's chain (the
+  // function preserves manual overrides via start_lie_manual). The edit path
+  // doesn't change a shot's own start_lie, so nothing the user set is clobbered.
+  await recomputeHoleStartLie(supabase, roundId, shot.hole);
 
   revalidateShotViews(roundId);
 }

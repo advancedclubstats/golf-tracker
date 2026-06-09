@@ -115,9 +115,23 @@ export function shotSG(shot: ShotRow, next: ShotRow | null): number | null {
   return startE - finishE - 1 - (shot.penalty ?? 0);
 }
 
-/** Compute strokes gained across all shots, by category. */
-export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
-  // Group by round+hole, ordered by shot number, to chain finish → next start.
+/** A covered shot paired with its SG and category — the basis for leak cuts. */
+export interface ShotSG {
+  shot: ShotRow;
+  sg: number;
+  category: SgCategory;
+}
+
+/**
+ * Per-shot SG for every *covered* shot (both ends resolve to a baseline), each
+ * tagged with its category, plus the distinct round count for per-round figures.
+ * The shared basis for `computeStrokesGained` and the leak cuts
+ * (`lib/analytics/leaks.ts`); chaining lives here so it has one home.
+ */
+export function perShotSG(shots: readonly ShotRow[]): {
+  entries: ShotSG[];
+  rounds: number;
+} {
   const holes = new Map<string, ShotRow[]>();
   const roundIds = new Set<string>();
   for (const s of shots) {
@@ -127,46 +141,56 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
     if (arr) arr.push(s);
     else holes.set(key, [s]);
   }
+  const entries: ShotSG[] = [];
+  for (const holeShots of holes.values()) {
+    holeShots.sort((a, b) => a.shot_no - b.shot_no);
+    for (let i = 0; i < holeShots.length; i++) {
+      const shot = holeShots[i];
+      const sg = shotSG(shot, holeShots[i + 1] ?? null);
+      if (sg == null) continue;
+      entries.push({
+        shot,
+        sg,
+        category: categoryOf(shot.start_lie, shot.yardage, shot.par),
+      });
+    }
+  }
+  return { entries, rounds: roundIds.size };
+}
+
+/** Compute strokes gained across all shots, by category. */
+export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
+  const { entries, rounds } = perShotSG(shots);
 
   const cat = new Map<SgCategory, { shots: number; sg: number }>();
   let total = 0;
-  let covered = 0;
-  let totalShots = 0;
+  const covered = entries.length;
+  const totalShots = shots.length;
   // Decision/execution loss pools (spec 2E): negative SG split by the flag.
   let executionLoss = 0;
   let decisionLoss = 0;
   let executionShots = 0;
   let decisionShots = 0;
 
-  for (const holeShots of holes.values()) {
-    holeShots.sort((a, b) => a.shot_no - b.shot_no);
-    for (let i = 0; i < holeShots.length; i++) {
-      totalShots++;
-      const shot = holeShots[i];
-      const sg = shotSG(shot, holeShots[i + 1] ?? null);
-      if (sg == null) continue;
-      covered++;
-      total += sg;
-      const c = categoryOf(shot.start_lie, shot.yardage, shot.par);
-      const cur = cat.get(c) ?? { shots: 0, sg: 0 };
-      cur.shots++;
-      cur.sg += sg;
-      cat.set(c, cur);
-      // Only losses feed the decision/execution pools. Default-Good covers
-      // historical rows (DB default), so the common case lands in execution.
-      if (sg < 0) {
-        if (shot.decision_quality === "Bad") {
-          decisionLoss += sg;
-          decisionShots++;
-        } else {
-          executionLoss += sg;
-          executionShots++;
-        }
+  for (const { shot, sg, category } of entries) {
+    total += sg;
+    const cur = cat.get(category) ?? { shots: 0, sg: 0 };
+    cur.shots++;
+    cur.sg += sg;
+    cat.set(category, cur);
+    // Only losses feed the decision/execution pools. Default-Good covers
+    // historical rows (DB default), so the common case lands in execution.
+    if (sg < 0) {
+      if (shot.decision_quality === "Bad") {
+        decisionLoss += sg;
+        decisionShots++;
+      } else {
+        executionLoss += sg;
+        executionShots++;
       }
     }
   }
 
-  const rounds = roundIds.size;
   const byCategory: SgCategorySummary[] = SG_CATEGORIES.map((category) => {
     const v = cat.get(category) ?? { shots: 0, sg: 0 };
     return {

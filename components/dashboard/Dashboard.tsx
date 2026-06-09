@@ -20,6 +20,8 @@ import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/li
 // the old green%/make%/quality heuristic card was removed and is rebuilt SG-driven.
 import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
+import type { Leak } from "@/lib/analytics/leaks";
+import { LeakList } from "@/components/dashboard/LeakList";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -53,7 +55,15 @@ function Row({
   );
 }
 
-export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained }) {
+export function Dashboard({
+  data,
+  sg,
+  leaks,
+}: {
+  data: DashboardData;
+  sg: StrokesGained;
+  leaks: Leak[];
+}) {
   const { snapshot, statLine, recentRounds, records } = data;
 
   return (
@@ -120,6 +130,17 @@ export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained
               Log a round with a start lie and distance to see strokes gained.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Where strokes are lost — the SG-driven prescription (spec Part 3).
+          One ranked list by recoverable/round, each row drillable to its shots. */}
+      <Card size="sm" className="sm:col-span-2">
+        <CardHeader>
+          <CardTitle className="eyebrow">Where strokes are lost</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <LeakList leaks={leaks} />
         </CardContent>
       </Card>
 

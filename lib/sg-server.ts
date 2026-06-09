@@ -13,6 +13,7 @@ import {
   fillTeeDistances,
   type StrokesGained,
 } from "@/lib/analytics/sg";
+import { computeLeaks, type Leak } from "@/lib/analytics/leaks";
 import type { ShotRow } from "@/lib/schemas/shot";
 import type { RoundRow } from "@/lib/schemas/round";
 
@@ -46,13 +47,14 @@ function buildTeeYardages(
 }
 
 /**
- * Compute strokes gained across all rounds. Pass already-fetched shots/rounds
- * (e.g. the dashboard already has them) to avoid a redundant query.
+ * Fetch all shots and fill skipped tee distances from course geometry — the
+ * shared input for every SG-derived view (categories, leaks, hole attribution).
+ * Pass already-fetched shots/rounds to avoid a redundant query.
  */
-export async function getStrokesGained(prefetched?: {
+export async function getEnrichedShots(prefetched?: {
   shots: ShotRow[];
   rounds: RoundRow[];
-}): Promise<StrokesGained> {
+}): Promise<{ shots: ShotRow[]; rounds: RoundRow[] }> {
   const [shots, rounds] = prefetched
     ? [prefetched.shots, prefetched.rounds]
     : await Promise.all([getAllShots(), getAllRounds()]);
@@ -61,5 +63,26 @@ export async function getStrokesGained(prefetched?: {
     getAllTeeYardages(),
   ]);
   const enriched = fillTeeDistances(shots, buildTeeYardages(rounds, tees, yardages));
-  return computeStrokesGained(enriched);
+  return { shots: enriched, rounds };
+}
+
+/**
+ * Compute strokes gained across all rounds. Pass already-fetched shots/rounds
+ * (e.g. the dashboard already has them) to avoid a redundant query.
+ */
+export async function getStrokesGained(prefetched?: {
+  shots: ShotRow[];
+  rounds: RoundRow[];
+}): Promise<StrokesGained> {
+  const { shots } = await getEnrichedShots(prefetched);
+  return computeStrokesGained(shots);
+}
+
+/** Ranked, sample-gated leaks (spec Part 3). Shares the SG tee-fill. */
+export async function getLeaks(prefetched?: {
+  shots: ShotRow[];
+  rounds: RoundRow[];
+}): Promise<{ leaks: Leak[]; rounds: number }> {
+  const { shots } = await getEnrichedShots(prefetched);
+  return computeLeaks(shots);
 }

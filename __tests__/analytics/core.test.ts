@@ -38,6 +38,7 @@ function shot(p: Partial<ShotRow>): ShotRow {
     start_lie_manual: false,
     situation_created: null,
     short_sided: null,
+    decision_quality: "Good",
     execution: 3,
     result: null,
     miss_direction: null,

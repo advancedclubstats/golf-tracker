@@ -62,6 +62,7 @@ export function EditShotSheet({
         putt_side: values.puttSide,
         putt_length: values.puttLength,
         penalty: values.penalty,
+        decision_quality: values.decisionQuality,
       });
       toast.success("Shot updated.");
       onClose();
@@ -90,6 +91,7 @@ export function EditShotSheet({
         putt_side: values.puttSide ?? undefined,
         putt_length: values.puttLength ?? undefined,
         penalty: values.penalty,
+        decision_quality: values.decisionQuality,
       });
       toast.success("Shot inserted.");
       onClose();
@@ -151,6 +153,7 @@ export function EditShotSheet({
                   puttSide: shot.putt_side,
                   puttLength: shot.putt_length,
                   penalty: shot.penalty,
+                  decisionQuality: shot.decision_quality,
                 }}
                 secondaryAction={
                   <Button

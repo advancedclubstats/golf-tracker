@@ -26,6 +26,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 | **Miss direction** | Left / Right / Long / Short | Only if result ∈ {Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable} |
 | **Situation created** ("domino") | Improved / Neutral / Constrained / Severe trouble | After non-terminal results (skipped for Make/Green and auto-set Neutral for OB/Lost) |
 | **Short-sided?** | yes/no | Only on the situation step when result≠Green/Make AND (lie is greenside OR distance ≤175y) |
+| **Decision quality** | Good / Bad (default Good) | One-tap toggle on the result step (full shots); putts default Good. Flag Bad only for a process error (risk / club / line / commitment) — spec 1A |
 | **Penalty** | integer (auto +1 for OB/Hazard/Lost/Unplayable) | Automatic |
 
 ### Putt sub-flow (club = Putter)
@@ -102,5 +103,6 @@ date, session type, shots logged, complete holes, strokes, vs par (or "In progre
 ## 5. Stored shot fields (DB columns, for reference)
 `round_id, hole, par, shot_no, club, yardage (yards; putts = ft/3),
 distance_unit (yd|ft), start_lie, start_lie_manual, situation_created,
-short_sided, execution (1–4), result, miss_direction, putt_side, putt_length,
-penalty (int), notes, conceded (bool, pickups), id, user_id, created_at`.
+short_sided, decision_quality (Good|Bad, default Good), execution (1–4), result,
+miss_direction, putt_side, putt_length, penalty (int), notes,
+conceded (bool, pickups), id, user_id, created_at`.

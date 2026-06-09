@@ -102,6 +102,16 @@ export const START_LIES = [
 ] as const;
 export type StartLie = (typeof START_LIES)[number];
 
+/**
+ * Decision quality (spec 1A): the one signal SG can't compute. Default Good;
+ * flag Bad only for a genuine process error (too much risk / wrong club /
+ * wrong line / acted hastily) — not a good play that drew a bad result inside
+ * normal dispersion. Splits lost strokes into execution loss (Good → practice)
+ * vs decision loss (Bad → thinking).
+ */
+export const DECISION_QUALITIES = ["Good", "Bad"] as const;
+export type DecisionQuality = (typeof DECISION_QUALITIES)[number];
+
 /** The "domino" field: did this shot improve or compound the situation? */
 export const SITUATIONS = [
   "Improved",

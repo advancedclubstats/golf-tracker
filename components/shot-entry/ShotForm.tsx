@@ -10,11 +10,14 @@ import { PuttExtras } from "@/components/shot-entry/PuttExtras";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
+  DECISION_QUALITIES,
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
+  type DecisionQuality,
 } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 /** The descriptive fields of a single shot (no hole/par/shot_no). */
 export interface ShotFormValues {
@@ -26,6 +29,7 @@ export interface ShotFormValues {
   puttSide: PuttSide | null;
   puttLength: PuttLength | null;
   penalty: number;
+  decisionQuality: DecisionQuality;
 }
 
 /** Results that automatically incur a penalty stroke. */
@@ -91,6 +95,9 @@ export function ShotForm({
     initial?.puttLength ?? null,
   );
   const [penalty, setPenalty] = useState<number>(initial?.penalty ?? 0);
+  const [decisionQuality, setDecisionQuality] = useState<DecisionQuality>(
+    initial?.decisionQuality ?? "Good",
+  );
   const [error, setError] = useState<string | null>(null);
 
   function handleResultChange(r: Result | null) {
@@ -118,6 +125,7 @@ export function ShotForm({
     puttSide,
     puttLength,
     penalty,
+    decisionQuality,
   };
 
   function handleSubmit() {
@@ -181,6 +189,35 @@ export function ShotForm({
           onPuttLengthChange={setPuttLength}
         />
       )}
+
+      {/* Decision quality (spec 1A): one tap, default Good. */}
+      <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-0.5">
+          <Label>Decision</Label>
+          <p className="text-xs text-muted-foreground">
+            Bad = a thinking mistake, not a bad bounce
+          </p>
+        </div>
+        <div className="flex gap-1.5">
+          {DECISION_QUALITIES.map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDecisionQuality(d)}
+              className={cn(
+                "h-9 rounded-xl border-2 px-4 text-sm font-bold transition-colors",
+                decisionQuality === d
+                  ? d === "Bad"
+                    ? "border-chart-3 bg-chart-3 text-white"
+                    : "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-background text-muted-foreground",
+              )}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">

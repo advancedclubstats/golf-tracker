@@ -16,6 +16,7 @@ import {
   PUTT_LENGTHS,
   START_LIES,
   SITUATIONS,
+  DECISION_QUALITIES,
   DISTANCE_UNITS,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
@@ -90,6 +91,14 @@ export const ShotInsertSchema = z.object({
   short_sided: z.boolean().nullish(),
 
   /**
+   * Decision quality (spec 1A). The one signal SG can't compute: it separates
+   * process from outcome. Default Good (DB default); flag Bad only for a genuine
+   * process error. One tap in the wizard. Optional on insert — the DB defaults
+   * it to Good, so non-wizard inserts and historical rows needn't set it.
+   */
+  decision_quality: z.enum(DECISION_QUALITIES).optional(),
+
+  /**
    * Shot quality: 1 = bad, 2 = okay, 3 = good, 4 = excellent.
    * Optional: some imported sheet rows have a blank execution, and the
    * analytics treat a missing rating as "unrated" (skipped). The shot-entry UI
@@ -141,6 +150,7 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   start_lie_manual: z.boolean(),
   situation_created: z.enum(SITUATIONS).nullable(),
   short_sided: z.boolean().nullable(),
+  decision_quality: z.enum(DECISION_QUALITIES),
   result: z.enum(RESULTS).nullable(),
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),
   putt_side: z.enum(PUTT_SIDES).nullable(),
@@ -165,6 +175,7 @@ export const ShotUpdateSchema = ShotInsertSchema.pick({
   start_lie: true,
   situation_created: true,
   short_sided: true,
+  decision_quality: true,
   execution: true,
   result: true,
   miss_direction: true,

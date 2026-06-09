@@ -18,12 +18,14 @@ import {
   PUTT_LENGTHS,
   START_LIES,
   SITUATIONS,
+  DECISION_QUALITIES,
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
   type StartLie,
   type Situation,
+  type DecisionQuality,
 } from "@/lib/constants";
 import { nextStartLie, type PrevFinish } from "@/lib/shots/lie";
 import { cn } from "@/lib/utils";
@@ -138,6 +140,9 @@ export function ShotEntryFlow({
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [missDirection, setMissDirection] = useState<MissDirection | null>(null);
+  // Decision quality (spec 1A): default Good; the player taps Bad on the result
+  // step only for a genuine process error before choosing the result chip.
+  const [decisionQuality, setDecisionQuality] = useState<DecisionQuality>("Good");
   // Start lie: `lieOverride` is the player's one-tap override (else the
   // carry-forward default is used). Domino fields default to no-trouble.
   const [lieOverride, setLieOverride] = useState<StartLie | null>(null);
@@ -207,6 +212,7 @@ export function ShotEntryFlow({
     setExecution(null);
     setResult(null);
     setMissDirection(null);
+    setDecisionQuality("Good");
     setLieOverride(null);
     setLieOpen(false);
     setShortSided(false);
@@ -242,6 +248,8 @@ export function ShotEntryFlow({
     penalty?: number;
     situation?: Situation;
     shortSided?: boolean;
+    /** Decision quality. Omitted (e.g. putts) → DB default 'Good'. */
+    decisionQuality?: DecisionQuality;
   }
 
   /** Write the shot, update local progress, return the fresh map + made flag. */
@@ -270,6 +278,7 @@ export function ShotEntryFlow({
         start_lie_manual: !isPutt && lieOverride !== null,
         situation_created: d.situation,
         short_sided: d.shortSided,
+        decision_quality: d.decisionQuality,
         execution: d.execution,
         result: d.result,
         miss_direction: d.missDirection,
@@ -312,6 +321,7 @@ export function ShotEntryFlow({
           puttSide: d.puttSide ?? null,
           puttLength: d.puttLength ?? null,
           penalty: d.penalty ?? 0,
+          decisionQuality: d.decisionQuality ?? "Good",
         },
       });
       return { ok: true, made, map, strokes: sn + penalties };
@@ -377,6 +387,7 @@ export function ShotEntryFlow({
         yardage: yards === "" ? undefined : Number(yards),
         execution: execution ?? undefined,
         result: r,
+        decisionQuality,
       });
       if (!res.ok) return;
       if (r === "Make") completeHole(res.map, res.strokes);
@@ -413,6 +424,7 @@ export function ShotEntryFlow({
       situation: sit,
       shortSided: showShortSided ? shortSided : undefined,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
+      decisionQuality,
     });
     if (!res.ok) return;
     resetDraft(); // non-terminal → next shot
@@ -523,6 +535,7 @@ export function ShotEntryFlow({
         putt_side: values.puttSide,
         putt_length: values.puttLength,
         penalty: values.penalty,
+        decision_quality: values.decisionQuality,
       });
       const h = lastCommitted.hole;
       const penaltyDelta = (values.penalty ?? 0) - (lastCommitted.values.penalty ?? 0);
@@ -906,6 +919,39 @@ export function ShotEntryFlow({
       {step === "result" && (
         <div className="flex flex-col gap-3">
           <h3 className="font-heading text-2xl font-bold">Where&apos;d it end up?</h3>
+
+          {/* Decision quality (spec 1A): one tap, default Good. Flag Bad only for
+              a process error (risk / club / line / didn't commit) — not a good
+              play that drew a bad result. Set before tapping the result chip. */}
+          <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card px-4 py-2.5">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-sm font-semibold">Decision</span>
+              <span className="text-xs text-muted-foreground">
+                Tap Bad only for a thinking mistake
+              </span>
+            </div>
+            <div className="flex gap-1.5">
+              {DECISION_QUALITIES.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setDecisionQuality(d)}
+                  className={cn(
+                    "h-9 rounded-xl border-2 px-4 text-sm font-bold transition-colors",
+                    decisionQuality === d
+                      ? d === "Bad"
+                        ? "border-chart-3 bg-chart-3 text-white"
+                        : "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground",
+                  )}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-2.5">
             {RESULTS.filter((r) => r !== "Make").map((r) => (
               <button

@@ -196,6 +196,28 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
 }
 
 /**
+ * Delete every shot on a hole so it can be re-entered from scratch. The entry
+ * wizard appends by `shot_no`, so re-teeing a hole that already has shots would
+ * otherwise duplicate them (this is what corrupted hole 8); clearing first makes
+ * "redo this hole" clean. No-op-safe when the hole has no shots.
+ * Cache: revalidates '/' and '/rounds/[id]'.
+ */
+export async function clearHole(roundId: string, hole: number): Promise<void> {
+  const supabase = createServerClient();
+
+  const { error } = await supabase
+    .from("shots")
+    .delete()
+    .eq("round_id", roundId)
+    .eq("hole", hole);
+  if (error) {
+    throw new Error(`Failed to clear hole: ${error.message}`);
+  }
+
+  revalidateShotViews(roundId);
+}
+
+/**
  * Mark a hole as picked up / conceded by flagging its last shot. The hole stays
  * excluded from scoring (no Make), but is labelled "Picked up" rather than
  * "In progress". Requires at least one logged shot on the hole.

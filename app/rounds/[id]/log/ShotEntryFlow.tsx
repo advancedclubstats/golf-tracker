@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { saveShot, editShot, pickUpHole } from "@/lib/shots/client";
+import { saveShot, editShot, pickUpHole, clearHole } from "@/lib/shots/client";
 import {
   Sheet,
   SheetContent,
@@ -179,6 +179,8 @@ export function ShotEntryFlow({
   const { vsPar, holes: holesPlayed } = roundScore(logged, parByHole, localPar);
   const canPickUp =
     (holeLog?.count ?? 0) > 0 && !holeLog?.complete && !holeLog?.conceded;
+  // Any hole with shots can be wiped and restarted (the redo path).
+  const canClear = (holeLog?.count ?? 0) > 0;
   // The just-committed shot is the previous one on this hole → offer a quick edit.
   const editLastEligible =
     lastCommitted != null &&
@@ -468,6 +470,43 @@ export function ShotEntryFlow({
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to pick up hole.");
+    } finally {
+      submitting.current = false;
+      setBusy(false);
+    }
+  }
+
+  /**
+   * Wipe every shot on the current hole and restart it from the tee. The redo
+   * path: the wizard appends by shot number, so re-entering a hole that already
+   * has shots would duplicate them — clearing first makes "start this hole over"
+   * clean. Stays on the hole at shot 1.
+   */
+  async function handleClearHole() {
+    const prev = logged[hole];
+    if (!prev || prev.count === 0) return;
+    if (submitting.current) return;
+    if (
+      !window.confirm(
+        `Clear all ${prev.count} shot${prev.count === 1 ? "" : "s"} on hole ${hole} and start it over?`,
+      )
+    )
+      return;
+    submitting.current = true;
+    setBusy(true);
+    try {
+      await clearHole(roundId, hole);
+      setLogged((m) => {
+        const next = { ...m };
+        delete next[hole];
+        return next;
+      });
+      setLastShot((m) => ({ ...m, [hole]: null }));
+      setLastCommitted(null);
+      resetDraft();
+      toast.success(`Hole ${hole} cleared — start from the tee.`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to clear hole.");
     } finally {
       submitting.current = false;
       setBusy(false);
@@ -788,6 +827,16 @@ export function ShotEntryFlow({
                 className="h-11 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
               >
                 Pick up hole →
+              </button>
+            )}
+            {canClear && (
+              <button
+                type="button"
+                onClick={handleClearHole}
+                disabled={busy}
+                className="h-11 rounded-xl text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                Clear hole &amp; restart
               </button>
             )}
             <button

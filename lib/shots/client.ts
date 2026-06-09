@@ -40,3 +40,7 @@ export function editShot(
 export function pickUpHole(roundId: string, hole: number): Promise<{ ok: true }> {
   return postJson("/api/rounds/concede", "POST", { roundId, hole });
 }
+
+export function clearHole(roundId: string, hole: number): Promise<{ ok: true }> {
+  return postJson("/api/rounds/clear-hole", "POST", { roundId, hole });
+}

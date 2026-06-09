@@ -85,14 +85,16 @@ unlocks the next). Decisions already made this session are inlined.
 
 - **Clean up hole 8 of the in-progress round** (`64c33e46-ae63-423e-92d7-d646a7072a28`).
   A hole restart appended duplicate shots: two tee shots (shots 1 & 3, both
-  6i→Rough) and a holed-out `Make` mid-hole (shot 2, LW→Make). Needs the player
-  to say the correct sequence, then delete the stray rows.
+  6i→Rough) and a holed-out `Make` mid-hole (shot 2, LW→Make). **Now self-fixable:**
+  open the round's entry flow, go to hole 8, tap **Clear hole & restart**, and
+  re-log the correct sequence.
 
 ## Entry & editing
 
-- **"Redo / clear hole" flow.** Re-entering a hole from the tee currently appends
-  duplicate shots instead of replacing (caused the hole-8 corruption above). Add
-  a way to clear a hole's shots and start it over from the entry flow.
+- **"Redo / clear hole" flow** — ✅ done (2026-06-09). The entry wizard's club
+  step now has a **Clear hole & restart** action (any hole with shots): wipes the
+  hole's shots via `clearHole` (action + `/api/rounds/clear-hole` route, mirroring
+  concede) and restarts from the tee. Fixes the append-on-re-tee duplication.
 - **In-flow edit covers only the last shot.** The wizard's "Edit shot N" handles
   the just-committed shot; earlier shots still go through round detail. Fine for
   now; revisit if it's a pain.

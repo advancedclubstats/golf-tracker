@@ -119,9 +119,10 @@ unlocks the next). Decisions already made this session are inlined.
   in favor of Zod-only validation. They drifted from the constants and caused the
   Fringe/Recovery crash (fixed in migration 009). Either remove them, or keep a
   hard rule: when adding an enum value, update the DB check in the same PR.
-- **Mid-shot edits don't re-derive downstream lies.** `recompute_hole_start_lie`
-  runs on insert/delete, not on `updateShot`. Editing a middle shot's result
-  leaves later shots' `start_lie` stale until an insert/delete. Minor.
+- **Mid-shot edits re-derive downstream lies** — ✅ done (2026-06-09). `updateShot`
+  now runs `recompute_hole_start_lie` after the edit (preserves manual overrides).
+  Also backfilled the 6 already-stale lies in production via a one-off recompute
+  across all holes (0 real mismatches remain; 2 manual overrides preserved).
 - **Drop `situation_created` / `short_sided` columns** once T6 has shipped and
   nothing references them (deferred per the T6 decision).
 

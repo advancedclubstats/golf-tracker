@@ -80,10 +80,13 @@ export function ScoringShapeCard({ shape }: { shape: ScoringShape }) {
                     <span
                       className={cn(
                         "ml-1 text-[11px]",
-                        // For birdies/eagles, above target is good; for the rest, below is good.
-                        (b.key === "birdie" || b.key === "eagle" ? gap > 0 : gap < 0)
-                          ? "text-positive"
-                          : "text-destructive",
+                        // More birdies/eagles is good; fewer bogeys/doubles is good;
+                        // par has no clearly-good direction → stay neutral.
+                        b.key === "par"
+                          ? "text-muted-foreground"
+                          : (b.key === "birdie" || b.key === "eagle" ? gap > 0 : gap < 0)
+                            ? "text-positive"
+                            : "text-destructive",
                       )}
                     >
                       {gap > 0 ? "+" : ""}

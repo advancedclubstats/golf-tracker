@@ -14,24 +14,11 @@
 import { useState } from "react";
 import { fmtSg, fmtPct, sgColorClass } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { leakTitle } from "@/components/dashboard/leakTitle";
 import type { Leak, LeakShot } from "@/lib/analytics/leaks";
 
 const MAX_PRESCRIBED = 5;
 const MAX_SHOTS_SHOWN = 8;
-
-/** Friendly title for a leak from its kind + bucket/club label. */
-function titleOf(leak: Leak): string {
-  switch (leak.kind) {
-    case "approach":
-      return `Approach ${leak.label}`;
-    case "putt":
-      return `Putts ${leak.label}`;
-    case "atg":
-      return `Around green ${leak.label}`;
-    case "club":
-      return leak.label;
-  }
-}
 
 /** Distance + outcome for one impact-layer shot. */
 function shotLine(leak: Leak, s: LeakShot): string {
@@ -61,7 +48,7 @@ function LeakRow({ leak, rank }: { leak: Leak; rank: number | null }) {
           {rank != null && (
             <span className="font-mono text-xs text-muted-foreground">{rank}.</span>
           )}
-          <span className="truncate text-sm font-semibold">{titleOf(leak)}</span>
+          <span className="truncate text-sm font-semibold">{leakTitle(leak)}</span>
           {!leak.prescribable && (
             <span className="shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
               early read
@@ -78,9 +65,16 @@ function LeakRow({ leak, rank }: { leak: Leak; rank: number | null }) {
         </div>
       </button>
 
-      {/* Depth 1 sub-line: descriptive stat + sample. */}
-      <div className="flex items-center gap-2 pl-5 text-xs text-muted-foreground">
-        {leak.raw && <span>{fmtPct(leak.raw.value)} {leak.raw.label}</span>}
+      {/* Depth 1 sub-line: descriptive stat with its scratch target + sample. */}
+      <div className="flex flex-wrap items-center gap-x-2 pl-5 text-xs text-muted-foreground">
+        {leak.raw && (
+          <span>
+            {fmtPct(leak.raw.value)} {leak.raw.label}
+            {leak.target != null && (
+              <span className="text-muted-foreground/70"> · scratch ≈ {fmtPct(leak.target)}</span>
+            )}
+          </span>
+        )}
         <span>· {leak.shots} shot{leak.shots === 1 ? "" : "s"}</span>
       </div>
 

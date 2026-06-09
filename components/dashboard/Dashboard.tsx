@@ -22,6 +22,7 @@ import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import { LeakList } from "@/components/dashboard/LeakList";
+import { BiggestLeakHero } from "@/components/dashboard/BiggestLeakHero";
 import { ScoringShapeCard } from "@/components/dashboard/ScoringShapeCard";
 import { DecisionSplit } from "@/components/stats/DecisionSplit";
 
@@ -72,6 +73,9 @@ export function Dashboard({
 
   return (
     <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+      {/* The edge moment: the single biggest prescribable leak. */}
+      <BiggestLeakHero leaks={leaks} />
+
       {/* Dashboard answer order (spec Part 3). 1 — Scoring shape. */}
       <ScoringShapeCard shape={scoringShape} />
 

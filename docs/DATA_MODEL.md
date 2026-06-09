@@ -71,8 +71,9 @@ Top-to-bottom **answer order** (spec Part 3), then reference cards:
 - **Baseline** = Mark Broadie's published **scratch (0-handicap)** expected-strokes tables (piecewise-linear interpolated), behind a swappable `Baseline` interface (`activeBaseline` in `sg-baseline.ts`; seam for the future self-baseline blend). 0 = played like a scratch golfer; negative = below that standard. Putting table matches the spec's scratch make-rate anchors; long-game tables are the scratch level. Lie→table map: Tee→Tee; Fairway/First cut/Fringe→Fairway; Rough→Rough; Sand/both bunkers→Sand; Recovery/Native→Recovery; Green→Green (feet).
 - Outputs: **total SG**, **SG per round**, and per **category** (SG, SG/round, shots): *Off the tee* (Tee & par≥4), *Approach*, *Short game* (≤30y, or sand ≤50y), *Putting* (Green). Plus **biggest leak** (most-negative category), covered/total shot count, and a **decision/execution split** (spec 2E): lost strokes (negative SG) partitioned by `decision_quality` into a decision-loss pool (Bad → fix by thinking) and an execution-loss pool (Good → fix by practice), with each pool's share of total loss.
 
-### Holes (`/stats/holes`) — one row per hole
-par, rounds, avg score, best, avg vs par, all-time cumulative vs par, FW%, GIR%, scramble%, avg putts, 3-putt%, shot quality. (+ count of excluded incomplete holes.)
+### Holes (`/stats/holes`)
+- **Cost by hole** (spec Part 3 "killer screen", `lib/analytics/holeAttribution.ts`): per hole, ranked worst-first — avg score, cost/round vs par, total SG/round, and the **per-hole SG breakdown** (tee/approach/short/putt) with each losing category's share. Drillable. Score average + SG are over the same complete-hole set.
+- **Per-hole table**: par, rounds, avg score, best, avg vs par, all-time cumulative vs par, FW%, GIR%, scramble%, avg putts, 3-putt%, shot quality. (+ count of excluded incomplete holes.)
 
 ### Clubs (`/stats/clubs`) — every shot, Putter excluded
 shots, avg quality, avg yards, FW% (par4/5 tee shots), green% (approaches), miss L/R/Long/Short %, bunker%.

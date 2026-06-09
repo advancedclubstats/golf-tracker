@@ -14,6 +14,10 @@ import {
   type StrokesGained,
 } from "@/lib/analytics/sg";
 import { computeLeaks, type Leak } from "@/lib/analytics/leaks";
+import {
+  computeHoleAttribution,
+  type HoleAttribution,
+} from "@/lib/analytics/holeAttribution";
 import type { ShotRow } from "@/lib/schemas/shot";
 import type { RoundRow } from "@/lib/schemas/round";
 
@@ -85,4 +89,13 @@ export async function getLeaks(prefetched?: {
 }): Promise<{ leaks: Leak[]; rounds: number }> {
   const { shots } = await getEnrichedShots(prefetched);
   return computeLeaks(shots);
+}
+
+/** Per-hole SG attribution (spec Part 3, the killer screen). Shares the tee-fill. */
+export async function getHoleAttribution(prefetched?: {
+  shots: ShotRow[];
+  rounds: RoundRow[];
+}): Promise<HoleAttribution[]> {
+  const { shots } = await getEnrichedShots(prefetched);
+  return computeHoleAttribution(shots);
 }

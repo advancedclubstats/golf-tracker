@@ -1,6 +1,9 @@
 import { getAllShots } from "@/lib/db/shots";
 import { computeHoleSummary, type HoleSummaryRow } from "@/lib/analytics/holeSummary";
+import { getHoleAttribution } from "@/lib/sg-server";
 import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
+import { HoleAttributionList } from "@/components/stats/HoleAttribution";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/nav/PageHeader";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +26,7 @@ const columns: ColumnConfig<HoleSummaryRow>[] = [
 export default async function HoleSummaryPage() {
   const shots = await getAllShots();
   const summary = computeHoleSummary(shots);
+  const attribution = await getHoleAttribution();
 
   const pickedUp = summary.excluded.filter((e) => e.conceded).length;
   const unfinished = summary.excluded.length - pickedUp;
@@ -30,6 +34,18 @@ export default async function HoleSummaryPage() {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <PageHeader title="Hole Summary" current="holes" />
+
+      {/* The killer screen (spec Part 3): per-hole SG attribution — which hole
+          costs what, and which part of the game causes it. */}
+      <Card size="sm" className="mb-4">
+        <CardHeader>
+          <CardTitle className="eyebrow">Cost by hole</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <HoleAttributionList rows={attribution} />
+        </CardContent>
+      </Card>
+
       <DataTable
         columns={columns}
         rows={summary.rows}

@@ -120,6 +120,24 @@ describe("computeStrokesGained", () => {
     expect(sg.total).toBeCloseTo(manual, 5);
   });
 
+  it("splits lost strokes into execution (Good) vs decision (Bad) pools", () => {
+    // Two losing approaches: one flagged Bad (decision loss), one Good
+    // (execution loss). Each is followed by a holed putt so SG is computable.
+    const shots: ShotRow[] = [
+      shot({ round_id: "r1", hole: 1, shot_no: 1, start_lie: "Fairway", yardage: 150, result: "Rough", decision_quality: "Bad" }),
+      shot({ round_id: "r1", hole: 1, shot_no: 2, start_lie: "Rough", yardage: 20, club: "Putter", result: "Make" }),
+      shot({ round_id: "r1", hole: 2, shot_no: 1, start_lie: "Fairway", yardage: 150, result: "Rough", decision_quality: "Good" }),
+      shot({ round_id: "r1", hole: 2, shot_no: 2, start_lie: "Rough", yardage: 20, club: "Putter", result: "Make" }),
+    ];
+    const { decisionSplit: d } = computeStrokesGained(shots);
+    expect(d.decisionShots).toBe(1);
+    expect(d.executionShots).toBe(1);
+    expect(d.decisionLoss).toBeLessThan(0);
+    expect(d.executionLoss).toBeLessThan(0);
+    expect(d.totalLoss).toBeCloseTo(d.decisionLoss + d.executionLoss, 5);
+    expect(d.decisionPct! + d.executionPct!).toBeCloseTo(1, 5);
+  });
+
   it("drops a shot (and its predecessor's finish) when a distance is missing", () => {
     const shots: ShotRow[] = [
       shot({ shot_no: 1, start_lie: "Tee", yardage: 400, result: "Rough" }),

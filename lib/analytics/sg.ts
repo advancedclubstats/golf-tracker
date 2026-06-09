@@ -57,6 +57,28 @@ export interface SgSituationSummary {
   sg: number;
 }
 
+/**
+ * Decision/execution split (spec 2E). Of the strokes LOST (shots with negative
+ * SG), how much sits on Good-decision shots (executed poorly → recoverable by
+ * *practice*) vs Bad-decision shots (→ recoverable by *thinking*, immediately).
+ * Loss figures are ≤ 0; the pct fields are each pool's share of total loss.
+ * Only covered shots (computable SG) count.
+ */
+export interface DecisionExecutionSplit {
+  /** Negative SG summed over Good-decision shots (execution loss; ≤ 0). */
+  executionLoss: number;
+  /** Negative SG summed over Bad-decision shots (decision loss; ≤ 0). */
+  decisionLoss: number;
+  /** Losing shots flagged Good / Bad. */
+  executionShots: number;
+  decisionShots: number;
+  /** executionLoss + decisionLoss (≤ 0). */
+  totalLoss: number;
+  /** Each pool's share of total loss; null when there is no loss. */
+  executionPct: number | null;
+  decisionPct: number | null;
+}
+
 export interface StrokesGained {
   byCategory: SgCategorySummary[];
   total: number;
@@ -68,6 +90,8 @@ export interface StrokesGained {
   worst: SgCategorySummary | null;
   /** Domino view: SG grouped by the situation a shot created (forward data). */
   situations: SgSituationSummary[];
+  /** Of lost strokes, the practice (execution) vs thinking (decision) split. */
+  decisionSplit: DecisionExecutionSplit;
 }
 
 /**
@@ -117,6 +141,11 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
   let total = 0;
   let covered = 0;
   let totalShots = 0;
+  // Decision/execution loss pools (spec 2E): negative SG split by the flag.
+  let executionLoss = 0;
+  let decisionLoss = 0;
+  let executionShots = 0;
+  let decisionShots = 0;
 
   for (const holeShots of holes.values()) {
     holeShots.sort((a, b) => a.shot_no - b.shot_no);
@@ -137,6 +166,17 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
         s.shots++;
         s.sg += sg;
         sit.set(shot.situation_created, s);
+      }
+      // Only losses feed the decision/execution pools. Default-Good covers
+      // historical rows (DB default), so the common case lands in execution.
+      if (sg < 0) {
+        if (shot.decision_quality === "Bad") {
+          decisionLoss += sg;
+          decisionShots++;
+        } else {
+          executionLoss += sg;
+          executionShots++;
+        }
       }
     }
   }
@@ -162,6 +202,17 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
     ([situation, v]) => ({ situation, shots: v.shots, sg: v.sg }),
   );
 
+  const totalLoss = executionLoss + decisionLoss;
+  const decisionSplit: DecisionExecutionSplit = {
+    executionLoss,
+    decisionLoss,
+    executionShots,
+    decisionShots,
+    totalLoss,
+    executionPct: totalLoss < 0 ? executionLoss / totalLoss : null,
+    decisionPct: totalLoss < 0 ? decisionLoss / totalLoss : null,
+  };
+
   return {
     byCategory,
     total,
@@ -171,5 +222,6 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
     totalShots,
     worst,
     situations,
+    decisionSplit,
   };
 }

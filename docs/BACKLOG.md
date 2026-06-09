@@ -31,28 +31,23 @@ unlocks the next). Decisions already made this session are inlined.
   green%/make%/quality WhatToWorkOn removed from `dashboard.ts` and the Dashboard
   component. SG is the only prescriptive source now.
 
-### Phase 2 — The new signal
+### Phase 2 — The new signal — ✅ DONE (2026-06-09)
 
-- **T4 · 1A Add `decision_quality` {Good,Bad}, default Good.** One DB column +
-  Zod + one-tap control. *Decision made: inline Good/Bad toggle on the result/
-  confirm step (not its own wizard step).* Touches `lib/schemas/shot.ts`,
-  `lib/constants.ts`, a migration, `components/shot-entry/ShotForm.tsx`,
-  `components/rounds/EditShotSheet.tsx`. Trigger discipline (owner's words): flag
-  Bad only for too-much-risk / wrong-club / wrong-line / acted-hastily; a good
-  decision with a poor result inside dispersion stays Good.
-- **T5 · 2E Decision/execution split.** New pure analytic partitioning lost SG by
-  the flag into Execution loss (Good → practice) vs Decision loss (Bad → thinking).
-  Surface as a top-level dashboard view.
+- **T4 · 1A `decision_quality` {Good,Bad}, default Good** — ✅ done. Migration 012
+  (applied live). Wired through constants/schema/entry-wizard (default-Good toggle
+  on the result step)/in-flow edit/EditShotSheet. Putts commit Good.
+- **T5 · 2E Decision/execution split** — ✅ done. `sg.decisionSplit` partitions
+  negative SG into decision-loss (Bad → thinking) vs execution-loss (Good →
+  practice); card on the SG page. *Will also feed the dashboard reorder (T8).*
 
-### Phase 3 — Subtraction (ship anytime; pure removal)
+### Phase 3 — Subtraction — ✅ DONE (2026-06-09)
 
-- **T6 · 1C/1D Remove `situation_created` + `short_sided`.** *Decision made:
-  stop collecting now (wizard, analytics, SG situation view) and leave DB columns
-  in place, ignored, to be dropped in a separate later migration — no mid-rebuild
-  data loss.* Resolves three stale items below (domino view, edit-chain-fields,
-  short_sided editing) by deletion.
+- **T6 · 1C/1D Retire `situation_created` + `short_sided`** — ✅ done. Stopped
+  collecting (wizard step + short-sided toggle removed), dropped the SG situation
+  breakdown. DB columns retained (nullable, unused); drop deferred (see tech debt).
+  Resolved the domino-view / edit-chain-fields / short-sided-editing items.
 
-### Phase 4 — Display rebuild (Part 3)
+### Phase 4 — Display rebuild (Part 3) — NEXT
 
 - **T7 · Ranked-list-with-drilldown + target lines.** Replace the four-parallel-
   facts "What to Work On" with a single list ranked by **strokes recoverable per
@@ -70,9 +65,11 @@ unlocks the next). Decisions already made this session are inlined.
 
 ### Phase 5 — Deferred seam
 
-- **T10 · 2B Self-baseline blend.** Architect the weighted-blend interface inside
-  T1 *now* (just the seam); enable later when cells fill (n≥30 → 50% self,
-  n≥75 → mostly self). No shipping work this session beyond the interface.
+- **T10 · 2B Self-baseline blend.** Seam ✅ in place (T1): `Baseline` interface +
+  `activeBaseline` in `sg-baseline.ts`. To enable later: add a blending `Baseline`
+  impl (weighted Broadie-scratch × player's own per-cell expected strokes; n≥30 →
+  50% self, n≥75 → mostly self) and point `activeBaseline` at it — one file, no
+  caller changes. Don't enable until cells are populated.
 
 ### Anti-noise rules (apply throughout)
 1. Sample count shown next to every cut; the count governs prescription eligibility.

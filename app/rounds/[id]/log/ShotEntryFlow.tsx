@@ -17,14 +17,12 @@ import {
   PUTT_SIDES,
   PUTT_LENGTHS,
   START_LIES,
-  SITUATIONS,
   DECISION_QUALITIES,
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
   type StartLie,
-  type Situation,
   type DecisionQuality,
 } from "@/lib/constants";
 import { nextStartLie, type PrevFinish } from "@/lib/shots/lie";
@@ -56,7 +54,6 @@ const PENALTY_RESULTS = new Set<Result>(["OB", "Hazard", "Lost", "Unplayable"]);
 /** Stroke-and-distance penalties: you replay from the same spot (same lie, same
  *  distance), so the next shot is a do-over — skip the "what did it leave you?"
  *  step (nothing changed) and carry the lie forward unchanged. */
-const STROKE_AND_DISTANCE = new Set<Result>(["OB", "Lost"]);
 /** Results that warrant a miss-direction tag. */
 const MISS_RESULTS = new Set<Result>([
   "Rough",
@@ -68,7 +65,6 @@ const MISS_RESULTS = new Set<Result>([
   "Unplayable",
 ]);
 /** Start lies that are around the green (drive the short-sided prompt). */
-const GREENSIDE_LIES = new Set<StartLie>(["Greenside bunker", "Fringe", "Sand"]);
 /** Lies offered in the override picker (Tee is auto for shot 1; Green = putt). */
 const OVERRIDE_LIES = START_LIES.filter((l) => l !== "Green");
 /** Clubs that, off the tee on a par 4/5, skip the yardage step. */
@@ -82,7 +78,7 @@ const puttYardsFromFeet = (feet: string): number | undefined =>
 
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
-type Step = "club" | "yards" | "strike" | "result" | "miss" | "situation" | "putt";
+type Step = "club" | "yards" | "strike" | "result" | "miss" | "putt";
 
 function formatDiff(diff: number): string {
   if (diff === 0) return "E";
@@ -147,7 +143,6 @@ export function ShotEntryFlow({
   // carry-forward default is used). Domino fields default to no-trouble.
   const [lieOverride, setLieOverride] = useState<StartLie | null>(null);
   const [lieOpen, setLieOpen] = useState(false);
-  const [shortSided, setShortSided] = useState(false);
   // Putt mode
   const [puttNo, setPuttNo] = useState(1);
   const [puttPhase, setPuttPhase] = useState<"main" | "miss">("main");
@@ -195,15 +190,6 @@ export function ShotEntryFlow({
   const defaultLie: StartLie | null =
     shotNo === 1 ? "Tee" : nextStartLie(lastShot[hole] ?? null);
   const effectiveLie: StartLie | null = lieOverride ?? defaultLie;
-  // Short-sided is a green-side concept: shown when the shot missed the green
-  // from an approach distance or a greenside lie.
-  const distNum = yards === "" ? null : Number(yards);
-  const showShortSided =
-    !!result &&
-    result !== "Green" &&
-    result !== "Make" &&
-    ((effectiveLie != null && GREENSIDE_LIES.has(effectiveLie)) ||
-      (distNum != null && distNum <= 175));
 
   function resetDraft() {
     setClub(null);
@@ -215,7 +201,6 @@ export function ShotEntryFlow({
     setDecisionQuality("Good");
     setLieOverride(null);
     setLieOpen(false);
-    setShortSided(false);
     setPuttPhase("main");
     setPuttFeet("");
     setPuttExec(null);
@@ -246,8 +231,6 @@ export function ShotEntryFlow({
     puttSide?: PuttSide;
     puttLength?: PuttLength;
     penalty?: number;
-    situation?: Situation;
-    shortSided?: boolean;
     /** Decision quality. Omitted (e.g. putts) → DB default 'Good'. */
     decisionQuality?: DecisionQuality;
   }
@@ -276,8 +259,6 @@ export function ShotEntryFlow({
         distance_unit: isPutt ? "ft" : "yd",
         start_lie: lie ?? undefined,
         start_lie_manual: !isPutt && lieOverride !== null,
-        situation_created: d.situation,
-        short_sided: d.shortSided,
         decision_quality: d.decisionQuality,
         execution: d.execution,
         result: d.result,
@@ -379,8 +360,8 @@ export function ShotEntryFlow({
 
   async function chooseResult(r: Result) {
     setResult(r);
-    // Terminal results commit immediately; everything else gathers a
-    // miss-direction (if relevant) and the "situation created" before saving.
+    // Terminal results commit immediately; a miss gathers a miss-direction
+    // first; every other non-terminal result commits straight away.
     if (r === "Make" || r === "Green") {
       const res = await commitShot({
         club: club!,
@@ -394,26 +375,25 @@ export function ShotEntryFlow({
       else enterPutt();
       return;
     }
-    setStep(MISS_RESULTS.has(r) ? "miss" : "situation");
+    // A miss gathers its direction first; anything else commits now.
+    if (MISS_RESULTS.has(r)) {
+      setStep("miss");
+      return;
+    }
+    await commitNonTerminal();
   }
 
   async function chooseMiss(dir: MissDirection) {
     setMissDirection(dir);
-    // Stroke-and-distance (OB / Lost): the next shot is a replay from the same
-    // spot, so the "what did it leave you?" step is meaningless — skip it and
-    // save with a Neutral situation. (Pass `dir` explicitly; the setState above
+    // Commit after tagging the miss. (Pass `dir` explicitly; the setState above
     // hasn't applied yet this tick.)
-    if (STROKE_AND_DISTANCE.has(result!)) {
-      await commitNonTerminal("Neutral", dir);
-      return;
-    }
-    setStep("situation");
+    await commitNonTerminal(dir);
   }
 
-  /** Save a non-terminal shot (records the domino field), then advance to the
-   *  next shot. `missDir` overrides the `missDirection` state for callers that
-   *  commit in the same tick they set it. */
-  async function commitNonTerminal(sit: Situation, missDir?: MissDirection) {
+  /** Save a non-terminal shot, then advance to the next shot. `missDir`
+   *  overrides the `missDirection` state for callers that commit in the same
+   *  tick they set it. */
+  async function commitNonTerminal(missDir?: MissDirection) {
     const r = result!;
     const res = await commitShot({
       club: club!,
@@ -421,18 +401,11 @@ export function ShotEntryFlow({
       execution: execution ?? undefined,
       result: r,
       missDirection: missDir ?? missDirection ?? undefined,
-      situation: sit,
-      shortSided: showShortSided ? shortSided : undefined,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
       decisionQuality,
     });
     if (!res.ok) return;
     resetDraft(); // non-terminal → next shot
-  }
-
-  /** Final step for a non-terminal shot: record the domino field, then save. */
-  async function chooseSituation(sit: Situation) {
-    await commitNonTerminal(sit);
   }
 
   function enterPutt() {
@@ -512,7 +485,6 @@ export function ShotEntryFlow({
     if (step === "strike") return setStep("yards");
     if (step === "result") return setStep("strike");
     if (step === "miss") return setStep("result");
-    if (step === "situation") return setStep(missDirection ? "miss" : "result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
     // Start of a shot: reopen the previous shot to edit, else leave the flow.
@@ -576,7 +548,7 @@ export function ShotEntryFlow({
 
   const STEP_ORDER: Step[] = ["club", "yards", "strike", "result"];
   const stepperIdx = STEP_ORDER.indexOf(
-    step === "miss" || step === "situation" ? "result" : step,
+    step === "miss" ? "result" : step,
   );
 
   return (
@@ -1006,52 +978,6 @@ export function ShotEntryFlow({
             <span className="col-start-2 row-start-2 flex items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground/50">
               Pin
             </span>
-          </div>
-        </div>
-      )}
-
-      {step === "situation" && (
-        <div className="flex flex-col gap-3">
-          <h3 className="font-heading text-2xl font-bold">What did it leave you?</h3>
-          <p className="-mt-1 text-sm text-muted-foreground">
-            One tap — did this shot help or hurt your next one?
-          </p>
-
-          {showShortSided && (
-            <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card px-4 py-2.5">
-              <span className="text-sm font-medium">Short-sided?</span>
-              <button
-                type="button"
-                onClick={() => setShortSided((s) => !s)}
-                className={cn(
-                  "h-9 rounded-lg border-2 px-4 text-sm font-bold transition-colors",
-                  shortSided
-                    ? "border-chart-3 bg-chart-3 text-white"
-                    : "border-input bg-card text-muted-foreground",
-                )}
-              >
-                {shortSided ? "Yes" : "No"}
-              </button>
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2.5">
-            {SITUATIONS.map((s) => (
-              <button
-                key={s}
-                type="button"
-                disabled={busy}
-                onClick={() => chooseSituation(s)}
-                className={cn(
-                  "h-16 rounded-2xl border-2 text-base font-bold transition-transform active:scale-[0.97]",
-                  s === "Neutral"
-                    ? "border-primary/40 bg-card"
-                    : "border-border bg-card",
-                )}
-              >
-                {s}
-              </button>
-            ))}
           </div>
         </div>
       )}

@@ -24,8 +24,6 @@ Entered via a wizard, one shot at a time. Fields collected:
 | **Strike quality** | 1 Bad / 2 Okay / 3 Good / 4 Great | Every full shot; optional on putts |
 | **Result** | Fairway, Green, Fringe, Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable, Make | Always (full shots) |
 | **Miss direction** | Left / Right / Long / Short | Only if result ∈ {Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable} |
-| **Situation created** ("domino") | Improved / Neutral / Constrained / Severe trouble | After non-terminal results (skipped for Make/Green and auto-set Neutral for OB/Lost) |
-| **Short-sided?** | yes/no | Only on the situation step when result≠Green/Make AND (lie is greenside OR distance ≤175y) |
 | **Decision quality** | Good / Bad (default Good) | One-tap toggle on the result step (full shots); putts default Good. Flag Bad only for a process error (risk / club / line / commitment) — spec 1A |
 | **Penalty** | integer (auto +1 for OB/Hazard/Lost/Unplayable) | Automatic |
 
@@ -33,7 +31,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 - **Distance** in feet → **Holed** or **Missed**. If missed: **Side** (High/Low) + **Length** (Short/Long), then repeat for next putt.
 
 ### Conditional logic worth knowing
-- **OB / Lost = "stroke and distance"**: +1 penalty, situation auto = Neutral (not asked), next shot replays from the *same lie* (re-tee stays "Tee").
+- **OB / Lost = "stroke and distance"**: +1 penalty, next shot replays from the *same lie* (re-tee stays "Tee").
 - **Green** result → jumps straight into the putt sub-flow.
 - **Make** → hole complete. A hole "counts" only when its last shot = Make.
 - Holes can be **picked up / conceded** (flagged, excluded from scoring).
@@ -68,7 +66,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 ### Strokes Gained (`/stats/sg`)
 - Per-shot: **SG = E[start_lie, start_dist] − E[finish] − 1 − penalty**, where E[finish]=0 if holed, else E[next shot's start]. A shot is "covered" only if both ends resolve to a baseline (missing distance drops the shot *and* its predecessor's finish term).
 - **Baseline** = Mark Broadie's published **scratch (0-handicap)** expected-strokes tables (piecewise-linear interpolated), behind a swappable `Baseline` interface (`activeBaseline` in `sg-baseline.ts`; seam for the future self-baseline blend). 0 = played like a scratch golfer; negative = below that standard. Putting table matches the spec's scratch make-rate anchors; long-game tables are the scratch level. Lie→table map: Tee→Tee; Fairway/First cut/Fringe→Fairway; Rough→Rough; Sand/both bunkers→Sand; Recovery/Native→Recovery; Green→Green (feet).
-- Outputs: **total SG**, **SG per round**, and per **category** (SG, SG/round, shots): *Off the tee* (Tee & par≥4), *Approach*, *Short game* (≤30y, or sand ≤50y), *Putting* (Green). Plus **biggest leak** (most-negative category), covered/total shot count, a **situation breakdown** (SG grouped by the "domino" field — forward data only), and a **decision/execution split** (spec 2E): lost strokes (negative SG) partitioned by `decision_quality` into a decision-loss pool (Bad → fix by thinking) and an execution-loss pool (Good → fix by practice), with each pool's share of total loss.
+- Outputs: **total SG**, **SG per round**, and per **category** (SG, SG/round, shots): *Off the tee* (Tee & par≥4), *Approach*, *Short game* (≤30y, or sand ≤50y), *Putting* (Green). Plus **biggest leak** (most-negative category), covered/total shot count, and a **decision/execution split** (spec 2E): lost strokes (negative SG) partitioned by `decision_quality` into a decision-loss pool (Bad → fix by thinking) and an execution-loss pool (Good → fix by practice), with each pool's share of total loss.
 
 ### Holes (`/stats/holes`) — one row per hole
 par, rounds, avg score, best, avg vs par, all-time cumulative vs par, FW%, GIR%, scramble%, avg putts, 3-putt%, shot quality. (+ count of excluded incomplete holes.)
@@ -94,15 +92,15 @@ date, session type, shots logged, complete holes, strokes, vs par (or "In progre
 ---
 
 ## 4. Notable gaps (useful context for strategy)
-- **Two parallel "what's wrong" engines exist**: the SG page (rigorous, Broadie-based) and the Dashboard's heuristic "Strokes Lost" + "What to Work On" (older green%/make% logic). They aren't unified — the dashboard prescription doesn't yet flow from the SG diagnosis.
+- **One engine now.** The heuristic "Strokes Lost" + green%/make% "What to Work On" were deleted (spec 2D); everything prescriptive flows from SG. The SG-driven ranked-list/target-line display rebuild (spec Part 3) is still pending.
 - **SG baseline is Broadie scratch** (spec 2A). Absolute magnitude is now meaningful (0 = scratch-level). Long-game cell values are a best-effort scratch reconstruction pending source verification; putting is anchored to the spec's make-rate targets.
-- **`situation_created` / `short_sided`** (the "domino" data) are only captured on new rounds, so that view is sparse until more rounds accrue.
+- **`situation_created` / `short_sided` are retired** (spec 1C/1D): no longer collected, displayed, or analyzed. The DB columns remain (nullable, unused) until a later drop migration.
 
 ---
 
 ## 5. Stored shot fields (DB columns, for reference)
 `round_id, hole, par, shot_no, club, yardage (yards; putts = ft/3),
-distance_unit (yd|ft), start_lie, start_lie_manual, situation_created,
-short_sided, decision_quality (Good|Bad, default Good), execution (1–4), result,
-miss_direction, putt_side, putt_length, penalty (int), notes,
-conceded (bool, pickups), id, user_id, created_at`.
+distance_unit (yd|ft), start_lie, start_lie_manual, decision_quality (Good|Bad,
+default Good), execution (1–4), result, miss_direction, putt_side, putt_length,
+penalty (int), notes, conceded (bool, pickups), id, user_id, created_at`.
+*(Legacy, retained but unused: `situation_created`, `short_sided` — spec 1C/1D.)*

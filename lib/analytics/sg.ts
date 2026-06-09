@@ -15,7 +15,7 @@
  */
 
 import type { ShotRow } from "@/lib/schemas/shot";
-import type { StartLie, Situation } from "@/lib/constants";
+import type { StartLie } from "@/lib/constants";
 import { expectedStrokes } from "@/lib/analytics/sg-baseline";
 
 export const SG_CATEGORIES = [
@@ -51,12 +51,6 @@ export interface SgCategorySummary {
   perRound: number;
 }
 
-export interface SgSituationSummary {
-  situation: Situation;
-  shots: number;
-  sg: number;
-}
-
 /**
  * Decision/execution split (spec 2E). Of the strokes LOST (shots with negative
  * SG), how much sits on Good-decision shots (executed poorly → recoverable by
@@ -88,8 +82,6 @@ export interface StrokesGained {
   totalShots: number;
   /** Biggest leak: the category losing the most (most-negative SG). */
   worst: SgCategorySummary | null;
-  /** Domino view: SG grouped by the situation a shot created (forward data). */
-  situations: SgSituationSummary[];
   /** Of lost strokes, the practice (execution) vs thinking (decision) split. */
   decisionSplit: DecisionExecutionSplit;
 }
@@ -123,7 +115,7 @@ export function shotSG(shot: ShotRow, next: ShotRow | null): number | null {
   return startE - finishE - 1 - (shot.penalty ?? 0);
 }
 
-/** Compute strokes gained across all shots, by category + situation. */
+/** Compute strokes gained across all shots, by category. */
 export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
   // Group by round+hole, ordered by shot number, to chain finish → next start.
   const holes = new Map<string, ShotRow[]>();
@@ -137,7 +129,6 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
   }
 
   const cat = new Map<SgCategory, { shots: number; sg: number }>();
-  const sit = new Map<Situation, { shots: number; sg: number }>();
   let total = 0;
   let covered = 0;
   let totalShots = 0;
@@ -161,12 +152,6 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
       cur.shots++;
       cur.sg += sg;
       cat.set(c, cur);
-      if (shot.situation_created) {
-        const s = sit.get(shot.situation_created) ?? { shots: 0, sg: 0 };
-        s.shots++;
-        s.sg += sg;
-        sit.set(shot.situation_created, s);
-      }
       // Only losses feed the decision/execution pools. Default-Good covers
       // historical rows (DB default), so the common case lands in execution.
       if (sg < 0) {
@@ -198,10 +183,6 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
       ? withShots.reduce((a, b) => (b.sg < a.sg ? b : a))
       : null;
 
-  const situations: SgSituationSummary[] = [...sit.entries()].map(
-    ([situation, v]) => ({ situation, shots: v.shots, sg: v.sg }),
-  );
-
   const totalLoss = executionLoss + decisionLoss;
   const decisionSplit: DecisionExecutionSplit = {
     executionLoss,
@@ -221,7 +202,6 @@ export function computeStrokesGained(shots: readonly ShotRow[]): StrokesGained {
     coveredShots: covered,
     totalShots,
     worst,
-    situations,
     decisionSplit,
   };
 }

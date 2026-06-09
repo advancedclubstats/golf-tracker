@@ -180,33 +180,6 @@ export default async function StrokesGainedPage() {
         </Card>
       )}
 
-      {/* Domino view — situation created (forward-captured shots only) */}
-      {sg.situations.length > 0 && (
-        <Card size="sm" className="mb-4">
-          <CardHeader>
-            <CardTitle className="eyebrow">By situation created</CardTitle>
-          </CardHeader>
-          <CardContent className="divide-y divide-border/40">
-            {sg.situations.map((s) => (
-              <div
-                key={s.situation}
-                className="flex items-center justify-between gap-4 py-2 text-sm"
-              >
-                <span className="text-muted-foreground">{s.situation}</span>
-                <span className="text-right font-medium tabular-nums">
-                  <span className={cn("font-mono", sgColor(s.sg / s.shots))}>
-                    {fmtSg(s.sg / s.shots)}
-                  </span>
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    /shot · {s.shots}
-                  </span>
-                </span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-
       <p className="px-1 text-xs text-muted-foreground">
         Strokes gained vs the scratch (0-handicap) baseline (Broadie). 0 = you
         played that spot like a scratch golfer; negative = below that standard.

@@ -103,7 +103,7 @@ export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained
       </Section>
 
       {/* Strokes gained by category — the real diagnosis (replaces the old
-          par-relative "strokes lost"). Per round vs the PGA Tour benchmark. */}
+          par-relative "strokes lost"). Per round vs the scratch baseline. */}
       <Card size="sm">
         <CardHeader>
           <CardTitle className="eyebrow">
@@ -132,7 +132,7 @@ export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained
                 </div>
               ))}
               <div className="flex items-center justify-between gap-4 py-2 text-sm">
-                <span className="font-medium">Per round vs tour</span>
+                <span className="font-medium">Per round vs scratch</span>
                 <span
                   className={cn(
                     "text-right font-mono font-semibold tabular-nums",

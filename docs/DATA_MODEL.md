@@ -66,7 +66,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 
 ### Strokes Gained (`/stats/sg`)
 - Per-shot: **SG = E[start_lie, start_dist] − E[finish] − 1 − penalty**, where E[finish]=0 if holed, else E[next shot's start]. A shot is "covered" only if both ends resolve to a baseline (missing distance drops the shot *and* its predecessor's finish term).
-- **Baseline** = Mark Broadie's published **PGA Tour** expected-strokes tables (piecewise-linear interpolated), so values read as "vs Tour average." Lie→table map: Tee→Tee; Fairway/First cut/Fringe→Fairway; Rough→Rough; Sand/both bunkers→Sand; Recovery/Native→Recovery; Green→Green (feet).
+- **Baseline** = Mark Broadie's published **scratch (0-handicap)** expected-strokes tables (piecewise-linear interpolated), behind a swappable `Baseline` interface (`activeBaseline` in `sg-baseline.ts`; seam for the future self-baseline blend). 0 = played like a scratch golfer; negative = below that standard. Putting table matches the spec's scratch make-rate anchors; long-game tables are the scratch level. Lie→table map: Tee→Tee; Fairway/First cut/Fringe→Fairway; Rough→Rough; Sand/both bunkers→Sand; Recovery/Native→Recovery; Green→Green (feet).
 - Outputs: **total SG**, **SG per round**, and per **category** (SG, SG/round, shots): *Off the tee* (Tee & par≥4), *Approach*, *Short game* (≤30y, or sand ≤50y), *Putting* (Green). Plus **biggest leak** (most-negative category), covered/total shot count, and a **situation breakdown** (SG grouped by the "domino" field — forward data only).
 
 ### Holes (`/stats/holes`) — one row per hole
@@ -94,7 +94,7 @@ date, session type, shots logged, complete holes, strokes, vs par (or "In progre
 
 ## 4. Notable gaps (useful context for strategy)
 - **Two parallel "what's wrong" engines exist**: the SG page (rigorous, Broadie-based) and the Dashboard's heuristic "Strokes Lost" + "What to Work On" (older green%/make% logic). They aren't unified — the dashboard prescription doesn't yet flow from the SG diagnosis.
-- **SG baseline is PGA Tour**, so absolute numbers read very negative for an amateur; the *category ranking* is the trustworthy signal, not the magnitude.
+- **SG baseline is Broadie scratch** (spec 2A). Absolute magnitude is now meaningful (0 = scratch-level). Long-game cell values are a best-effort scratch reconstruction pending source verification; putting is anchored to the spec's make-rate targets.
 - **`situation_created` / `short_sided`** (the "domino" data) are only captured on new rounds, so that view is sparse until more rounds accrue.
 
 ---

@@ -50,8 +50,8 @@ describe("categoryOf", () => {
 
 describe("expectedStrokes", () => {
   it("uses feet for putts and yards otherwise; null for unknown lies", () => {
-    expect(expectedStrokes("Green", 2)).toBeCloseTo(1.34, 5); // 6 ft (Broadie)
-    expect(expectedStrokes("Fairway", 150)).toBeCloseTo(2.945, 5); // interp 140/160
+    expect(expectedStrokes("Green", 2)).toBeCloseTo(1.34, 5); // 6 ft (scratch)
+    expect(expectedStrokes("Fairway", 150)).toBeCloseTo(3.03, 5); // interp 140/160 (scratch)
     expect(expectedStrokes(null, 100)).toBeNull();
     expect(expectedStrokes("Fairway", null)).toBeNull();
   });

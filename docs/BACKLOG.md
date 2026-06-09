@@ -61,15 +61,16 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ## Tech debt / data integrity
 
-- **Post-save server re-render is wasted work (optional follow-up).** The fix for
-  the intermittent "Server Components render" save crash added a read-retry
-  wrapper (`lib/supabase/retry.ts`) + error boundaries (`app/error.tsx`,
-  `app/rounds/[id]/log/error.tsx`). Root cause: every server action re-renders the
-  `force-dynamic` log page, re-running its Supabase reads; a transient blip threw
-  mid-render. Retry + boundaries absorb it. The deeper cleanup — not refetching the
-  log page on save at all, since the wizard runs on client state — is left
-  undone; do it if save latency or DB load becomes a concern. (Data was checked:
-  the bug created no duplicate shots.)
+- **EditShotSheet still writes via server actions (re-render on edit).** The
+  shot-entry wizard now writes through fetch route handlers (`app/api/shots`,
+  `app/api/rounds/concede`) so saves don't trigger an RSC re-render — that was the
+  true root cause of the "Server Components render" save crash (a committed shot
+  rode back a re-render error and looked like a failure). `EditShotSheet` on the
+  round-detail page still calls the server actions directly; a re-render is wanted
+  there and it's a cold path, so it's fine — but if it ever shows the same
+  intermittent error, migrate it to the route handlers too. Retry
+  (`lib/supabase/retry.ts`) + error boundaries (`app/error.tsx`,
+  `app/rounds/[id]/log/error.tsx`) remain as defense for the GET render paths.
 - **Drop the legacy `result` / `miss_direction` / `putt_*` DB CHECK constraints**
   in favor of Zod-only validation. These drifted from the constants and caused the
   Fringe/Recovery production crash (fixed in migration 009). Either remove them, or

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { createShot, updateShot, concedeHole } from "@/actions/shots";
+import { saveShot, editShot, pickUpHole } from "@/lib/shots/client";
 import {
   Sheet,
   SheetContent,
@@ -258,7 +258,7 @@ export function ShotEntryFlow({
     const isPutt = d.club === "Putter";
     const lie: StartLie | null = isPutt ? "Green" : effectiveLie;
     try {
-      const { id } = await createShot({
+      const { id } = await saveShot({
         round_id: roundId,
         hole,
         par,
@@ -471,7 +471,7 @@ export function ShotEntryFlow({
     submitting.current = true;
     setBusy(true);
     try {
-      await concedeHole(roundId, hole);
+      await pickUpHole(roundId, hole);
       const map = { ...logged, [hole]: { ...prev, conceded: true } };
       setLogged(map);
       const target = nextUnfinishedHole(map, hole);
@@ -514,7 +514,7 @@ export function ShotEntryFlow({
     submitting.current = true;
     setBusy(true);
     try {
-      await updateShot(lastCommitted.id, roundId, {
+      await editShot(lastCommitted.id, roundId, {
         club: values.club!,
         yardage: values.yardage,
         execution: values.execution,

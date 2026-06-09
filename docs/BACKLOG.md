@@ -47,21 +47,23 @@ unlocks the next). Decisions already made this session are inlined.
   breakdown. DB columns retained (nullable, unused); drop deferred (see tech debt).
   Resolved the domino-view / edit-chain-fields / short-sided-editing items.
 
-### Phase 4 — Display rebuild (Part 3) — NEXT
+### Phase 4 — Display rebuild (Part 3) — ✅ DONE (2026-06-09)
 
-- **T7 · Ranked-list-with-drilldown + target lines.** Replace the four-parallel-
-  facts "What to Work On" with a single list ranked by **strokes recoverable per
-  round**, each item drillable through three depths (Raw → Meaning vs target →
-  Impact: the qualifying shots). Every displayed stat shows its scratch-baseline
-  target as a signed gap. Non-negotiable: user can always tap down to raw shots.
-- **T8 · Dashboard answer order.** Top-to-bottom: (1) Scoring shape — birdie/par/
-  bogey/double+ distribution with target lines (DECADE steal; show the tails),
-  (2) Where strokes are lost (SG categories ranked, each vs target, drillable),
-  (3) Decision vs execution, (4) Specifics gated by sample.
-- **T9 · Hole-level SG attribution screen** (the "killer screen"). Per hole:
-  player's own expected score, actual avg, the gap, and SG breakdown
-  (tee/approach/short/putt). "Hole 7 costs +0.89/round — 70% approach, 30% tee."
-  New route under `app/stats/`.
+- **T7 · Ranked-list-with-drilldown + target lines** — ✅ done.
+  `lib/analytics/leaks.ts` + `LeakList`: ranked by recoverable/round, three-depth
+  drilldown (Raw → Meaning vs target → Impact shots), sample-gated early reads.
+- **T8 · Dashboard answer order** — ✅ done. Scoring shape (new
+  `computeScoringShape`) → where strokes are lost (categories ranked) → decision
+  vs execution (shared `DecisionSplit`) → what to work on (leak list).
+- **T9 · Hole-level SG attribution** — ✅ done. `holeAttribution.ts` +
+  `HoleAttributionList` lead the Holes page as "Cost by hole" (per-hole SG
+  breakdown, drillable).
+
+> **Spec v1 epic COMPLETE (2026-06-09).** All of T1–T10 shipped. Open follow-ups
+> below: verify the scratch long-game magnitudes; enable the 2B self-baseline
+> blend once cells fill; drop the legacy `situation_created`/`short_sided`
+> columns; sanity-check the approximate scratch target rates used for scoring
+> shape + leak descriptive stats (all marked VERIFY in code).
 
 ### Phase 5 — Deferred seam
 

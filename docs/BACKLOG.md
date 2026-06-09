@@ -17,24 +17,19 @@ Source: `golf-app-spec.md` (Engine & Display Spec v1). Governing principle:
 below is from the spec and is deliberate (each step removes a contradiction or
 unlocks the next). Decisions already made this session are inlined.
 
-### Phase 1 — Engine truth (do first)
+### Phase 1 — Engine truth — ✅ DONE (2026-06-09)
 
-- **T1 · 2A Scratch baseline swap.** Replace the PGA-Tour tables in
-  `lib/analytics/sg-baseline.ts` with Broadie's **scratch (0-handicap)** tables.
-  Keep `expectedStrokes(lie, distance)` as the single swappable seam behind a
-  `Baseline` interface so T10 (2B blend) drops in by changing one file.
-  *Decision made: I source the values from Broadie's published scratch baseline,
-  document provenance inline, mark cells VERIFY, and sanity-check make-rate
-  targets against Part 3 (6ft≈65–70%, 10ft≈40%, 15ft≈25%, 20ft≈15%, 3-putt≈3%).*
-  Keystone — every target line + SG magnitude depends on it.
-- **T2 · 2C Sample-size gates.** Nothing is *prescribed* below threshold:
-  clubs n≥15, distance/lie buckets n≥10. Below threshold a cut may still display,
-  marked "early read," but never as a recommendation / "biggest leak." Kills
-  "Worst Club: 5i (7 shots)."
-- **T3 · 2D Delete the second engine.** Remove heuristic `StrokesLost`
-  attribution (`over/puttsLost/nonPuttLost/teeLost`) and green%/make% `WhatToWorkOn`
-  from `lib/analytics/dashboard.ts` + the dashboard UI. SG becomes the only
-  prescriptive source. No tab may contradict another.
+- **T1 · 2A Scratch baseline swap** — ✅ done. `sg-baseline.ts` now computes vs
+  the Broadie scratch baseline behind a `Baseline` interface (`activeBaseline`,
+  the T10 seam). Putting unchanged (matches spec anchors); long-game tables
+  shifted to scratch and marked VERIFY — *open: sanity-check the long-game cell
+  magnitudes if/when exact Broadie scratch tables are available; ranking is robust
+  regardless.*
+- **T2 · 2C Sample-size gates** — ✅ done. `lib/analytics/gates.ts`: thresholds
+  (club 15, bucket 10), `tierFor`, `isPrescribable`. Awaiting consumers (T7/T8).
+- **T3 · 2D Delete the second engine** — ✅ done. Heuristic StrokesLost +
+  green%/make%/quality WhatToWorkOn removed from `dashboard.ts` and the Dashboard
+  component. SG is the only prescriptive source now.
 
 ### Phase 2 — The new signal
 

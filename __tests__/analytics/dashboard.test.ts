@@ -94,36 +94,8 @@ describe("dashboard — stat line", () => {
   });
 });
 
-describe("dashboard — strokes lost", () => {
-  it("attributes over-par strokes to tee / approach / putting", () => {
-    expect(dash.strokesLost).toMatchObject({
-      tee: 1, // r1 H2: tagged tee miss on a +2 hole, 1 non-putt stroke lost
-      approach: 0,
-      putting: 2, // r1 H2 third putt + r2 H1 third putt
-      total: 3,
-    });
-    expect(dash.strokesLost.teePct).toBeCloseTo(1 / 3, 10);
-    expect(dash.strokesLost.puttingPct).toBeCloseTo(2 / 3, 10);
-    expect(dash.strokesLost.approachPct).toBe(0);
-  });
-});
-
-describe("dashboard — what to work on", () => {
-  it("worst hole is highest cumulative vs par (D-07)", () => {
-    expect(dash.whatToWorkOn.worstHole).toMatchObject({ hole: 2, vsPar: 2, rounds: 2 });
-  });
-  it("worst club is the eligible (>=3 shots) club with lowest avg quality", () => {
-    // Only D has >=3 shots (3 drives: exec 3,2,3 → 2.67). It's the only eligible.
-    expect(dash.whatToWorkOn.worstClub).toMatchObject({ club: "D", avgQuality: 2.67, shots: 3 });
-  });
-  it("worst approach is the eligible (>=3 shots) bucket with lowest green%", () => {
-    expect(dash.whatToWorkOn.worstApproach).toMatchObject({ label: "125–175 yds", shots: 4 });
-    expect(dash.whatToWorkOn.worstApproach!.greenHitPct).toBe(0.75); // 3 of 4
-  });
-  it("worst putt is null when no bucket clears the 3-putt / non-tap-in threshold", () => {
-    expect(dash.whatToWorkOn.worstPutt).toBeNull();
-  });
-});
+// The heuristic "Strokes Lost" attribution and green%/make%/quality
+// "What to Work On" were deleted (spec 2D): prescriptions now flow from SG only.
 
 describe("dashboard — recent rounds", () => {
   it("lists rounds newest first", () => {
@@ -149,6 +121,6 @@ describe("dashboard — empty input", () => {
     expect(empty.snapshot.holesLogged).toBe(0);
     expect(empty.recentRounds).toEqual([]);
     expect(empty.records.bestRound).toBeNull();
-    expect(empty.whatToWorkOn.worstHole).toBeNull();
+    expect(empty.records.bestHole).toBeNull();
   });
 });

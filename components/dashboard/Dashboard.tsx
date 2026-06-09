@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/lib/format";
+// Note: prescriptions ("what to work on") now flow from Strokes Gained (spec 2D);
+// the old green%/make%/quality heuristic card was removed and is rebuilt SG-driven.
 import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 
@@ -52,37 +54,7 @@ function Row({
 }
 
 export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained }) {
-  const { snapshot, statLine, whatToWorkOn, recentRounds, records } = data;
-
-  const workItems: { area: string; detail: string }[] = [];
-  if (whatToWorkOn.worstHole) {
-    const h = whatToWorkOn.worstHole;
-    workItems.push({
-      area: "Worst Hole",
-      detail: `Hole ${h.hole} (par ${h.par}) · ${fmtVsPar(h.vsPar)} across ${h.rounds} round${h.rounds === 1 ? "" : "s"}`,
-    });
-  }
-  if (whatToWorkOn.worstApproach) {
-    const a = whatToWorkOn.worstApproach;
-    workItems.push({
-      area: "Worst Approach",
-      detail: `${a.label} · ${fmtPct(a.greenHitPct)} greens (${a.shots} shots)`,
-    });
-  }
-  if (whatToWorkOn.worstPutt) {
-    const p = whatToWorkOn.worstPutt;
-    workItems.push({
-      area: "Worst Putt Distance",
-      detail: `${p.label} · ${fmtPct(p.makePct)} made (${p.putts} putts)`,
-    });
-  }
-  if (whatToWorkOn.worstClub) {
-    const c = whatToWorkOn.worstClub;
-    workItems.push({
-      area: "Worst Club",
-      detail: `${c.club} · ${c.avgQuality} avg quality (${c.shots} shots)`,
-    });
-  }
+  const { snapshot, statLine, recentRounds, records } = data;
 
   return (
     <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
@@ -146,34 +118,6 @@ export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained
           ) : (
             <p className="py-2 text-sm text-muted-foreground">
               Log a round with a start lie and distance to see strokes gained.
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* The one lime "edge" moment per screen — the insight that earns it. */}
-      <Card size="sm" className="border-transparent bg-highlight text-highlight-foreground shadow-sm">
-        <CardHeader>
-          <CardTitle className="eyebrow text-highlight-foreground/70">
-            What to Work On
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="divide-y divide-highlight-foreground/15">
-          {workItems.length > 0 ? (
-            workItems.map((w) => (
-              <div
-                key={w.area}
-                className="flex items-center justify-between gap-4 py-2 text-sm"
-              >
-                <span className="font-medium">{w.area}</span>
-                <span className="text-right text-highlight-foreground/80">
-                  {w.detail}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="py-2 text-sm text-highlight-foreground/70">
-              Not enough data yet — log a few more rounds.
             </p>
           )}
         </CardContent>

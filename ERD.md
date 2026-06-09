@@ -57,7 +57,6 @@ Goal: a working shot-entry flow on mobile, deployed to Vercel, installable as a 
   - `result` is a Zod enum of the 9 valid values plus null/undefined
   - `miss_direction`, `putt_side`, `putt_length` are optional enums
   - `penalty` defaults to `0`, minimum `0`
-  - `mulligan` defaults to `false`
 - [ ] `lib/schemas/shot.ts` exports `CLUBS` (const array) and `SESSION_TYPES` (const array) for use in UI components
 - [ ] No field constraints defined anywhere else — any inline Zod schema in a component is a lint error (enforced by the no-restricted-imports rule)
 - [ ] `npm run type-check` and `npm run lint` pass
@@ -202,7 +201,6 @@ Goal: the home screen shows real analytics. Every metric currently visible in th
   - Strokes lost: `teeLostTotal`, `approachLostTotal`, `puttLostTotal`, `totalLost`
   - What to work on: `worstHole`, `worstApprBucket`, `worstPuttBucket`, `worstClub`
   - Recent rounds: last 5 rounds sorted newest-first
-  - Mulligans: `totalMulligans`, per-category counts, recent 5 mulligan shots
   - Records: `bestRound`, `worstRound`, `bestHole` (cumulative vs-par — D-07), `birdies`, `eagles`
 - [ ] `__tests__/analytics/dashboard.test.ts` covers all returned fields; at least one full verified snapshot against `.gs`
 - [ ] `npm test` passes
@@ -215,7 +213,7 @@ Goal: the home screen shows real analytics. Every metric currently visible in th
 
 **Acceptance criteria:**
 - [ ] `app/page.tsx` is a React Server Component that fetches all shots + round metadata via `lib/db/`, passes to `computeDashboard`, renders the result
-- [ ] Components in `components/dashboard/`: `Snapshot`, `StatLine`, `StrokesLost`, `WhatToWorkOn`, `RecentRounds`, `Mulligans`, `CourseRecords`
+- [ ] Components in `components/dashboard/`: `Snapshot`, `StatLine`, `StrokesLost`, `WhatToWorkOn`, `RecentRounds`, `CourseRecords`
 - [ ] Page imports nothing from `lib/db/` directly — all DB access through `lib/db/` called from the server component, not from client components (layer boundary: components call server actions, not DB directly)
 - [ ] Snapshot + Stat Line + Strokes Lost + What to Work On all visible without scrolling on a 390px screen
 - [ ] Recent Rounds rows are tappable links to `/rounds/[id]`
@@ -250,7 +248,7 @@ Goal: can view and edit any past round. Required for PRD success criterion #4.
 **Acceptance criteria:**
 - [ ] `app/rounds/[id]/page.tsx` shows shots grouped by hole
 - [ ] Each hole section shows: hole number, par, strokes, putts, GIR indicator, FW indicator
-- [ ] Each shot row shows: shot_no, club, yardage, execution, result, miss_direction, mulligan flag
+- [ ] Each shot row shows: shot_no, club, yardage, execution, result, miss_direction
 - [ ] Tapping a shot navigates to or opens the edit form (P3-T3)
 - [ ] Back link to rounds list
 

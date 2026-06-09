@@ -61,7 +61,6 @@ export function EditShotSheet({
         miss_direction: values.missDirection,
         putt_side: values.puttSide,
         putt_length: values.puttLength,
-        mulligan: values.mulligan,
         penalty: values.penalty,
       });
       toast.success("Shot updated.");
@@ -90,7 +89,6 @@ export function EditShotSheet({
         miss_direction: values.missDirection ?? undefined,
         putt_side: values.puttSide ?? undefined,
         putt_length: values.puttLength ?? undefined,
-        mulligan: values.mulligan,
         penalty: values.penalty,
       });
       toast.success("Shot inserted.");
@@ -152,7 +150,6 @@ export function EditShotSheet({
                   missDirection: shot.miss_direction,
                   puttSide: shot.putt_side,
                   puttLength: shot.putt_length,
-                  mulligan: shot.mulligan,
                   penalty: shot.penalty,
                 }}
                 secondaryAction={

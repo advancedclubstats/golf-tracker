@@ -28,7 +28,6 @@ function shot(p: Partial<ShotRow>): ShotRow {
     miss_direction: null,
     putt_side: null,
     putt_length: null,
-    mulligan: false,
     penalty: 0,
     notes: null,
     created_at: "2026-01-01T00:00:00Z",

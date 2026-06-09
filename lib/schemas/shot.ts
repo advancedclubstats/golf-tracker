@@ -114,9 +114,6 @@ export const ShotInsertSchema = z.object({
    */
   putt_length: z.enum(PUTT_LENGTHS).nullish(),
 
-  /** "I'd materially redo this shot." Retrospective, player-judged. */
-  mulligan: z.boolean().default(false),
-
   /**
    * Penalty strokes incurred on this shot (typically 0 or 1).
    * Stored on the offending shot — drops do not get their own row.
@@ -135,7 +132,6 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   id: uuidString,
   user_id: uuidString,
   // Fields with DB defaults come back as concrete types, not optional.
-  mulligan: z.boolean(),
   penalty: z.number().int().min(0),
   // Nullable fields come back as their type | null from Postgres.
   execution: z.number().int().min(1).max(4).nullable(),
@@ -174,7 +170,6 @@ export const ShotUpdateSchema = ShotInsertSchema.pick({
   miss_direction: true,
   putt_side: true,
   putt_length: true,
-  mulligan: true,
   penalty: true,
 });
 

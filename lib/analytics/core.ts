@@ -20,8 +20,8 @@
  * Field mapping from the sheet model to our schema:
  *   RoundID→round_id, ShotNo→shot_no, MissDirection→miss_direction, etc.
  *   `Date` is round-level in our model (on `rounds`, not `shots`), so nothing
- *   here is date-dependent. `mulligan`/`penalty` are real bool/int columns, so
- *   the `.gs` string-coercion helpers collapse to near-trivial checks.
+ *   here is date-dependent. `penalty` is a real int column, so the `.gs`
+ *   string-coercion helpers collapse to near-trivial checks.
  */
 
 import { PUTT_BUCKETS, PUTT_YD_TO_FT } from "@/lib/constants";

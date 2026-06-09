@@ -16,10 +16,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/lib/format";
-import type {
-  DashboardData,
-  MulliganCategory,
-} from "@/lib/analytics/dashboard";
+import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -54,15 +51,8 @@ function Row({
   );
 }
 
-const MULLIGAN_LABELS: Record<MulliganCategory, string> = {
-  tee: "Tee / Long Game",
-  approach: "Approach",
-  shortGame: "Short Game",
-  putt: "Putts",
-};
-
 export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained }) {
-  const { snapshot, statLine, whatToWorkOn, recentRounds, records, mulligans } = data;
+  const { snapshot, statLine, whatToWorkOn, recentRounds, records } = data;
 
   const workItems: { area: string; detail: string }[] = [];
   if (whatToWorkOn.worstHole) {
@@ -242,22 +232,6 @@ export function Dashboard({ data, sg }: { data: DashboardData; sg: StrokesGained
         )}
         <Row label="Birdies" value={records.birdies} />
         <Row label="Eagles or better" value={records.eagles} />
-      </Section>
-
-      <Section title="Shots You'd Take Back">
-        {mulligans.total > 0 ? (
-          <>
-            <Row label="Total" value={mulligans.total} />
-            <Row label="Per Round" value={fmtNum(mulligans.perRound)} />
-            {(Object.keys(MULLIGAN_LABELS) as MulliganCategory[]).map((cat) => (
-              <Row key={cat} label={MULLIGAN_LABELS[cat]} value={mulligans.byCategory[cat]} />
-            ))}
-          </>
-        ) : (
-          <p className="py-2 text-sm text-muted-foreground">
-            No mulligans flagged.
-          </p>
-        )}
       </Section>
     </div>
   );

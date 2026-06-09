@@ -9,14 +9,12 @@ import { YardageInput } from "@/components/shot-entry/YardageInput";
 import { PuttExtras } from "@/components/shot-entry/PuttExtras";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Toggle } from "@/components/ui/toggle";
 import {
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
 } from "@/lib/constants";
-import { cn } from "@/lib/utils";
 
 /** The descriptive fields of a single shot (no hole/par/shot_no). */
 export interface ShotFormValues {
@@ -27,7 +25,6 @@ export interface ShotFormValues {
   missDirection: MissDirection | null;
   puttSide: PuttSide | null;
   puttLength: PuttLength | null;
-  mulligan: boolean;
   penalty: number;
 }
 
@@ -67,7 +64,7 @@ interface ShotFormProps {
 
 /**
  * The shot field form: club, yardage, execution, result, conditional miss
- * direction / putt extras, mulligan, penalty. Owns the field state and the
+ * direction / putt extras, penalty. Owns the field state and the
  * conditional rules (penalty auto-set, miss/putt visibility). Shared by the
  * new-shot entry flow and the edit sheet so those rules live in one place.
  */
@@ -93,7 +90,6 @@ export function ShotForm({
   const [puttLength, setPuttLength] = useState<PuttLength | null>(
     initial?.puttLength ?? null,
   );
-  const [mulligan, setMulligan] = useState<boolean>(initial?.mulligan ?? false);
   const [penalty, setPenalty] = useState<number>(initial?.penalty ?? 0);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,7 +117,6 @@ export function ShotForm({
     missDirection,
     puttSide,
     puttLength,
-    mulligan,
     penalty,
   };
 
@@ -186,24 +181,6 @@ export function ShotForm({
           onPuttLengthChange={setPuttLength}
         />
       )}
-
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col gap-0.5">
-          <Label>Mulligan</Label>
-          <p className="text-xs text-muted-foreground">I&apos;d take this one back</p>
-        </div>
-        <Toggle
-          pressed={mulligan}
-          onPressedChange={setMulligan}
-          variant="outline"
-          className={cn(
-            "h-10 px-4 text-sm font-medium",
-            mulligan && "border-primary bg-primary text-primary-foreground",
-          )}
-        >
-          {mulligan ? "Yes" : "No"}
-        </Toggle>
-      </div>
 
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-0.5">

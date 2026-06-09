@@ -138,7 +138,6 @@ export function ShotEntryFlow({
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [missDirection, setMissDirection] = useState<MissDirection | null>(null);
-  const [mulligan, setMulligan] = useState(false);
   // Start lie: `lieOverride` is the player's one-tap override (else the
   // carry-forward default is used). Domino fields default to no-trouble.
   const [lieOverride, setLieOverride] = useState<StartLie | null>(null);
@@ -208,7 +207,6 @@ export function ShotEntryFlow({
     setExecution(null);
     setResult(null);
     setMissDirection(null);
-    setMulligan(false);
     setLieOverride(null);
     setLieOpen(false);
     setShortSided(false);
@@ -241,7 +239,6 @@ export function ShotEntryFlow({
     missDirection?: MissDirection;
     puttSide?: PuttSide;
     puttLength?: PuttLength;
-    mulligan?: boolean;
     penalty?: number;
     situation?: Situation;
     shortSided?: boolean;
@@ -278,7 +275,6 @@ export function ShotEntryFlow({
         miss_direction: d.missDirection,
         putt_side: d.puttSide,
         putt_length: d.puttLength,
-        mulligan: d.mulligan ?? false,
         penalty: d.penalty ?? 0,
       });
       const prev =
@@ -315,7 +311,6 @@ export function ShotEntryFlow({
           missDirection: d.missDirection ?? null,
           puttSide: d.puttSide ?? null,
           puttLength: d.puttLength ?? null,
-          mulligan: d.mulligan ?? false,
           penalty: d.penalty ?? 0,
         },
       });
@@ -382,7 +377,6 @@ export function ShotEntryFlow({
         yardage: yards === "" ? undefined : Number(yards),
         execution: execution ?? undefined,
         result: r,
-        mulligan,
       });
       if (!res.ok) return;
       if (r === "Make") completeHole(res.map, res.strokes);
@@ -418,7 +412,6 @@ export function ShotEntryFlow({
       missDirection: missDir ?? missDirection ?? undefined,
       situation: sit,
       shortSided: showShortSided ? shortSided : undefined,
-      mulligan,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
     });
     if (!res.ok) return;
@@ -529,7 +522,6 @@ export function ShotEntryFlow({
         miss_direction: values.missDirection,
         putt_side: values.puttSide,
         putt_length: values.puttLength,
-        mulligan: values.mulligan,
         penalty: values.penalty,
       });
       const h = lastCommitted.hole;
@@ -936,21 +928,6 @@ export function ShotEntryFlow({
               className="col-span-2 h-14 rounded-2xl border-2 border-primary bg-primary text-base font-bold text-primary-foreground transition-transform active:scale-[0.97]"
             >
               ● Holed it
-            </button>
-          </div>
-          <div className="mt-1 flex items-center justify-between border-t border-border pt-3">
-            <span className="text-sm text-muted-foreground">Take this one back?</span>
-            <button
-              type="button"
-              onClick={() => setMulligan((m) => !m)}
-              className={cn(
-                "h-10 rounded-xl border-2 px-4 text-sm font-bold transition-colors",
-                mulligan
-                  ? "border-chart-3 bg-chart-3 text-white"
-                  : "border-input bg-card text-foreground",
-              )}
-            >
-              Mulligan
             </button>
           </div>
         </div>

@@ -28,7 +28,6 @@ function shot(p: Partial<ShotRow>): ShotRow {
     miss_direction: null,
     putt_side: null,
     putt_length: null,
-    mulligan: false,
     penalty: 0,
     notes: null,
     created_at: "2026-01-01T00:00:00Z",
@@ -64,8 +63,8 @@ function fixture(): ShotRow[] {
     shot({ round_id: "r2", hole: 1, par: 4, shot_no: 4, club: "Putter", result: null, yardage: 2 }),
     shot({ round_id: "r2", hole: 1, par: 4, shot_no: 5, club: "Putter", result: "Make", yardage: 1 }),
 
-    // r2 H2 par3 — score 3 (par): tee to green, 2 putts. Tee shot is a mulligan.
-    shot({ round_id: "r2", hole: 2, par: 3, shot_no: 1, club: "7i", result: "Green", execution: 4, yardage: 140, mulligan: true }),
+    // r2 H2 par3 — score 3 (par): tee to green, 2 putts.
+    shot({ round_id: "r2", hole: 2, par: 3, shot_no: 1, club: "7i", result: "Green", execution: 4, yardage: 140 }),
     shot({ round_id: "r2", hole: 2, par: 3, shot_no: 2, club: "Putter", result: null, yardage: 3 }),
     shot({ round_id: "r2", hole: 2, par: 3, shot_no: 3, club: "Putter", result: "Make", yardage: 1 }),
   ];
@@ -144,22 +143,6 @@ describe("dashboard — records", () => {
   });
 });
 
-describe("dashboard — mulligans", () => {
-  it("counts and categorizes the tagged shot", () => {
-    expect(dash.mulligans.total).toBe(1);
-    expect(dash.mulligans.perRound).toBe(0.5);
-    expect(dash.mulligans.byCategory).toEqual({ tee: 0, approach: 1, shortGame: 0, putt: 0 });
-    expect(dash.mulligans.recent[0]).toMatchObject({
-      roundId: "r2",
-      hole: 2,
-      shotNo: 1,
-      club: "7i",
-      category: "approach",
-      date: "2026-05-08",
-    });
-  });
-});
-
 describe("dashboard — empty input", () => {
   it("returns a zeroed structure when there are no complete holes", () => {
     const empty = computeDashboard([], []);
@@ -167,6 +150,5 @@ describe("dashboard — empty input", () => {
     expect(empty.recentRounds).toEqual([]);
     expect(empty.records.bestRound).toBeNull();
     expect(empty.whatToWorkOn.worstHole).toBeNull();
-    expect(empty.mulligans.total).toBe(0);
   });
 });

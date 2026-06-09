@@ -122,24 +122,6 @@ export interface DashboardRecords {
   eagles: number;
 }
 
-export type MulliganCategory = "tee" | "approach" | "shortGame" | "putt";
-
-export interface MulliganEntry {
-  date: string | null;
-  roundId: string;
-  hole: number;
-  shotNo: number;
-  club: string;
-  category: MulliganCategory;
-}
-
-export interface DashboardMulligans {
-  total: number;
-  perRound: number;
-  byCategory: Record<MulliganCategory, number>;
-  recent: MulliganEntry[];
-}
-
 export interface DashboardData {
   snapshot: DashboardSnapshot;
   statLine: DashboardStatLine;
@@ -147,7 +129,6 @@ export interface DashboardData {
   whatToWorkOn: WhatToWorkOn;
   recentRounds: RecentRound[];
   records: DashboardRecords;
-  mulligans: DashboardMulligans;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -221,12 +202,6 @@ function emptyDashboard(): DashboardData {
       bestHole: null,
       birdies: 0,
       eagles: 0,
-    },
-    mulligans: {
-      total: 0,
-      perRound: 0,
-      byCategory: { tee: 0, approach: 0, shortGame: 0, putt: 0 },
-      recent: [],
     },
   };
 }
@@ -440,34 +415,6 @@ export function computeDashboard(
         })()
       : null;
 
-  // ── Mulligans (mulligan column always present in our schema) ──
-  const byCategory: Record<MulliganCategory, number> = {
-    tee: 0,
-    approach: 0,
-    shortGame: 0,
-    putt: 0,
-  };
-  const mulliganEntries: MulliganEntry[] = [];
-  for (const row of shots) {
-    if (!row.mulligan) continue;
-    let category: MulliganCategory;
-    if (row.club === "Putter") category = "putt";
-    else if (row.shot_no === 1 && row.par !== 3) category = "tee";
-    else if (isNum(row.yardage) && row.yardage < 30) category = "shortGame";
-    else category = "approach";
-    byCategory[category]++;
-    mulliganEntries.push({
-      date: dateOf.get(row.round_id) ?? null,
-      roundId: row.round_id,
-      hole: row.hole,
-      shotNo: row.shot_no,
-      club: row.club,
-      category,
-    });
-  }
-  mulliganEntries.sort((a, b) => dateKey(b.date) - dateKey(a.date));
-  const totalMulligans = mulliganEntries.length;
-
   // ── Records ──
   const bestRoundAgg =
     byRound.length > 0
@@ -522,12 +469,6 @@ export function computeDashboard(
       bestHole,
       birdies,
       eagles,
-    },
-    mulligans: {
-      total: totalMulligans,
-      perRound: byRound.length > 0 ? r2(totalMulligans / byRound.length) : 0,
-      byCategory,
-      recent: mulliganEntries.slice(0, 5),
     },
   };
 }

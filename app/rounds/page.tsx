@@ -3,6 +3,7 @@ import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeRoundList } from "@/lib/analytics/rounds";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { DeleteRoundButton } from "@/components/rounds/DeleteRoundButton";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 import { fmtVsPar } from "@/lib/format";
 
@@ -23,10 +24,13 @@ export default async function RoundsPage() {
       ) : (
         <ul className="flex flex-col gap-2">
           {list.map((r) => (
-            <li key={r.id}>
+            <li
+              key={r.id}
+              className="flex items-center gap-1 rounded-xl bg-card pr-2 ring-1 ring-foreground/10 transition-colors hover:bg-muted/50"
+            >
               <Link
                 href={`/rounds/${r.id}`}
-                className="flex items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 text-sm ring-1 ring-foreground/10 transition-colors hover:bg-muted/50"
+                className="flex min-w-0 flex-1 items-center justify-between gap-4 px-4 py-3 text-sm"
               >
                 <div className="min-w-0">
                   <div className="font-medium">{r.date}</div>
@@ -52,6 +56,7 @@ export default async function RoundsPage() {
                   )}
                 </div>
               </Link>
+              <DeleteRoundButton id={r.id} date={r.date} />
             </li>
           ))}
         </ul>

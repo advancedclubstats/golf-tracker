@@ -31,3 +31,25 @@ export async function createRound(data: RoundInsert): Promise<{ id: string }> {
 
   return { id: round.id };
 }
+
+/**
+ * Delete a round and all of its shots. Shots are removed by the
+ * `on delete cascade` FK (migration 002), so this is a single delete.
+ * Throws on DB error. Cache: revalidates '/' (dashboard) and '/rounds'.
+ */
+export async function deleteRound(id: string): Promise<void> {
+  const supabase = createServerClient();
+
+  const { error } = await supabase
+    .from("rounds")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", V1_USER_ID);
+
+  if (error) {
+    throw new Error(`Failed to delete round: ${error.message}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/rounds");
+}

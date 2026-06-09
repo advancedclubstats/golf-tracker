@@ -22,6 +22,8 @@ import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import { LeakList } from "@/components/dashboard/LeakList";
+import { ScoringShapeCard } from "@/components/dashboard/ScoringShapeCard";
+import { DecisionSplit } from "@/components/stats/DecisionSplit";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -64,40 +66,29 @@ export function Dashboard({
   sg: StrokesGained;
   leaks: Leak[];
 }) {
-  const { snapshot, statLine, recentRounds, records } = data;
+  const { snapshot, statLine, scoringShape, recentRounds, records } = data;
+  // Spec Part 3 item 2: SG categories ranked by recoverable/round (worst first).
+  const rankedCategories = [...sg.byCategory].sort((a, b) => a.perRound - b.perRound);
 
   return (
     <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-      <Section title="Snapshot">
-        <Row label="Rounds Logged" value={snapshot.roundsLogged} />
-        <Row label="Holes Logged" value={snapshot.holesLogged} />
-        <Row label="Total vs Par" value={fmtVsPar(snapshot.totalVsPar)} />
-        <Row label="Avg vs Par / Round" value={fmtVsParAvg(snapshot.avgVsParPerRound)} />
-        <Row label="Avg vs Par / Hole" value={fmtVsParAvg(snapshot.avgVsParPerHole)} />
-      </Section>
+      {/* Dashboard answer order (spec Part 3). 1 — Scoring shape. */}
+      <ScoringShapeCard shape={scoringShape} />
 
-      <Section title="Stat Line">
-        <Row label="Fairways Hit" value={fmtPct(statLine.fwPct)} />
-        <Row label="Greens in Regulation" value={fmtPct(statLine.girPct)} />
-        <Row label="Scrambling" value={fmtPct(statLine.scramblePct)} />
-        <Row label="Avg Putts / Hole" value={fmtNum(statLine.avgPutts)} />
-        <Row label="3-Putt %" value={fmtPct(statLine.threePuttPct)} />
-      </Section>
-
-      {/* Strokes gained by category — the real diagnosis (replaces the old
-          par-relative "strokes lost"). Per round vs the scratch baseline. */}
-      <Card size="sm">
+      {/* 2 — Where strokes are lost: SG categories ranked, each vs the scratch
+          target (0). Tap through to the SG page for the full breakdown. */}
+      <Card size="sm" className="sm:col-span-2">
         <CardHeader>
           <CardTitle className="eyebrow">
             <Link href="/stats/sg" className="transition-colors hover:text-foreground">
-              Strokes Gained →
+              Where strokes are lost →
             </Link>
           </CardTitle>
         </CardHeader>
         <CardContent className="divide-y divide-border/40">
           {sg.coveredShots > 0 ? (
             <>
-              {sg.byCategory.map((c) => (
+              {rankedCategories.map((c) => (
                 <div
                   key={c.category}
                   className="flex items-center justify-between gap-4 py-2 text-sm"
@@ -109,12 +100,12 @@ export function Dashboard({
                       sgColorClass(c.perRound),
                     )}
                   >
-                    {c.shots > 0 ? fmtSg(c.perRound) : "—"}
+                    {c.shots > 0 ? `${fmtSg(c.perRound)}/rd` : "—"}
                   </span>
                 </div>
               ))}
               <div className="flex items-center justify-between gap-4 py-2 text-sm">
-                <span className="font-medium">Per round vs scratch</span>
+                <span className="font-medium">Total per round vs scratch</span>
                 <span
                   className={cn(
                     "text-right font-mono font-semibold tabular-nums",
@@ -133,16 +124,44 @@ export function Dashboard({
         </CardContent>
       </Card>
 
-      {/* Where strokes are lost — the SG-driven prescription (spec Part 3).
-          One ranked list by recoverable/round, each row drillable to its shots. */}
+      {/* 3 — Decision vs execution: of lost strokes, thinking vs practice. */}
+      {sg.decisionSplit.totalLoss < 0 && (
+        <Card size="sm" className="sm:col-span-2">
+          <CardHeader>
+            <CardTitle className="eyebrow">Decision vs execution</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <DecisionSplit split={sg.decisionSplit} />
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 4 — Specifics, gated by sample: the ranked leak list, each row drillable
+          to its shots; under-sampled cuts show as early reads, never prescribed. */}
       <Card size="sm" className="sm:col-span-2">
         <CardHeader>
-          <CardTitle className="eyebrow">Where strokes are lost</CardTitle>
+          <CardTitle className="eyebrow">What to work on</CardTitle>
         </CardHeader>
         <CardContent>
           <LeakList leaks={leaks} />
         </CardContent>
       </Card>
+
+      <Section title="Snapshot">
+        <Row label="Rounds Logged" value={snapshot.roundsLogged} />
+        <Row label="Holes Logged" value={snapshot.holesLogged} />
+        <Row label="Total vs Par" value={fmtVsPar(snapshot.totalVsPar)} />
+        <Row label="Avg vs Par / Round" value={fmtVsParAvg(snapshot.avgVsParPerRound)} />
+        <Row label="Avg vs Par / Hole" value={fmtVsParAvg(snapshot.avgVsParPerHole)} />
+      </Section>
+
+      <Section title="Stat Line">
+        <Row label="Fairways Hit" value={fmtPct(statLine.fwPct)} />
+        <Row label="Greens in Regulation" value={fmtPct(statLine.girPct)} />
+        <Row label="Scrambling" value={fmtPct(statLine.scramblePct)} />
+        <Row label="Avg Putts / Hole" value={fmtNum(statLine.avgPutts)} />
+        <Row label="3-Putt %" value={fmtPct(statLine.threePuttPct)} />
+      </Section>
 
       <Section title="Recent Rounds">
         {recentRounds.length > 0 ? (

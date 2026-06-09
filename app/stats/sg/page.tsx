@@ -2,6 +2,7 @@ import { getStrokesGained } from "@/lib/sg-server";
 import { fmtSg, sgColorClass as sgColor } from "@/lib/format";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DecisionSplit } from "@/components/stats/DecisionSplit";
 import { cn } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -124,58 +125,7 @@ export default async function StrokesGainedPage() {
             <CardTitle className="eyebrow">Decision vs execution</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="mb-3 text-sm text-muted-foreground">
-              Of the {fmtSg(sg.decisionSplit.totalLoss)} strokes you lost,{" "}
-              <span className="font-semibold text-foreground">
-                {Math.round((sg.decisionSplit.decisionPct ?? 0) * 100)}% were
-                decisions
-              </span>{" "}
-              (fix by thinking, free) and{" "}
-              <span className="font-semibold text-foreground">
-                {Math.round((sg.decisionSplit.executionPct ?? 0) * 100)}% were
-                execution
-              </span>{" "}
-              (fix by practice).
-            </p>
-            {/* Split bar: decision (left) vs execution (right). */}
-            <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full bg-chart-3"
-                style={{ width: `${(sg.decisionSplit.decisionPct ?? 0) * 100}%` }}
-              />
-              <div
-                className="h-full bg-destructive"
-                style={{ width: `${(sg.decisionSplit.executionPct ?? 0) * 100}%` }}
-              />
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
-              <div className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-full bg-chart-3" />
-                  Decision (thinking)
-                </span>
-                <span className="font-mono font-semibold tabular-nums">
-                  {fmtSg(sg.decisionSplit.decisionLoss)}
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    · {sg.decisionSplit.decisionShots} shot
-                    {sg.decisionSplit.decisionShots === 1 ? "" : "s"}
-                  </span>
-                </span>
-              </div>
-              <div className="flex flex-col gap-0.5">
-                <span className="flex items-center gap-1.5 text-muted-foreground">
-                  <span className="inline-block h-2 w-2 rounded-full bg-destructive" />
-                  Execution (practice)
-                </span>
-                <span className="font-mono font-semibold tabular-nums">
-                  {fmtSg(sg.decisionSplit.executionLoss)}
-                  <span className="ml-1 text-xs font-normal text-muted-foreground">
-                    · {sg.decisionSplit.executionShots} shot
-                    {sg.decisionSplit.executionShots === 1 ? "" : "s"}
-                  </span>
-                </span>
-              </div>
-            </div>
+            <DecisionSplit split={sg.decisionSplit} />
           </CardContent>
         </Card>
       )}

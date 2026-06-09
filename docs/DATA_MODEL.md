@@ -56,10 +56,13 @@ Entered via a wizard, one shot at a time. Fields collected:
 ## 3. What the app displays
 
 ### Dashboard (`/`)
+Top-to-bottom **answer order** (spec Part 3), then reference cards:
+1. **Scoring shape**: hole-outcome distribution (eagle+/birdie/par/bogey/double+) with scratch target rates and the headline **birdie − double+** net. Tails first.
+2. **Where strokes are lost**: the four SG categories ranked by recoverable/round (worst first), each vs the scratch target (0); links to the SG page.
+3. **Decision vs execution**: of lost strokes, decision-loss (Bad → thinking) vs execution-loss (Good → practice) — shared with the SG page.
+4. **What to work on**: the ranked leak list (`lib/analytics/leaks.ts`) — approach/putt/around-green buckets + clubs by recoverable/round, each row drillable to its qualifying shots; sample-gated (below threshold → "early read", never prescribed).
 - **Snapshot**: rounds logged, holes logged, total vs par, avg vs par / round, avg vs par / hole *(complete holes only)*.
 - **Stat line**: FW% (par 4/5 only), GIR%, Scramble%, avg putts, 3-putt%.
-- **Strokes Lost** (heuristic attribution, per hole then summed): `over = max(0, strokes−par)`; `puttsLost = max(0, putts−2)`; `nonPuttLost = over − puttsLost`; `teeLost = nonPuttLost` if (par≥4 AND tee miss tagged AND fairway missed) else 0; `approachLost = nonPuttLost − teeLost`. Shown as Tee / Approach / Putting totals + % share.
-- **What to Work On**: worst hole (highest cumulative vs par), worst approach bucket (lowest green-hit%, ≥3 shots), worst putt bucket (lowest make%, ≥3 putts, excl. 0–3 ft), worst club (lowest avg quality, ≥3 shots). *(Note: this section is green%/make%/quality-based, NOT SG-based yet.)*
 - **Recent rounds**: last 5 (date, holes, strokes, vs par).
 - **Records**: best/worst round (by vs par), best hole (lowest cumulative vs par), birdie count (=par−1), eagle+ count (≤par−2).
 

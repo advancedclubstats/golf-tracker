@@ -48,6 +48,30 @@ export interface DashboardStatLine {
   threePuttPct: number;
 }
 
+/** One band of the hole-outcome distribution, with its scratch target rate. */
+export interface ScoringBand {
+  key: "eagle" | "birdie" | "par" | "bogey" | "double";
+  label: string;
+  count: number;
+  rate: number;
+  /** Scratch target rate (fraction), or null. Approximate — VERIFY. */
+  target: number | null;
+}
+
+/**
+ * Scoring shape (spec Part 3, DECADE steal): the distribution of hole outcomes,
+ * not just average vs par. The tails drive the handicap, so they get shown.
+ * `net` = birdie − double+ rate, the headline "are you making more than you give
+ * back" number. Scratch targets are approximate scratch-golfer outcome rates.
+ */
+export interface ScoringShape {
+  holes: number;
+  bands: ScoringBand[];
+  birdieRate: number;
+  doublePlusRate: number;
+  net: number;
+}
+
 export interface HolePain {
   hole: number;
   par: number;
@@ -82,8 +106,44 @@ export interface DashboardRecords {
 export interface DashboardData {
   snapshot: DashboardSnapshot;
   statLine: DashboardStatLine;
+  scoringShape: ScoringShape;
   recentRounds: RecentRound[];
   records: DashboardRecords;
+}
+
+/** Scratch-golfer hole-outcome target rates (approximate; sum ≈ 1). VERIFY. */
+const SCORING_TARGETS: Record<ScoringBand["key"], number> = {
+  eagle: 0.01,
+  birdie: 0.13,
+  par: 0.58,
+  bogey: 0.24,
+  double: 0.04,
+};
+
+/** Build the scoring-shape distribution over complete holes. */
+function computeScoringShape(
+  holes: readonly { strokes: number; par: number }[],
+): ScoringShape {
+  const n = holes.length;
+  const c = { eagle: 0, birdie: 0, par: 0, bogey: 0, double: 0 };
+  for (const h of holes) {
+    const d = h.strokes - h.par;
+    if (d <= -2) c.eagle++;
+    else if (d === -1) c.birdie++;
+    else if (d === 0) c.par++;
+    else if (d === 1) c.bogey++;
+    else c.double++;
+  }
+  const bands: ScoringBand[] = [
+    { key: "eagle", label: "Eagle+", count: c.eagle, rate: n ? c.eagle / n : 0, target: SCORING_TARGETS.eagle },
+    { key: "birdie", label: "Birdie", count: c.birdie, rate: n ? c.birdie / n : 0, target: SCORING_TARGETS.birdie },
+    { key: "par", label: "Par", count: c.par, rate: n ? c.par / n : 0, target: SCORING_TARGETS.par },
+    { key: "bogey", label: "Bogey", count: c.bogey, rate: n ? c.bogey / n : 0, target: SCORING_TARGETS.bogey },
+    { key: "double", label: "Double+", count: c.double, rate: n ? c.double / n : 0, target: SCORING_TARGETS.double },
+  ];
+  const birdieRate = n ? (c.eagle + c.birdie) / n : 0;
+  const doublePlusRate = n ? c.double / n : 0;
+  return { holes: n, bands, birdieRate, doublePlusRate, net: birdieRate - doublePlusRate };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -111,6 +171,7 @@ function emptyDashboard(): DashboardData {
       avgPutts: 0,
       threePuttPct: 0,
     },
+    scoringShape: computeScoringShape([]),
     recentRounds: [],
     records: {
       bestRound: null,
@@ -249,6 +310,7 @@ export function computeDashboard(
       avgPutts: r2(totalPutts / complete.length),
       threePuttPct: threePuttRate,
     },
+    scoringShape: computeScoringShape(complete),
     recentRounds: byRound.slice(0, 5).map((r) => ({
       date: r.date,
       roundId: r.roundId,

@@ -95,6 +95,24 @@ describe("dashboard — stat line", () => {
   });
 });
 
+describe("dashboard — scoring shape", () => {
+  it("distributes hole outcomes and computes birdie − double+", () => {
+    // Fixture: par (4/4, 3/3) ×2, bogey (5/4) ×1, double+ (6/4) ×1.
+    const s = dash.scoringShape;
+    expect(s.holes).toBe(4);
+    const rate = (k: string) => s.bands.find((b) => b.key === k)!.count;
+    expect(rate("par")).toBe(2);
+    expect(rate("bogey")).toBe(1);
+    expect(rate("double")).toBe(1);
+    expect(rate("birdie")).toBe(0);
+    expect(s.birdieRate).toBe(0);
+    expect(s.doublePlusRate).toBe(0.25);
+    expect(s.net).toBe(-0.25);
+    // Every band carries a scratch target.
+    expect(s.bands.every((b) => b.target != null)).toBe(true);
+  });
+});
+
 // The heuristic "Strokes Lost" attribution and green%/make%/quality
 // "What to Work On" were deleted (spec 2D): prescriptions now flow from SG only.
 

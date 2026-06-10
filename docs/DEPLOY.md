@@ -16,11 +16,12 @@ database** (same rounds/shots) — that's intended.
    | Name | Value | Notes |
    |---|---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | *(copy from your local `.env.local`)* | Public; the Supabase project URL. |
-   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(copy from your local `.env.local`)* | **Treat as a secret here:** RLS is disabled, so this key grants full read/write. Don't paste it anywhere public. |
+   | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(copy from your local `.env.local`)* | Public. With RLS enabled (migration 013) this key can read/write nothing — it's safe in the client bundle. |
+   | `SUPABASE_SERVICE_ROLE_KEY` | *(Supabase → Project Settings → API → `service_role`)* | **Secret.** The server uses it to bypass RLS. NEVER prefix with `NEXT_PUBLIC_` and never expose it client-side. Required once RLS is on. |
    | `APP_PASSWORD` | *(choose a password)* | The access gate (see below). Pick something only you know. |
 
-   Copy the two `NEXT_PUBLIC_*` values from your local `.env.local` — never commit
-   them.
+   Copy the `NEXT_PUBLIC_*` values from your local `.env.local`; get the
+   `service_role` key from the Supabase dashboard. Never commit any of them.
 
 3. **Deploy.** Vercel builds and gives you a `*.vercel.app` URL. Every push to
    `main` auto-deploys after this.
@@ -47,9 +48,18 @@ intended way to log rounds at the course.
 
 ## Security posture (current)
 
-- **Single user, RLS disabled.** The `APP_PASSWORD` gate is the only thing
-  protecting the data on a public URL. The anon key effectively *is* a write
-  credential here.
-- **Next step when ready:** proper Supabase Auth (email login), re-enable RLS,
-  swap `V1_USER_ID` for `auth.uid()`, then drop the middleware gate. Tracked in
-  `docs/BACKLOG.md`.
+Two layers, even though there's no per-user auth yet:
+
+1. **RLS on, server uses `service_role` (migration 013).** Every table has Row
+   Level Security enabled with no policies, so the public anon key in the browser
+   bundle can read/write **nothing**. The server bypasses RLS via the secret
+   `service_role` key. So a leaked anon key (or a guessed URL) gets you nothing.
+2. **`APP_PASSWORD` gate (`proxy.ts`).** Keeps the app UI itself private.
+
+This is single-user: anyone who knows `APP_PASSWORD` is "the user." The proper
+multi-user fix (Supabase Auth → `auth.uid()` RLS policies → drop the service_role
+usage and the password gate) is tracked in `docs/BACKLOG.md`.
+
+> **If the app suddenly can't read/write after enabling RLS**, the server is
+> falling back to the anon key — `SUPABASE_SERVICE_ROLE_KEY` is missing in that
+> environment. Set it and redeploy.

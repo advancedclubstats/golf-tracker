@@ -32,6 +32,10 @@
   --color-highlight: var(--highlight);
   --color-highlight-foreground: var(--highlight-foreground);
   --color-positive: var(--positive);
+  --color-clay: var(--clay);
+  --color-clay-foreground: var(--clay-foreground);
+  --color-fairway-900: var(--fairway-900);
+  --color-fairway-300: var(--fairway-300);
   --color-ink-700: var(--ink-700);
   --color-ink-300: var(--ink-300);
   --color-accent-foreground: var(--accent-foreground);
@@ -102,6 +106,13 @@
   --highlight-foreground: oklch(0.30 0.06 158); /* dark green on lime */
   --positive: oklch(0.57 0.12 158);      /* under par — replaces text-green-600 */
 
+  /* Entry-flow additions: clay (penalties / "Bad" decision) + fairway accents
+     (hole-complete flash bg, done-state ring). */
+  --clay: oklch(0.685 0.145 48);         /* #E07A3E */
+  --clay-foreground: oklch(0.99 0 0);    /* white on clay */
+  --fairway-900: oklch(0.21 0.02 158);   /* #0B2E1E — flash overlay bg */
+  --fairway-300: oklch(0.84 0.09 158);   /* #8FD9B4 — done-state ring */
+
   /* Ink steps between foreground (ink-900) and muted-foreground (ink-500):
      row labels (ink-700) and faint annotations (ink-300). */
   --ink-700: oklch(0.38 0.014 155);      /* #36433C */
@@ -157,6 +168,7 @@
   --highlight: oklch(0.90 0.20 118);
   --highlight-foreground: oklch(0.22 0.03 158);
   --positive: oklch(0.80 0.16 150);
+  --clay: oklch(0.73 0.14 50);           /* brighter clay on dark */
 
   --ink-700: oklch(0.86 0.012 130);
   --ink-300: oklch(0.56 0.015 150);

@@ -99,6 +99,35 @@ unlocks the next). Decisions already made this session are inlined.
   the just-committed shot; earlier shots still go through round detail. Fine for
   now; revisit if it's a pain.
 
+## ACTIVE — Shot-entry reskin + 5 optimizations
+
+Source: `docs/design/design_handoff_shot_entry/` (Claude Design handoff). Reskin
+`app/rounds/[id]/log/ShotEntryFlow.tsx` to the Modern Clubhouse / Calm Brief
+system + 5 UX optimizations. Keep production data/API; prototype is source of
+truth for look + interaction only. Decisions made: smart-yardage = most-*typical*
+distances (not raw recent), contextual if feasible; dark mode shipped (built
+dark-ready now, flipped on globally as the LAST step after a dark review);
+flash overlay + putt escape link both in scope; follow production for bunker-lie
+distinction + idempotent-commit/undo-as-DELETE.
+
+- **A1 · Token foundation** — ✅ done (2026-06-10). Added `--clay`,
+  `--fairway-900`, `--fairway-300` (light+dark) to `globals.css`; the rest of the
+  Modern Clubhouse palette already mapped (paper=background, lime=highlight,
+  fairway-700=primary, sunk=muted, line=border, ink-700/300, negative=destructive).
+- **A2 · Visual reskin** (no behavior change): persistent chrome (header + stepper
+  + lie pill + hole strip), then each step (Club / Yards / Strike / Result / miss /
+  putt) to the handoff's type/spacing/radii. Pixel-faithful to the prototype.
+- **B1 · Undo on commit toast** (3.4s pill; snapshot → rollback, DELETE if persisted).
+- **B2 · Skippable Strike** (execution nullable; "Skip — don't rate this one").
+- **B3 · Smart yardage** (per-club typical distances from history → prefill chips).
+- **B4 · Context-aware back** (home glyph at root, back arrow on inner steps).
+- **B5 · "This hole" recap strip** (Club step; collapsed tokens / expanded list;
+  Edit on last shot only).
+- **C · Net-new moments**: hole-complete flash overlay (~1.3s auto-advance);
+  "Putted off the green?" escape link out of putt mode.
+- **D · Flip dark mode ON** (next-themes provider, system-following) + dark-review
+  the dashboard/stats screens. The closing step.
+
 ## Design & polish
 
 - **Link-preview metadata (portfolio share card).** When the live URL is pasted

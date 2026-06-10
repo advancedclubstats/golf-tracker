@@ -76,8 +76,8 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/30 p-4 backdrop-blur-sm sm:items-center">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-background p-6 shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-xl">
             <p className="eyebrow text-muted-foreground">👋 A portfolio project</p>
             <h2 className="mt-1 font-heading text-3xl font-bold">Golf Tracker</h2>
 

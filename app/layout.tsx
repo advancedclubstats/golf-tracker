@@ -27,14 +27,31 @@ const heading = Bricolage_Grotesque({
   subsets: ["latin"],
 });
 
+const TAGLINE = "Strokes-gained golf analytics, tracked from memory";
+
 export const metadata: Metadata = {
+  // Absolute base so Next resolves the auto-wired opengraph-image/twitter-image
+  // (and any relative URLs) to full https://roundrecall.com paths when shared.
+  metadataBase: new URL("https://roundrecall.com"),
   title: "Round Recall",
-  description: "Strokes-gained golf analytics, tracked from memory",
+  description: TAGLINE,
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Round Recall",
+  },
+  openGraph: {
+    title: "Round Recall",
+    description: TAGLINE,
+    url: "/",
+    siteName: "Round Recall",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Round Recall",
+    description: TAGLINE,
   },
 };
 

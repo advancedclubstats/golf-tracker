@@ -130,13 +130,19 @@ distinction + idempotent-commit/undo-as-DELETE.
 
 ## Design & polish
 
-- **Link-preview metadata (portfolio share card).** When the live URL is pasted
-  into LinkedIn / iMessage / Slack, the preview still shows the generic
-  `metadata` in `app/layout.tsx` ("Golf Tracker / Retrospective shot logging…").
-  Give it portfolio-friendly Open Graph/Twitter tags — title, description, and a
-  share image (`opengraph-image`) — so the first impression when shared looks
-  intentional. Highest-value before posting it anywhere. Needs the owner's
-  preferred headline/description (and a link if wanted).
+- **Link-preview metadata (portfolio share card)** — ✅ done (2026-06-10).
+  Dynamic branded OG image via the App Router file convention
+  (`app/opengraph-image.tsx`, 1200×630, rendered with next/og `ImageResponse` —
+  no external screenshot; `app/twitter-image.tsx` shares the renderer). Layout is
+  the Modern Clubhouse brand: `#F6F3EC` paper, Bricolage Grotesque "Round Recall"
+  wordmark, ball-lime (`#CDF23E`) SG dot + rule, tagline, fairway-green
+  `roundrecall.com` footer (font fetched per next/og docs with a fallback so the
+  build can't break). `app/layout.tsx` sets `metadataBase`
+  (`https://roundrecall.com`), `openGraph` (title/description/url/siteName/type)
+  and `twitter` (`summary_large_image`); Next auto-wires the image files to
+  absolute URLs. Verified: `/opengraph-image` returns a 1200×630 PNG, homepage
+  view-source shows absolute `og:`/`twitter:` tags, `npm run build` clean.
+  **After deploy:** run the URL through LinkedIn Post Inspector to bust its cache.
 - **Personalize the welcome copy.** `components/WelcomeOverlay.tsx` currently
   reads "I'm Matt, a product manager" with a generic blurb. Swap in the owner's
   sharper positioning line, a one-line *why I built it*, and a LinkedIn/portfolio

@@ -115,10 +115,15 @@ unlocks the next). Decisions already made this session are inlined.
   Step-by-step in `docs/DEPLOY.md`. Needs you to create/connect the Vercel project
   and set 3 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `APP_PASSWORD`).
-- **Access gate is a stopgap.** `proxy.ts` Basic-Auth on `APP_PASSWORD` is the only
-  thing protecting the data (no auth, RLS disabled, anon key = write credential).
-  **Proper fix when ready:** Supabase Auth (email login) → re-enable RLS → swap
-  `V1_USER_ID` for `auth.uid()` → delete `proxy.ts` + `APP_PASSWORD`.
+- **Security posture (decided lightweight).** No client-side DB access, so the
+  anon key never reaches the browser (verified: 0 occurrences in the built
+  bundle); it lives only in server env. Protected by the `proxy.ts` `APP_PASSWORD`
+  gate. RLS stays **off** by design — defense-in-depth (RLS + `service_role`) was
+  considered and judged unnecessary for a single-user app whose key isn't exposed.
+  Deleted the unused `createBrowserClient` so the key can't accidentally ship.
+  **Proper multi-user fix when ready:** Supabase Auth (email login) → enable RLS
+  with `auth.uid()` policies → swap `V1_USER_ID` → drop the password gate. The
+  optional defense-in-depth path (enable RLS + service_role) is in `docs/DEPLOY.md`.
 
 ## Tech debt / data integrity
 

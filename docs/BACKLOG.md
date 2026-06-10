@@ -132,10 +132,12 @@ unlocks the next). Decisions already made this session are inlined.
   server actions directly. It's a cold path and a re-render is wanted there, so
   fine — but if it shows the intermittent save error, migrate it to the route
   handlers too.
-- **Drop the legacy `result` / `miss_direction` / `putt_*` DB CHECK constraints**
-  in favor of Zod-only validation. They drifted from the constants and caused the
-  Fringe/Recovery crash (fixed in migration 009). Either remove them, or keep a
-  hard rule: when adding an enum value, update the DB check in the same PR.
+- **Drop the legacy enum DB CHECK constraints** — ✅ done (2026-06-09, migration
+  013). Dropped the string-enum checks (`result`, `miss_direction`, `putt_side`,
+  `putt_length`, and `decision_quality`) so Zod (`ShotInsert/UpdateSchema`, parsed
+  in `actions/shots.ts`) is the single source of truth for enum values — no more
+  DB/constants drift like the Fringe/Recovery crash. Kept the stable numeric/
+  structural guards (`par`, `hole`, `shot_no`, `penalty`, `yardage`, `execution`).
 - **Mid-shot edits re-derive downstream lies** — ✅ done (2026-06-09). `updateShot`
   now runs `recompute_hole_start_lie` after the edit (preserves manual overrides).
   Also backfilled the 6 already-stale lies in production via a one-off recompute
@@ -145,7 +147,7 @@ unlocks the next). Decisions already made this session are inlined.
 
 ## Open product questions (for the player to decide)
 
-- **Hole 10 par.** Course card lists 4/5; the app and logged rounds use par 4.
-  Leave as-is unless decided otherwise.
+- ~~**Hole 10 par.**~~ Resolved (2026-06-09): hole 10 is a **par 4** — matches the
+  app, the logged rounds, and the `course_holes` data. No change needed.
 - **Possible features** from the original brief: stroke index / handicap, showing
   the loaded tee yardage during entry, an "un-concede" UI for picked-up holes.

@@ -596,33 +596,35 @@ export function ShotEntryFlow({
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-lg flex-col gap-4 px-4 pb-10 pt-4">
+    <div className="mx-auto flex w-full max-w-md flex-col px-5 pb-[30px] pt-5">
       {/* Context header */}
-      <div className="flex items-center gap-3">
+      <div className="mb-[18px] flex items-center gap-3">
         <button
           type="button"
           onClick={back}
-          aria-label="Back"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-muted text-lg transition-colors hover:bg-muted/70"
+          aria-label={step === "club" && !editLastEligible ? "Exit to round" : "Back"}
+          className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px] bg-muted text-[20px] text-ink-700 transition-transform active:scale-[0.94]"
         >
-          ←
+          {step === "club" && !editLastEligible ? "⌂" : "←"}
         </button>
-        <div className="flex-1">
-          <h2 className="font-heading text-xl font-bold leading-none">Hole {hole}</h2>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-heading text-[23px] font-extrabold leading-none tracking-[-0.02em]">
+            Hole {hole}
+          </h2>
           {par !== null && (
-            <p className="eyebrow mt-1">
+            <p className="mt-1 font-mono text-[11px] font-semibold uppercase tracking-[0.04em] text-muted-foreground">
               Par {par}
               {yardageByHole[hole] != null && (
-                <span className="text-muted-foreground"> · {yardageByHole[hole]} yd</span>
+                <span className="text-ink-300"> · {yardageByHole[hole]} yd</span>
               )}
             </p>
           )}
         </div>
-        <div className="text-right">
+        <div className="shrink-0 text-right">
           {holesPlayed > 0 && (
             <p
               className={cn(
-                "font-mono text-lg font-bold leading-none tabular-nums",
+                "font-mono text-[20px] font-extrabold leading-none tabular-nums",
                 vsPar < 0
                   ? "text-positive"
                   : vsPar > 0
@@ -633,7 +635,7 @@ export function ShotEntryFlow({
               {formatDiff(vsPar)}
             </p>
           )}
-          <p className="eyebrow mt-1">
+          <p className="mt-[5px] font-mono text-[10px] font-semibold uppercase tracking-[0.03em] text-muted-foreground">
             {holesPlayed > 0 ? `thru ${holesPlayed} · ` : ""}shot {shotNo}
           </p>
         </div>
@@ -641,15 +643,15 @@ export function ShotEntryFlow({
 
       {/* Stepper (hidden in putt mode) */}
       {step !== "putt" && (
-        <div className="flex gap-1.5">
+        <div className="mb-4 flex gap-2">
           {STEP_ORDER.map((s, i) => {
             const isYards = s === "yards";
             const muted = isYards && skipYards;
             return (
-              <div key={s} className="flex flex-1 flex-col items-center gap-1.5">
+              <div key={s} className="flex flex-1 flex-col items-center gap-[7px]">
                 <span
                   className={cn(
-                    "h-1.5 w-full rounded-full",
+                    "h-[5px] w-full rounded-full",
                     i < stepperIdx
                       ? "bg-primary"
                       : i === stepperIdx
@@ -659,14 +661,14 @@ export function ShotEntryFlow({
                 />
                 <span
                   className={cn(
-                    "font-mono text-[9px] uppercase tracking-wide",
+                    "font-mono text-[9px] font-semibold uppercase tracking-[0.06em]",
                     i === stepperIdx
                       ? "text-foreground"
                       : i < stepperIdx
                       ? "text-primary"
                       : muted
-                      ? "text-muted-foreground/40 line-through"
-                      : "text-muted-foreground/60",
+                      ? "text-ink-300 line-through opacity-55"
+                      : "text-ink-300",
                   )}
                 >
                   {s}
@@ -679,19 +681,23 @@ export function ShotEntryFlow({
 
       {/* Start lie — carries forward; one tap to override */}
       {step !== "putt" && effectiveLie !== "Green" && (
-        <div className="flex flex-col gap-2">
+        <div className="mb-[14px]">
           <button
             type="button"
             onClick={() => setLieOpen((o) => !o)}
-            className="flex items-center gap-2 self-start rounded-full bg-muted px-3 py-1.5 text-sm transition-colors hover:bg-muted/70"
+            className="inline-flex items-center gap-2 rounded-full bg-muted px-[14px] py-2 transition-colors"
           >
-            <span className="eyebrow">Lie</span>
-            <span className="font-medium">{effectiveLie ?? "Set lie"}</span>
-            {lieOverride && <span className="text-[10px] text-muted-foreground">edited</span>}
-            <span className="text-xs text-muted-foreground">▾</span>
+            <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+              Lie
+            </span>
+            <span className="text-[14px] font-semibold">{effectiveLie ?? "Set lie"}</span>
+            {lieOverride && (
+              <span className="font-mono text-[9px] uppercase tracking-[0.04em] text-clay">edited</span>
+            )}
+            <span className="text-[11px] text-muted-foreground">▾</span>
           </button>
           {lieOpen && (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="mt-[10px] grid grid-cols-3 gap-2">
               {OVERRIDE_LIES.map((l) => (
                 <button
                   key={l}
@@ -701,10 +707,10 @@ export function ShotEntryFlow({
                     setLieOpen(false);
                   }}
                   className={cn(
-                    "h-10 rounded-xl border-2 px-2 text-xs font-medium transition-colors",
+                    "h-[42px] rounded-[13px] border-[1.5px] text-[12.5px] font-semibold transition-transform active:scale-[0.96]",
                     effectiveLie === l
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-card hover:bg-muted/50",
+                      ? "border-primary bg-primary text-white"
+                      : "border-input bg-card text-ink-700",
                   )}
                 >
                   {l}
@@ -716,8 +722,8 @@ export function ShotEntryFlow({
       )}
 
       {/* Compact hole selector — jump to any hole to fix / resume */}
-      <div className="-mx-4 overflow-x-auto px-4">
-        <div className="flex gap-1.5">
+      <div className="-mx-5 mb-[22px] overflow-x-auto px-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex gap-2">
           {holeNumbers.map((h) => {
             const l = logged[h];
             const isCurrent = h === hole;
@@ -729,16 +735,16 @@ export function ShotEntryFlow({
                 onClick={() => jumpToHole(h)}
                 aria-current={isCurrent ? "true" : undefined}
                 className={cn(
-                  "h-8 w-8 shrink-0 rounded-lg font-mono text-xs font-medium tabular-nums transition-colors",
+                  "h-[38px] w-[38px] shrink-0 rounded-[12px] bg-muted font-mono text-[13px] font-semibold tabular-nums transition-transform active:scale-[0.92]",
                   isCurrent
-                    ? "bg-primary text-primary-foreground"
+                    ? "bg-primary text-white"
                     : l?.complete
-                    ? "bg-muted text-muted-foreground ring-1 ring-positive/40"
+                    ? "text-muted-foreground ring-[1.5px] ring-inset ring-fairway-300"
                     : l?.conceded
-                    ? "bg-muted text-muted-foreground line-through ring-1 ring-foreground/25"
+                    ? "text-ink-300 line-through ring-[1.5px] ring-inset ring-input"
                     : l?.count
-                    ? "bg-muted text-foreground ring-1 ring-foreground/20"
-                    : "bg-muted/50 text-muted-foreground hover:bg-muted",
+                    ? "text-foreground ring-[1.5px] ring-inset ring-input"
+                    : "text-ink-300",
                 )}
               >
                 {h}

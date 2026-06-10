@@ -24,9 +24,11 @@ history can eventually become the optimal-reference dataset for these exact
 greens. That's what the name points at: **Round Recall** names the
 memory-based-input moat and scales beyond one course.
 
-Naming status: the app is called Round Recall in the welcome overlay. The
-repo, page metadata, and most UI still say "Golf Tracker." Full rename is a
-pending backlog item.
+Naming status: the name is **locked as Round Recall** and `roundrecall.com`
+is the canonical domain (decided 2026-06-10; see `docs/POSITIONING.md` for the
+positioning and name rationale). The app already says Round Recall in the
+welcome overlay; the repo, page metadata, and most UI still say "Golf Tracker."
+Full rename is a pending backlog item.
 
 ### Who it's for
 
@@ -123,6 +125,7 @@ in TypeScript in `lib/analytics/` (no SQL views, no Supabase imports there).
 
 | Question | File |
 |---|---|
+| What's the name, positioning, and pitch? | `docs/POSITIONING.md` |
 | What does the app do and why? | `docs/PRD.md` |
 | How is it built (stack, routes, conventions)? | `docs/SPEC.md` |
 | What's the schema? | `docs/DATA_MODEL.md`, `ERD.md` |

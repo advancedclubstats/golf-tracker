@@ -1,0 +1,488 @@
+/* ShotFlow.jsx — optimized shot-entry flow.
+   Faithful recreation of the production wizard (Club → Yards → Strike → Result,
+   smart-skip rules, miss pad, putt sub-flow, lie carry-forward) re-skinned in
+   the Modern Clubhouse / Direction-D system, translated for outdoor tapping:
+   bigger targets, higher contrast, one lime moment per screen. */
+
+const { useState, useRef, useEffect } = React;
+
+function diffStr(d) { return d === 0 ? "E" : d > 0 ? "+" + d : "−" + Math.abs(d); }
+
+function ShotFlow({ t }) {
+  const D = window.SEF;
+  const HOLES = D.HOLES;
+
+  // ── round state ────────────────────────────────────────────────────────
+  const [logged, setLogged] = useState({});            // {h:{count,complete,conceded,penalties}}
+  const [lastFinish, setLastFinish] = useState({});     // {h:{result,lie}}
+  const [hole, setHole] = useState(HOLES[0].h);
+  const meta = HOLES.find((x) => x.h === hole);
+  const par = meta.par, teeYd = meta.yd;
+
+  // ── draft (the shot being entered) ──────────────────────────────────────
+  const [step, setStep] = useState("club");
+  const [club, setClub] = useState(null);
+  const [yards, setYards] = useState("");
+  const [skipYards, setSkipYards] = useState(false);
+  const [exec, setExec] = useState(null);
+  const [result, setResult] = useState(null);
+  const [decision, setDecision] = useState("Good");
+  const [miss, setMiss] = useState(null);
+  const [lieOverride, setLieOverride] = useState(null);
+  const [lieOpen, setLieOpen] = useState(false);
+  // putt
+  const [puttNo, setPuttNo] = useState(1);
+  const [puttPhase, setPuttPhase] = useState("main");
+  const [puttFeet, setPuttFeet] = useState("");
+  const [puttExec, setPuttExec] = useState(null);
+  const [puttSide, setPuttSide] = useState(null);
+  const [puttLen, setPuttLen] = useState(null);
+
+  const [flash, setFlash] = useState(null);   // {kind, big, sub}
+  const [toast, setToast] = useState(null);
+  const [undo, setUndo] = useState(null);     // snapshot to restore on "undo"
+  const [shots, setShots] = useState({});     // {h:[{club,result,yards,exec,miss,pen,lie}]}
+  const [recapOpen, setRecapOpen] = useState(false);
+  const [lastCommit, setLastCommit] = useState(null); // {hole,shotNo,club,result}
+  // recent yardages per club (seeded with a typical bag so suggestions show day-one)
+  const [clubYards, setClubYards] = useState({
+    "3W": [235], "5W": [215], "4i": [205], "5i": [192], "6i": [178], "7i": [165],
+    "8i": [152], "9i": [138], "PW": [122], "GW": [105], "SW": [88], "LW": [70],
+  });
+  const holeStripRef = useRef(null);
+
+  const hl = logged[hole] || { count: 0, complete: false, conceded: false, penalties: 0 };
+  const shotNo = hl.count + 1;
+
+  // running score over completed holes
+  let vsPar = 0, holesPlayed = 0;
+  for (const [h, l] of Object.entries(logged)) {
+    if (!l.complete) continue;
+    const p = HOLES.find((x) => x.h === +h).par;
+    vsPar += (l.count + l.penalties) - p; holesPlayed++;
+  }
+
+  const defaultLie = shotNo === 1 ? "Tee"
+    : lastFinish[hole] ? D.nextLie(lastFinish[hole].result, lastFinish[hole].lie) : null;
+  const effectiveLie = lieOverride || defaultLie;
+
+  const editEligible = lastCommit && lastCommit.hole === hole && lastCommit.shotNo === shotNo - 1;
+
+  // keep current hole chip centered
+  useEffect(() => {
+    const el = holeStripRef.current?.querySelector("[data-cur='1']");
+    if (el) el.scrollIntoView({ inline: "center", block: "nearest" });
+  }, [hole]);
+
+  // ── helpers ──────────────────────────────────────────────────────────────
+  function resetDraft() {
+    setClub(null); setYards(""); setSkipYards(false); setExec(null);
+    setResult(null); setDecision("Good"); setLieOverride(null); setLieOpen(false);
+    setPuttPhase("main"); setPuttFeet(""); setPuttExec(null); setPuttSide(null); setPuttLen(null);
+    setStep("club");
+  }
+  function showToast(msg, undoSnap) {
+    setToast(msg);
+    setUndo(undoSnap || null);
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => { setToast(null); setUndo(null); }, undoSnap ? 3400 : 1600);
+  }
+  // capture / restore the whole entry state so a routine commit can be undone
+  function snapshot() {
+    return { logged, lastFinish, lastCommit, hole, club, yards, skipYards, exec, result,
+      decision, miss, lieOverride, step, puttNo, puttPhase, puttFeet, puttExec, puttSide, puttLen, shots };
+  }
+  function doUndo() {
+    const s = undo; if (!s) return;
+    setLogged(s.logged); setLastFinish(s.lastFinish); setLastCommit(s.lastCommit); setHole(s.hole);
+    setClub(s.club); setYards(s.yards); setSkipYards(s.skipYards); setExec(s.exec); setResult(s.result);
+    setDecision(s.decision); setMiss(s.miss); setLieOverride(s.lieOverride); setStep(s.step);
+    setPuttNo(s.puttNo); setPuttPhase(s.puttPhase); setPuttFeet(s.puttFeet); setPuttExec(s.puttExec);
+    setPuttSide(s.puttSide); setPuttLen(s.puttLen); setShots(s.shots);
+    clearTimeout(showToast._t); setUndo(null); setToast(null);
+  }
+  function nextHole(map, after) {
+    const done = (h) => map[h]?.complete || map[h]?.conceded;
+    return HOLES.find((x) => x.h > after && !done(x.h))?.h
+        ?? HOLES.find((x) => !done(x.h))?.h ?? null;
+  }
+  function commit(d) {
+    const sn = hl.count + 1;
+    const made = d.result === "Make";
+    const pen = d.penalty || 0;
+    const isPutt = d.club === "Putter";
+    const lie = isPutt ? "Green" : effectiveLie;
+    const map = { ...logged, [hole]: { count: sn, complete: made, conceded: hl.conceded, penalties: hl.penalties + pen } };
+    setLogged(map);
+    setLastFinish((m) => ({ ...m, [hole]: { result: d.result || null, lie } }));
+    setLastCommit({ hole, shotNo: sn, club: d.club, result: d.result, yards: d.yardage, exec: d.execution });
+    if (!isPutt && d.yardage) {
+      const v = d.yardage;
+      setClubYards((m) => ({ ...m, [d.club]: [v, ...(m[d.club] || []).filter((x) => x !== v)].slice(0, 3) }));
+    }
+    const rec = { club: d.club, result: d.result || null, yards: d.yardage, exec: d.execution, miss: d.missDirection || null, pen, lie };
+    setShots((m) => ({ ...m, [hole]: [...(m[hole] || []), rec] }));
+    return { map, made, strokes: sn + hl.penalties + pen };
+  }
+  function completeHole(map, strokes) {
+    setFlash({ kind: "hole", big: "Hole " + hole + " · " + strokes + " (" + diffStr(strokes - par) + ")",
+               sub: nextHole(map, hole) ? "On to hole " + nextHole(map, hole) + " →" : "Round complete →" });
+    setTimeout(() => {
+      setFlash(null);
+      const tgt = nextHole(map, hole);
+      if (tgt) { setHole(tgt); resetDraft(); }
+      else { setHole(HOLES[0].h); setLogged({}); setLastFinish({}); setShots({}); resetDraft(); }
+    }, 1300);
+  }
+
+  // ── step handlers ──────────────────────────────────────────────────────
+  function chooseClub(c) {
+    setClub(c);
+    if (c === "Putter") { setPuttNo(1); setPuttPhase("main"); setPuttFeet(""); setPuttExec(null); setPuttSide(null); setPuttLen(null); setStep("putt"); return; }
+    const teeNo = effectiveLie === "Tee" && par >= 4 && D.TEE_NO_YARDAGE.has(c);
+    setSkipYards(teeNo);
+    if (!teeNo) setYards(clubYards[c]?.[0] != null ? String(clubYards[c][0]) : "");
+    setStep(teeNo ? "strike" : "yards");
+  }
+  function chooseExec(e) { setExec(e); setStep("result"); }
+  function chooseResult(r) {
+    setResult(r);
+    if (r === "Make") { const res = commit({ club, yardage: num(yards), execution: exec, result: r, decisionQuality: decision }); completeHole(res.map, res.strokes); return; }
+    if (r === "Green") { const snap = snapshot(); commit({ club, yardage: num(yards), execution: exec, result: r, decisionQuality: decision }); showToast(club + " · Green — on the dance floor", snap); enterPutt(); return; }
+    if (D.MISS.has(r)) { setStep("miss"); return; }
+    commitNonTerminal(r, null);
+  }
+  function chooseMiss(dir) { setMiss(dir); commitNonTerminal(result, dir); }
+  function commitNonTerminal(r, dir) {
+    const snap = snapshot();
+    const pen = D.PENALTY.has(r) ? 1 : 0;
+    commit({ club, yardage: num(yards), execution: exec, result: r, missDirection: dir, penalty: pen, decisionQuality: decision });
+    showToast(club + " · " + r + (pen ? "  +1" : "") + " — shot " + (shotNo + 1), snap);
+    resetDraft();
+  }
+  function enterPutt() { setLieOverride(null); setLieOpen(false); setPuttNo(1); setPuttPhase("main"); setPuttFeet(""); setPuttExec(null); setPuttSide(null); setPuttLen(null); setStep("putt"); }
+  function holePutt() { const res = commit({ club: "Putter", yardage: feet(puttFeet), execution: puttExec, result: "Make" }); completeHole(res.map, res.strokes); }
+  function nextPutt() {
+    const snap = snapshot();
+    commit({ club: "Putter", yardage: feet(puttFeet), execution: puttExec, puttSide, puttLength: puttLen });
+    showToast("Putt " + puttNo + " — missed", snap);
+    setPuttNo((n) => n + 1); setPuttFeet(""); setPuttExec(null); setPuttSide(null); setPuttLen(null); setPuttPhase("main");
+  }
+  function back() {
+    if (step === "yards" || (step === "strike" && skipYards)) return setStep("club");
+    if (step === "strike") return setStep("yards");
+    if (step === "result") return setStep("strike");
+    if (step === "miss") return setStep("result");
+    if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
+    if (editEligible) return reopenLast();
+    // at the root of the flow, "back" exits the entry flow to the round (dashboard)
+    window.location.href = "../Dashboard.html";
+  }
+  // is there anywhere meaningful to go back to from here?
+  const atRoot = !(step === "yards" || step === "strike" || step === "result" || step === "miss"
+    || (step === "putt" && puttPhase === "miss") || editEligible);
+  function reopenLast() {
+    const lc = lastCommit;
+    setLogged((m) => { const c = m[lc.hole] || { count: 1, penalties: 0 }; return { ...m, [lc.hole]: { ...c, count: Math.max(0, c.count - 1), complete: false } }; });
+    setShots((m) => { const arr = [...(m[lc.hole] || [])]; arr.pop(); return { ...m, [lc.hole]: arr }; });
+    setClub(lc.club); setYards(lc.yards ? String(lc.yards) : ""); setExec(lc.exec || null); setResult(lc.result || null);
+    setLastCommit(null); setRecapOpen(false);
+    setStep(lc.club === "Putter" ? "putt" : "result");
+  }
+  function pickUp() {
+    const map = { ...logged, [hole]: { ...hl, conceded: true } };
+    setLogged(map);
+    const tgt = nextHole(map, hole);
+    if (tgt) { setHole(tgt); resetDraft(); }
+  }
+  function num(s) { return s === "" ? undefined : Number(s); }
+  function feet(s) { return s === "" ? undefined : Number(s) / 3; }
+  function shotLabel(s) {
+    if (s.club === "Putter") return "Putt" + (s.yards ? " " + Math.round(s.yards * 3) + "ft" : "") + (s.result === "Make" ? " · holed" : " · missed");
+    let txt = s.result || "—";
+    if (s.miss) txt += " " + s.miss.toLowerCase();
+    if (s.pen) txt += " +1";
+    if (s.yards) txt += " · " + s.yards + "yd";
+    return txt;
+  }
+
+  // ── render ───────────────────────────────────────────────────────────────
+  const STEP_ORDER = ["club", "yards", "strike", "result"];
+  const stepIdx = STEP_ORDER.indexOf(step === "miss" ? "result" : step);
+
+  const rootStyle = {
+    "--r": t.radius + "px",
+    "--tap": ({ compact: 52, regular: 58, comfy: 66 })[t.density] + "px",
+    "--gap": ({ compact: 8, regular: 10, comfy: 12 })[t.density] + "px",
+    "--lime": t.lime ? "var(--lime-500)" : "var(--fairway-600)",
+  };
+
+  return (
+    <div className={"sef" + (t.night ? " night" : "")} style={rootStyle}>
+      <FlowCSS />
+      <div className="sef-scroll">
+        {/* header */}
+        <div className="sef-top">
+          <button className="ic-btn" onClick={back} aria-label={atRoot ? "Back to round" : "Back"}>
+            {atRoot ? "⌂" : "←"}
+          </button>
+          <div className="sef-hole">
+            <div className="h">Hole {hole}</div>
+            <div className="p">Par {par}<span className="yd"> · {teeYd} yd</span></div>
+          </div>
+          <div className="sef-score">
+            {holesPlayed > 0 && (
+              <div className={"v " + (vsPar < 0 ? "under" : vsPar > 0 ? "over" : "")}>{diffStr(vsPar)}</div>
+            )}
+            <div className="thru">{holesPlayed > 0 ? "thru " + holesPlayed + " · " : ""}shot {shotNo}</div>
+          </div>
+        </div>
+
+        {/* stepper */}
+        {step !== "putt" && (
+          <div className="stepper">
+            {STEP_ORDER.map((s, i) => {
+              const muted = s === "yards" && skipYards;
+              const state = i < stepIdx ? "done" : i === stepIdx ? "cur" : "todo";
+              return (
+                <div className="seg" key={s}>
+                  <span className={"bar " + state} />
+                  <span className={"lbl " + state + (muted ? " skip" : "")}>{s}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* lie pill */}
+        {step !== "putt" && effectiveLie !== "Green" && (
+          <div className="lie-wrap">
+            <button className="lie" onClick={() => setLieOpen((o) => !o)}>
+              <span className="eb">Lie</span>
+              <span className="lv">{effectiveLie || "Set lie"}</span>
+              {lieOverride && <span className="ed">edited</span>}
+              <span className="cv">▾</span>
+            </button>
+            {lieOpen && (
+              <div className="lie-grid">
+                {D.OVERRIDE_LIES.map((l) => (
+                  <button key={l} className={"lie-opt" + (effectiveLie === l ? " sel" : "")}
+                    onClick={() => { setLieOverride(l); setLieOpen(false); }}>{l}</button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* hole strip */}
+        <div className="holes-wrap" ref={holeStripRef}>
+          <div className="holes">
+            {HOLES.map((x) => {
+              const l = logged[x.h];
+              const cur = x.h === hole;
+              const cls = cur ? "cur" : l?.complete ? "done" : l?.conceded ? "conceded" : l?.count ? "started" : "";
+              return (
+                <button key={x.h} data-cur={cur ? "1" : "0"} className={"hchip " + cls}
+                  onClick={() => { setHole(x.h); resetDraft(); }}>{x.h}</button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ── STEPS ─────────────────────────────────────────────────────── */}
+        <div className="step-body">
+          {step === "club" && (
+            <div className="step">
+              <h3 className="q">Which club?</h3>
+              <button className="tap club-d" onClick={() => chooseClub("D")}>Driver</button>
+              <div className="club-grid">
+                {D.CLUBS.filter((c) => c !== "D" && c !== "Putter").map((c) => (
+                  <button key={c} className="tap mono" onClick={() => chooseClub(c)}>{c}</button>
+                ))}
+              </div>
+              <button className="tap club-p" onClick={() => chooseClub("Putter")}>Putter</button>
+              <div className="club-foot">
+                {shots[hole]?.length > 0 && (
+                  <div className="recap">
+                    <button className="recap-head" onClick={() => setRecapOpen((o) => !o)} aria-expanded={recapOpen}>
+                      <span className="rh-l eb">This hole</span>
+                      <span className="rh-toks">
+                        {shots[hole].map((s, i) => (
+                          <span key={i} className={"rtok mono" + (s.pen ? " pen" : "")}>{s.club === "Putter" ? "Pt" : s.club}</span>
+                        ))}
+                      </span>
+                      <span className={"rh-cv" + (recapOpen ? " open" : "")}>▾</span>
+                    </button>
+                    {recapOpen && (
+                      <div className="recap-list">
+                        {shots[hole].map((s, i) => (
+                          <div className="rrow" key={i}>
+                            <span className="ri mono">{i + 1}</span>
+                            <span className="rclub mono">{s.club}</span>
+                            <span className="rzone">{shotLabel(s)}</span>
+                            {i === shots[hole].length - 1 && editEligible && (
+                              <button className="redit" onClick={reopenLast}>Edit</button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {hl.count > 0 && !hl.complete && <button className="foot-link" onClick={pickUp}>Pick up hole →</button>}
+              </div>
+            </div>
+          )}
+
+          {step === "yards" && (
+            <div className="step">
+              <h3 className="q">How far?</h3>
+              <div className="yread"><div className="n mono">{yards === "" ? "—" : yards}</div><div className="u eb">yards to the hole</div></div>
+              {clubYards[club]?.length > 0 && (
+                <div className="ychips">
+                  <span className="ychips-lbl eb">Recent {club}</span>
+                  {clubYards[club].slice(0, 3).map((v) => (
+                    <button key={v} className={"ychip mono" + (String(v) === yards ? " sel" : "")}
+                      onClick={() => setYards(String(v))}>{v}</button>
+                  ))}
+                </div>
+              )}
+              <Numpad value={yards} max={3} onKey={setYards} />
+              <div className="row-2">
+                <button className="tap soft" onClick={() => { setYards(""); setStep("strike"); }}>No yardage</button>
+                <button className="cta" onClick={() => setStep("strike")}>Next →</button>
+              </div>
+            </div>
+          )}
+
+          {step === "strike" && (
+            <div className="step">
+              <h3 className="q">How'd you strike it?</h3>
+              <p className="qsub">Your honest 1–4 quality rating.</p>
+              <div className="exec">
+                {[1, 2, 3, 4].map((e) => (
+                  <button key={e} className="tap" onClick={() => chooseExec(e)}>
+                    <span className="en mono">{e}</span><span className="el">{D.EXEC_LABELS[e - 1]}</span>
+                  </button>
+                ))}
+              </div>
+              <button className="escape" onClick={() => { setExec(null); setStep("result"); }}>Skip — don't rate this one</button>
+            </div>
+          )}
+
+          {step === "result" && (
+            <div className="step">
+              <h3 className="q">Where'd it end up?</h3>
+              <div className="decision">
+                <div className="dec-txt"><span className="dl">Decision</span><span className="dh">Tap Bad only for a thinking mistake</span></div>
+                <div className="seg2">
+                  <button className={"d-good" + (decision === "Good" ? " on" : "")} onClick={() => setDecision("Good")}>Good</button>
+                  <button className={"d-bad" + (decision === "Bad" ? " on" : "")} onClick={() => setDecision("Bad")}>Bad</button>
+                </div>
+              </div>
+              <div className="results">
+                {D.RESULTS.map((r) => (
+                  <button key={r} className="tap res" onClick={() => chooseResult(r)}>
+                    {r}{D.PENALTY.has(r) && <sup className="pen">+1</sup>}
+                  </button>
+                ))}
+                <button className="cta holed" onClick={() => chooseResult("Make")}><span className="dot" />Holed it</button>
+              </div>
+            </div>
+          )}
+
+          {step === "miss" && (
+            <div className="step">
+              <h3 className="q">Which way?</h3>
+              <p className="qsub">Tag the miss so dispersion stays honest.</p>
+              <div className="dpad">
+                <button className="tap d-long" onClick={() => chooseMiss("Long")}>Long</button>
+                <button className="tap d-left" onClick={() => chooseMiss("Left")}>Left</button>
+                <span className="pin eb">Pin</span>
+                <button className="tap d-right" onClick={() => chooseMiss("Right")}>Right</button>
+                <button className="tap d-short" onClick={() => chooseMiss("Short")}>Short</button>
+              </div>
+            </div>
+          )}
+
+          {step === "putt" && (
+            <div className="step">
+              <h3 className="q">{puttNo === 1 ? "First putt" : puttNo === 2 ? "Second putt" : "Putt " + puttNo}</h3>
+              {puttPhase === "main" ? (
+                <React.Fragment>
+                  <p className="qsub">How far, in feet? (step off long ones — a pace ≈ 3 ft)</p>
+                  <div className="yread"><div className="n mono small">{puttFeet === "" ? "—" : puttFeet}<span className="ft">ft</span></div></div>
+                  <Numpad value={puttFeet} max={2} onKey={setPuttFeet} compact />
+                  <div className="putt-strike">
+                    <span className="eb">Strike</span><span className="opt">optional</span>
+                    <div className="ps-grid">
+                      {[1, 2, 3, 4].map((e) => (
+                        <button key={e} className={"ps mono" + (puttExec === e ? " sel" : "")}
+                          onClick={() => setPuttExec((c) => (c === e ? null : e))}>{e}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="row-2">
+                    <button className="tap big-out" disabled={puttFeet === ""} onClick={() => setPuttPhase("miss")}>Missed</button>
+                    <button className="cta big-out" disabled={puttFeet === ""} onClick={holePutt}><span className="dot" />Holed it</button>
+                  </div>
+                  <button className="escape" onClick={() => setStep("club")}>Putted off the green?</button>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <p className="qsub">Putt miss — material only. Skip if it was close.</p>
+                  <div className="miss-grp"><span className="eb">Side</span>
+                    <div className="row-2">
+                      {D.PUTT_SIDES.map((s) => (
+                        <button key={s} className={"tap" + (puttSide === s ? " sel" : "")} onClick={() => setPuttSide((c) => (c === s ? null : s))}>{s}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="miss-grp"><span className="eb">Length</span>
+                    <div className="row-2">
+                      {D.PUTT_LENGTHS.map((l) => (
+                        <button key={l} className={"tap" + (puttLen === l ? " sel" : "")} onClick={() => setPuttLen((c) => (c === l ? null : l))}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <button className="cta" onClick={nextPutt}>Next putt →</button>
+                </React.Fragment>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* toast (tappable undo when a routine shot was just committed) */}
+      <div className={"toast" + (toast ? " show" : "") + (undo ? " with-undo" : "")}>
+        <span className="toast-msg">{toast}</span>
+        {undo && <button className="toast-undo" onClick={doUndo}>Undo</button>}
+      </div>
+
+      {/* save flash */}
+      {flash && (
+        <div className={"flash " + flash.kind}>
+          <div className="ring">✓</div>
+          <div className="fb">{flash.big}</div>
+          <div className="fs">{flash.sub}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Numpad({ value, max, onKey, compact }) {
+  const push = (k) => onKey((v) => (v.length < max ? (v + k).replace(/^0+/, "") : v));
+  return (
+    <div className={"pad" + (compact ? " pad-c" : "")}>
+      {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
+        <button key={k} className="key mono" onClick={() => push(k)}>{k}</button>
+      ))}
+      <button className="key fn" onClick={() => onKey("")}>Clear</button>
+      <button className="key mono" onClick={() => push("0")}>0</button>
+      <button className="key fn" onClick={() => onKey((v) => v.slice(0, -1))}>⌫</button>
+    </div>
+  );
+}
+
+window.ShotFlow = ShotFlow;

@@ -1,0 +1,50 @@
+/* Shot-entry sample data + rules — lifted faithfully from the production
+   golf-tracker (lib/constants.ts + ShotEntryFlow.tsx logic). */
+
+window.SEF = (function () {
+  const CLUBS = ["D","3W","5W","4i","5i","6i","7i","8i","9i","PW","GW","SW","LW","Putter"];
+
+  // Finish zones shown on the Result step (Make is the full-width CTA).
+  const RESULTS = ["Fairway","Green","Fringe","Rough","Bunker","Recovery","OB","Hazard","Lost","Unplayable"];
+  const PENALTY = new Set(["OB","Hazard","Lost","Unplayable"]);
+  const MISS    = new Set(["Rough","Bunker","Recovery","OB","Hazard","Lost","Unplayable"]);
+
+  const MISS_DIRECTIONS = ["Left","Right","Long","Short"];
+  const PUTT_SIDES   = ["High","Low"];
+  const PUTT_LENGTHS = ["Short","Long"];
+  const EXEC_LABELS  = ["Bad","Okay","Good","Great"];
+
+  // Start lies offered in the override picker (Tee is auto for shot 1; Green = putt).
+  const OVERRIDE_LIES = ["Tee","Fairway","First cut","Rough","Fairway bunker","Greenside bunker","Sand","Recovery","Fringe","Native"];
+
+  // Clubs that, off the tee on a par 4/5, skip the yardage step.
+  const TEE_NO_YARDAGE = new Set(["D","3W","5W"]);
+
+  // Carry-forward: a shot's finish becomes the next shot's start lie.
+  function nextLie(result, prevLie) {
+    switch (result) {
+      case "Fairway": return "Fairway";
+      case "Rough": return "Rough";
+      case "Fringe": return "Fringe";
+      case "Bunker": return "Greenside bunker";
+      case "Recovery": return "Recovery";
+      case "Green": return "Green";
+      // Stroke-and-distance: replay from the same spot.
+      case "OB": case "Lost": return prevLie || "Tee";
+      case "Hazard": case "Unplayable": return prevLie || "Fairway";
+      default: return prevLie || "Fairway";
+    }
+  }
+
+  // A 9-hole sample round. par + tee yardage per hole.
+  const HOLES = [
+    { h: 1, par: 4, yd: 410 }, { h: 2, par: 5, yd: 538 }, { h: 3, par: 3, yd: 175 },
+    { h: 4, par: 4, yd: 395 }, { h: 5, par: 4, yd: 446 }, { h: 6, par: 3, yd: 158 },
+    { h: 7, par: 5, yd: 561 }, { h: 8, par: 4, yd: 372 }, { h: 9, par: 4, yd: 421 },
+  ];
+
+  return {
+    CLUBS, RESULTS, PENALTY, MISS, MISS_DIRECTIONS, PUTT_SIDES, PUTT_LENGTHS,
+    EXEC_LABELS, OVERRIDE_LIES, TEE_NO_YARDAGE, nextLie, HOLES,
+  };
+})();

@@ -1,0 +1,152 @@
+/* ============================================================
+   ADVANCED CLUB STATS — Foundations: Color + Type
+   "Modern Clubhouse" — fairway precision meets editorial warmth
+   ------------------------------------------------------------
+   Fonts are loaded via Google Fonts CDN (see fonts/README.md).
+   Add this to <head> of any artifact:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+   ============================================================ */
+
+/* ---------- SELF-HOSTED FONTS ----------
+   Variable fonts uploaded into fonts/ — all three families self-hosted. Each
+   artifact may still also link the Google Fonts CDN; these local faces take
+   precedence and make the system work offline. */
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("fonts/BricolageGrotesque-Variable.ttf") format("truetype");
+  font-weight: 400 800;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Martian Mono";
+  src: url("fonts/MartianMono-Variable.ttf") format("truetype");
+  font-weight: 400 700;
+  font-stretch: 75% 112%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Hanken Grotesk";
+  src: url("fonts/HankenGrotesk-Variable.ttf") format("truetype");
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* ---------- BRAND PALETTE ---------- */
+  /* Fairway — primary green, confident but not garish */
+  --fairway-900: #0B2E1E;
+  --fairway-800: #11603B;
+  --fairway-700: #15784A;   /* primary */
+  --fairway-600: #1E8F59;
+  --fairway-500: #2BA86C;
+  --fairway-300: #8FD9B4;
+  --fairway-100: #D9F1E4;
+
+  /* Ball Lime — electric quirky accent (golf ball under floodlights) */
+  --lime-600: #B7E000;
+  --lime-500: #CDF23E;   /* signature accent */
+  --lime-300: #E4FA8C;
+  --lime-100: #F2FCCB;
+
+  /* Clay — warm sand/terracotta secondary (bunkers, the country club) */
+  --clay-700: #B8511F;
+  --clay-500: #E07A3E;
+  --clay-300: #F2B488;
+  --clay-100: #FBE6D4;
+
+  /* Sky — data-viz blue for charts & contrast series */
+  --sky-600: #1F66E0;
+  --sky-500: #3C82F2;
+  --sky-300: #A6C8FB;
+
+  /* ---------- NEUTRALS (warm paper) ---------- */
+  --ink-900: #14201A;    /* primary text — deep green-charcoal */
+  --ink-700: #36433C;    /* secondary text */
+  --ink-500: #66726B;    /* tertiary / captions */
+  --ink-300: #9AA39D;    /* disabled / hint */
+  --line: #E4E0D5;       /* hairline borders */
+  --line-strong: #D2CDBE;
+
+  --paper: #F6F3EC;      /* app background — warm cream */
+  --paper-sunk: #EFEBE1; /* recessed wells */
+  --card: #FFFFFF;       /* card surface */
+  --card-cream: #FBF9F3; /* alt card surface */
+
+  /* ---------- SEMANTIC ---------- */
+  --bg: var(--paper);
+  --surface: var(--card);
+  --primary: var(--fairway-700);
+  --primary-press: var(--fairway-800);
+  --accent: var(--lime-500);
+  --on-primary: #FFFFFF;
+  --on-accent: var(--fairway-900);
+
+  --positive: var(--fairway-600);   /* improvement / under par */
+  --warning: var(--clay-500);       /* attention */
+  --negative: #D5443B;              /* over par / decline */
+  --info: var(--sky-500);
+
+  /* ---------- TYPE FAMILIES ---------- */
+  --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  --font-ui: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+  --font-mono: "Martian Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  /* ---------- TYPE SCALE (mobile-first, generous) ---------- */
+  --t-display: 800 56px/0.98 var(--font-display);
+  --t-h1: 800 38px/1.02 var(--font-display);
+  --t-h2: 700 28px/1.08 var(--font-display);
+  --t-h3: 700 21px/1.2 var(--font-ui);
+  --t-body-lg: 500 18px/1.45 var(--font-ui);
+  --t-body: 500 16px/1.5 var(--font-ui);
+  --t-small: 500 14px/1.45 var(--font-ui);
+  /* mono eyebrows / labels — uppercase, tracked */
+  --t-eyebrow: 600 12px/1 var(--font-mono);
+  --t-label: 500 13px/1.3 var(--font-mono);
+  /* big tabular stat numerals */
+  --t-stat-xl: 700 64px/0.95 var(--font-mono);
+  --t-stat: 600 32px/1 var(--font-mono);
+
+  /* ---------- RADII ---------- */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+  --r-pill: 999px;
+
+  /* ---------- SPACING (8pt base, with a 4pt half-step) ---------- */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* ---------- SHADOWS (soft, warm-tinted) ---------- */
+  --shadow-sm: 0 1px 2px rgba(20, 32, 26, 0.06);
+  --shadow-md: 0 4px 16px rgba(20, 32, 26, 0.08);
+  --shadow-lg: 0 12px 40px rgba(20, 32, 26, 0.12);
+  --shadow-pop: 0 8px 28px rgba(21, 120, 74, 0.22);  /* green-tinted for primary CTAs */
+}
+
+/* ============================================================
+   SEMANTIC ELEMENT DEFAULTS — opt in by importing this file
+   ============================================================ */
+.acs-display { font: var(--t-display); letter-spacing: -0.02em; color: var(--ink-900); }
+.acs-h1 { font: var(--t-h1); letter-spacing: -0.02em; color: var(--ink-900); }
+.acs-h2 { font: var(--t-h2); letter-spacing: -0.015em; color: var(--ink-900); }
+.acs-h3 { font: var(--t-h3); letter-spacing: -0.01em; color: var(--ink-900); }
+.acs-body-lg { font: var(--t-body-lg); color: var(--ink-700); }
+.acs-body { font: var(--t-body); color: var(--ink-700); }
+.acs-small { font: var(--t-small); color: var(--ink-500); }
+.acs-eyebrow { font: var(--t-eyebrow); letter-spacing: 0.06em; word-spacing: -0.14em; text-transform: uppercase; color: var(--ink-500); }
+.acs-label { font: var(--t-label); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-500); }
+.acs-stat-xl { font: var(--t-stat-xl); letter-spacing: -0.02em; color: var(--ink-900); font-variant-numeric: tabular-nums; }
+.acs-stat { font: var(--t-stat); letter-spacing: -0.01em; color: var(--ink-900); font-variant-numeric: tabular-nums; }

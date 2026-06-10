@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<!-- @dsCard group="Brand" name="Shot Entry Flow (optimized)" subtitle="Tap-through shot entry — Direction-D system translated for outdoor use" viewport="520x940" -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Shot Entry Flow — Advanced Club Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="../../colors_and_type.css" rel="stylesheet" />
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #E7E3D8;
+    background-image: radial-gradient(120% 100% at 50% 0%, #EEEAE0 0%, #E2DECF 100%);
+    min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: "Hanken Grotesk", system-ui, sans-serif;
+  }
+  body.night { background: #07140E; background-image: radial-gradient(120% 100% at 50% 0%, #0C2017 0%, #06110B 100%); }
+  #root { width: 100%; height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .stage { transform: scale(var(--scale, 1)); transform-origin: center center; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="FlowCSS.jsx"></script>
+<script type="text/babel" src="ShotFlow.jsx"></script>
+<script type="text/babel" data-presets="react">
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "density": "comfy",
+    "radius": 18,
+    "lime": true,
+    "night": false
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+
+    React.useEffect(() => {
+      document.body.classList.toggle("night", !!t.night);
+    }, [t.night]);
+
+    // scale the fixed 402×874 device to fit the viewport
+    React.useEffect(() => {
+      const fit = () => {
+        const s = Math.min(1, (window.innerHeight - 32) / 874, (window.innerWidth - 32) / 402);
+        document.documentElement.style.setProperty("--scale", s.toFixed(3));
+      };
+      fit(); window.addEventListener("resize", fit);
+      return () => window.removeEventListener("resize", fit);
+    }, []);
+
+    return (
+      <React.Fragment>
+        <div className="stage">
+          <IOSDevice dark={t.night}>
+            <ShotFlow t={t} />
+          </IOSDevice>
+        </div>
+
+        <TweaksPanel>
+          <TweakSection label="Feel" />
+          <TweakRadio label="Density" value={t.density} options={["compact", "regular", "comfy"]}
+            onChange={(v) => setTweak("density", v)} />
+          <TweakSlider label="Corner radius" value={t.radius} min={8} max={28} step={1} unit="px"
+            onChange={(v) => setTweak("radius", v)} />
+          <TweakSection label="Brand" />
+          <TweakToggle label="Lime accent" value={t.lime}
+            onChange={(v) => setTweak("lime", v)} />
+          <TweakToggle label="Night (clubhouse)" value={t.night}
+            onChange={(v) => setTweak("night", v)} />
+        </TweaksPanel>
+      </React.Fragment>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

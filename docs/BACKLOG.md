@@ -108,6 +108,18 @@ unlocks the next). Decisions already made this session are inlined.
 - **Version-control the design handoff.** The Modern Clubhouse token file +
   prototypes live only in `/tmp`. Drop into `docs/design/` if we want them on disk.
 
+## Deployment & security
+
+- **Deploy to Vercel** — ready (2026-06-09). Production build is clean; repo has a
+  GitHub remote (`advancedclubstats/golf-tracker`); PWA manifest + icons present.
+  Step-by-step in `docs/DEPLOY.md`. Needs you to create/connect the Vercel project
+  and set 3 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
+  `APP_PASSWORD`).
+- **Access gate is a stopgap.** `proxy.ts` Basic-Auth on `APP_PASSWORD` is the only
+  thing protecting the data (no auth, RLS disabled, anon key = write credential).
+  **Proper fix when ready:** Supabase Auth (email login) → re-enable RLS → swap
+  `V1_USER_ID` for `auth.uid()` → delete `proxy.ts` + `APP_PASSWORD`.
+
 ## Tech debt / data integrity
 
 - **EditShotSheet still writes via server actions (re-render on edit).** The

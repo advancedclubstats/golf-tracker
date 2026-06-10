@@ -28,13 +28,13 @@ const heading = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
-  title: "Golf Tracker",
-  description: "Retrospective shot logging and strokes-gained analytics",
+  title: "Round Recall",
+  description: "Strokes-gained golf analytics, tracked from memory",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Golf Tracker",
+    title: "Round Recall",
   },
 };
 

@@ -79,23 +79,24 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
           <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-xl">
             <p className="eyebrow text-muted-foreground">👋 A portfolio project</p>
-            <h2 className="mt-1 font-heading text-3xl font-bold">Golf Tracker</h2>
+            <h2 className="mt-1 font-heading text-3xl font-bold">Round Recall</h2>
 
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               I&apos;m <span className="font-medium text-foreground">Matt</span>, a
-              product manager. I designed and built this strokes-gained golf
-              analytics app as a product exercise — everything here is my own real
-              rounds at Hayden Lake CC. The idea:{" "}
+              product manager. I built this to answer a question the golf apps I
+              tried couldn&apos;t: where do my strokes actually go? Everything here
+              is my own rounds at Hayden Lake CC, tracked from memory, no GPS or
+              sensors.{" "}
               <span className="text-foreground">
-                one rigorous engine — Strokes Gained — where every number drills
-                down to the exact shots behind it.
+                One engine, Strokes Gained, and every number drills down to the
+                exact shots behind it.
               </span>
             </p>
 
             <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-              <li>• <span className="text-foreground">Where strokes are lost</span> — ranked by what&apos;s actually recoverable</li>
-              <li>• <span className="text-foreground">Decision vs execution</span> — thinking mistakes vs normal variance</li>
-              <li>• <span className="text-foreground">Per-hole SG attribution</span> — which holes cost you, and why</li>
+              <li>• <span className="text-foreground">Where strokes are lost</span>, ranked by what&apos;s actually recoverable</li>
+              <li>• <span className="text-foreground">Decision vs execution</span>: thinking mistakes or normal variance</li>
+              <li>• <span className="text-foreground">Per-hole SG</span>: which holes cost me, and why</li>
             </ul>
 
             {!signin ? (
@@ -105,10 +106,10 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
                   onClick={dismiss}
                   className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground transition-transform active:scale-[0.99]"
                 >
-                  Explore the app →
+                  Take a look →
                 </button>
                 <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Explore freely — it&apos;s read-only for visitors.{" "}
+                  Read-only for visitors, so click anything.{" "}
                   <button
                     type="button"
                     onClick={() => setSignin(true)}

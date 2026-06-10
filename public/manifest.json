@@ -1,7 +1,7 @@
 {
-  "name": "Golf Tracker",
-  "short_name": "Golf",
-  "description": "Retrospective shot logging and strokes-gained analytics",
+  "name": "Round Recall",
+  "short_name": "Round Recall",
+  "description": "Strokes-gained golf analytics, tracked from memory",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

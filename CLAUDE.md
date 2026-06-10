@@ -1,4 +1,5 @@
 @AGENTS.md
+@PROJECT_CONTEXT.md
 
 ## Starting a session
 

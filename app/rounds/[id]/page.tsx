@@ -6,6 +6,7 @@ import { getRound } from "@/lib/db/rounds";
 import { getShotsByRound } from "@/lib/db/shots";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, enrichRoundHole } from "@/lib/analytics/core";
+import { isOwner } from "@/lib/auth/owner";
 import { StatsNav } from "@/components/nav/StatsNav";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
@@ -19,7 +20,11 @@ export default async function RoundDetailPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, clubs] = await Promise.all([getShotsByRound(id), getClubNames()]);
+  const [shots, clubs, owner] = await Promise.all([
+    getShotsByRound(id),
+    getClubNames(),
+    isOwner(),
+  ]);
   // aggregateByRoundHole sorts each hole's shots; sort holes ascending for display.
   const holes: HoleView[] = aggregateByRoundHole(shots)
     .sort((a, b) => a.hole - b.hole)
@@ -41,22 +46,24 @@ export default async function RoundDetailPage({ params }: Props) {
             {SESSION_TYPE_LABELS[round.session_type]}
           </p>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Link
-            href={`/rounds/${id}/log`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Add shots →
-          </Link>
-          <Link
-            href="/rounds/new"
-            className={cn(buttonVariants({ size: "sm" }))}
-          >
-            New Round →
-          </Link>
-        </div>
+        {owner && (
+          <div className="flex shrink-0 items-center gap-2">
+            <Link
+              href={`/rounds/${id}/log`}
+              className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+            >
+              Add shots →
+            </Link>
+            <Link
+              href="/rounds/new"
+              className={cn(buttonVariants({ size: "sm" }))}
+            >
+              New Round →
+            </Link>
+          </div>
+        )}
       </header>
-      <StatsNav current="rounds" />
+      <StatsNav current="rounds" owner={owner} />
 
       {round.notes && (
         <p className="mb-4 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">
@@ -66,16 +73,23 @@ export default async function RoundDetailPage({ params }: Props) {
 
       {holes.length === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">
-          No shots logged yet.{" "}
-          <Link href={`/rounds/${id}/log`} className="text-primary underline-offset-4 hover:underline">
-            Start logging
-          </Link>
-          .
+          No shots logged yet.
+          {owner && (
+            <>
+              {" "}
+              <Link href={`/rounds/${id}/log`} className="text-primary underline-offset-4 hover:underline">
+                Start logging
+              </Link>
+              .
+            </>
+          )}
         </p>
       ) : (
         <>
-          <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
-          <EditableHoleList roundId={id} clubs={clubs} holes={holes} />
+          {owner && (
+            <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
+          )}
+          <EditableHoleList roundId={id} clubs={clubs} holes={holes} owner={owner} />
         </>
       )}
     </main>

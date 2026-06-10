@@ -7,20 +7,25 @@ import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { StatsNav, type NavKey } from "@/components/nav/StatsNav";
+import { isOwner } from "@/lib/auth/owner";
 
-export function PageHeader({ title, current }: { title: string; current: NavKey }) {
+export async function PageHeader({ title, current }: { title: string; current: NavKey }) {
+  // Write actions are owner-only (read-only portfolio demo for visitors).
+  const owner = await isOwner();
   return (
     <>
       <header className="mb-4 flex items-center justify-between gap-4">
         <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-        <Link
-          href="/rounds/new"
-          className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
-        >
-          New Round →
-        </Link>
+        {owner && (
+          <Link
+            href="/rounds/new"
+            className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
+          >
+            New Round →
+          </Link>
+        )}
       </header>
-      <StatsNav current={current} />
+      <StatsNav current={current} owner={owner} />
     </>
   );
 }

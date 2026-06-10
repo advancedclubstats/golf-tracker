@@ -1,5 +1,6 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getRound } from "@/lib/db/rounds";
+import { isOwner } from "@/lib/auth/owner";
 import { getShotsByRound } from "@/lib/db/shots";
 import { getCourseHoles, getTeeYardages } from "@/lib/db/courses";
 import { getClubNames } from "@/lib/db/clubs";
@@ -18,6 +19,8 @@ export default async function LogPage({ params }: Props) {
   const { id } = await params;
   const round = await getRound(id);
   if (!round) notFound();
+  // Logging/editing is owner-only — visitors get the read-only round view.
+  if (!(await isOwner())) redirect(`/rounds/${id}`);
 
   const [shots, courseHoles, teeYardages, clubs] = await Promise.all([
     getShotsByRound(id),

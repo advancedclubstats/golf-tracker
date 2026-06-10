@@ -10,6 +10,7 @@ import {
 import { V1_USER_ID } from "@/lib/constants";
 import { createServerClient } from "@/lib/supabase/server";
 import { renumberContiguous } from "@/lib/shots/sequence";
+import { requireOwner } from "@/lib/auth/owner";
 
 /** Revalidate the views that depend on shot data (cache hard rule). */
 function revalidateShotViews(roundId: string) {
@@ -41,6 +42,7 @@ async function recomputeHoleStartLie(
  * Cache: revalidates both '/' (dashboard) and '/rounds/[id]' (round detail).
  */
 export async function createShot(data: ShotInsert): Promise<{ id: string }> {
+  await requireOwner();
   const validated = ShotInsertSchema.parse(data);
 
   const supabase = createServerClient();
@@ -78,6 +80,7 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
+  await requireOwner();
   const validated = ShotInsertSchema.parse(data);
   const supabase = createServerClient();
 
@@ -132,6 +135,7 @@ export async function updateShot(
   roundId: string,
   data: ShotUpdate,
 ): Promise<void> {
+  await requireOwner();
   const validated = ShotUpdateSchema.parse(data);
 
   const supabase = createServerClient();
@@ -167,6 +171,7 @@ export async function updateShot(
  * Throws on DB error. Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function deleteShot(id: string, roundId: string): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
 
   // Need the hole to find siblings to renumber.
@@ -219,6 +224,7 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function clearHole(roundId: string, hole: number): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
 
   const { error } = await supabase
@@ -240,6 +246,7 @@ export async function clearHole(roundId: string, hole: number): Promise<void> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function concedeHole(roundId: string, hole: number): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
 
   const { data: last, error: findErr } = await supabase

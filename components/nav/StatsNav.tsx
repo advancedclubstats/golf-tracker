@@ -20,10 +20,12 @@ const LINKS = [
 
 export type NavKey = (typeof LINKS)[number]["key"];
 
-export function StatsNav({ current }: { current: NavKey }) {
+export function StatsNav({ current, owner = true }: { current: NavKey; owner?: boolean }) {
+  // "Setup" (courses/clubs) is owner-only — it's all editing. Hide for visitors.
+  const links = owner ? LINKS : LINKS.filter((l) => l.key !== "courses");
   return (
     <nav className="mb-4 flex gap-1 overflow-x-auto">
-      {LINKS.map((l) => (
+      {links.map((l) => (
         <Link
           key={l.key}
           href={l.href}

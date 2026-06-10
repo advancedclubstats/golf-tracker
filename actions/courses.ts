@@ -9,6 +9,7 @@ import {
   CourseTeeInsertSchema,
   TeeYardageInsertSchema,
 } from "@/lib/schemas/course";
+import { requireOwner } from "@/lib/auth/owner";
 
 /** Revalidate course views (and the new-round form, which lists courses). */
 function revalidateCourseViews(id?: string) {
@@ -19,6 +20,7 @@ function revalidateCourseViews(id?: string) {
 
 /** Create a course and scaffold its 18 holes at par 4 (edit pars after). */
 export async function createCourse(name: string): Promise<{ id: string }> {
+  await requireOwner();
   const { name: validName } = CourseInsertSchema.parse({ name });
   const supabase = createServerClient();
 
@@ -42,6 +44,7 @@ export async function createCourse(name: string): Promise<{ id: string }> {
 }
 
 export async function renameCourse(id: string, name: string): Promise<void> {
+  await requireOwner();
   const { name: validName } = CourseInsertSchema.parse({ name });
   const supabase = createServerClient();
   const { error } = await supabase
@@ -57,6 +60,7 @@ export async function setHolePar(
   holeNumber: number,
   par: number,
 ): Promise<void> {
+  await requireOwner();
   CourseHoleInsertSchema.pick({ hole_number: true, par: true }).parse({
     hole_number: holeNumber,
     par,
@@ -77,6 +81,7 @@ export async function addTee(
   color: string | null,
   sortOrder: number,
 ): Promise<{ id: string }> {
+  await requireOwner();
   const validated = CourseTeeInsertSchema.parse({
     course_id: courseId,
     name,
@@ -95,6 +100,7 @@ export async function addTee(
 }
 
 export async function deleteTee(teeId: string, courseId: string): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
   const { error } = await supabase.from("course_tees").delete().eq("id", teeId);
   if (error) throw new Error(`Failed to delete tee: ${error.message}`);
@@ -108,6 +114,7 @@ export async function setTeeYardage(
   holeNumber: number,
   yardage: number | null,
 ): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
 
   if (yardage == null) {

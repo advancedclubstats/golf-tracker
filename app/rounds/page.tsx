@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeRoundList } from "@/lib/analytics/rounds";
+import { isOwner } from "@/lib/auth/owner";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { DeleteRoundButton } from "@/components/rounds/DeleteRoundButton";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
@@ -10,7 +11,11 @@ import { fmtVsPar } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function RoundsPage() {
-  const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
+  const [shots, rounds, owner] = await Promise.all([
+    getAllShots(),
+    getAllRounds(),
+    isOwner(),
+  ]);
   const list = computeRoundList(shots, rounds);
 
   return (
@@ -56,7 +61,7 @@ export default async function RoundsPage() {
                   )}
                 </div>
               </Link>
-              <DeleteRoundButton id={r.id} date={r.date} />
+              {owner && <DeleteRoundButton id={r.id} date={r.date} />}
             </li>
           ))}
         </ul>

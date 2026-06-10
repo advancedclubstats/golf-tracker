@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { V1_USER_ID } from "@/lib/constants";
 import { ClubNameSchema } from "@/lib/schemas/club";
+import { requireOwner } from "@/lib/auth/owner";
 
 /**
  * Revalidate everywhere the club bag is rendered: the Setup editor, the
@@ -17,6 +18,7 @@ function revalidateClubViews() {
 
 /** Add a club to the bag at the end. Bag names are unique (DB constraint). */
 export async function addClub(name: string): Promise<{ id: string }> {
+  await requireOwner();
   const validName = ClubNameSchema.parse(name);
   const supabase = createServerClient();
 
@@ -44,6 +46,7 @@ export async function addClub(name: string): Promise<{ id: string }> {
 }
 
 export async function renameClub(id: string, name: string): Promise<void> {
+  await requireOwner();
   const validName = ClubNameSchema.parse(name);
   const supabase = createServerClient();
   const { error } = await supabase.from("clubs").update({ name: validName }).eq("id", id);
@@ -60,6 +63,7 @@ export async function renameClub(id: string, name: string): Promise<void> {
  * unchanged. This only stops the club appearing in the entry selector.
  */
 export async function deleteClub(id: string): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
   const { error } = await supabase.from("clubs").delete().eq("id", id);
   if (error) throw new Error(`Failed to remove club: ${error.message}`);
@@ -68,6 +72,7 @@ export async function deleteClub(id: string): Promise<void> {
 
 /** Persist a new bag order (array of club ids, front to back). */
 export async function reorderClubs(orderedIds: string[]): Promise<void> {
+  await requireOwner();
   const supabase = createServerClient();
   for (let i = 0; i < orderedIds.length; i++) {
     const { error } = await supabase

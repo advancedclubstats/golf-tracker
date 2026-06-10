@@ -115,15 +115,21 @@ unlocks the next). Decisions already made this session are inlined.
   Step-by-step in `docs/DEPLOY.md`. Needs you to create/connect the Vercel project
   and set 3 env vars (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`,
   `APP_PASSWORD`).
-- **Security posture (decided lightweight).** No client-side DB access, so the
-  anon key never reaches the browser (verified: 0 occurrences in the built
-  bundle); it lives only in server env. Protected by the `proxy.ts` `APP_PASSWORD`
-  gate. RLS stays **off** by design — defense-in-depth (RLS + `service_role`) was
-  considered and judged unnecessary for a single-user app whose key isn't exposed.
-  Deleted the unused `createBrowserClient` so the key can't accidentally ship.
+- **Portfolio access model (public read-only + owner write)** — ✅ done
+  (2026-06-09). The deployed app is public so people can see it; writes are
+  owner-only, enforced server-side via `requireOwner` (`lib/auth/owner.ts`) in all
+  18 mutating actions, with owner-only pages (new round, entry flow, setup)
+  redirecting visitors and write UI hidden. Owner unlocks via
+  `/unlock?key=<OWNER_KEY>` (httpOnly cookie); fail-safe in prod (no key → no
+  writes). Replaced the old `APP_PASSWORD`/`proxy.ts` app-wide gate.
+  **REQUIRED in Vercel:** set `OWNER_KEY`, then unlock once per device.
+- **Intro / welcome screen (next).** First-visit overlay framing the project (it's
+  yours, the SG thesis, "explore the data"), dropping visitors into the dashboard;
+  plus a small read-only cue. Needs the owner's name/blurb for the copy.
+- **Security note.** No client-side DB access — the anon key never reaches the
+  browser (verified). RLS stays off by design; writes are gated by `requireOwner`.
   **Proper multi-user fix when ready:** Supabase Auth (email login) → enable RLS
-  with `auth.uid()` policies → swap `V1_USER_ID` → drop the password gate. The
-  optional defense-in-depth path (enable RLS + service_role) is in `docs/DEPLOY.md`.
+  with `auth.uid()` policies → swap `V1_USER_ID` → drop the `OWNER_KEY` gate.
 
 ## Tech debt / data integrity
 

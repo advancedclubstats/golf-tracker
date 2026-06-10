@@ -17,27 +17,32 @@ database** (same rounds/shots) — that's intended.
    |---|---|---|
    | `NEXT_PUBLIC_SUPABASE_URL` | *(copy from your local `.env.local`)* | The Supabase project URL. |
    | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | *(copy from your local `.env.local`)* | Used only server-side here — this app makes no client-side DB calls, so it never reaches the browser bundle. Don't paste it anywhere public. |
-   | `APP_PASSWORD` | *(choose a password)* | The access gate (see below). Pick something only you know. |
+   | `OWNER_KEY` | *(choose a secret)* | Unlocks **write** access (see below). The app is public read-only; this is how *you* log/edit. Required in production — without it, the live app is read-only for everyone (including you). |
 
    Copy the two `NEXT_PUBLIC_*` values from your local `.env.local` — never commit
-   them.
+   them. Pick any hard-to-guess string for `OWNER_KEY`.
 
 3. **Deploy.** Vercel builds and gives you a `*.vercel.app` URL. Every push to
    `main` auto-deploys after this.
 
-## The access gate
+## Public read-only + owner write (portfolio model)
 
-There's no real auth yet (single hardcoded user, RLS off), so `middleware.ts`
-adds **HTTP Basic Auth** gated on `APP_PASSWORD`:
+The app is **public and read-only** — anyone can explore every view on the real
+data. **Writes** (log a round, edit, clear hole, setup) are owner-only, enforced
+server-side in every mutating action (`lib/auth/owner.ts` → `requireOwner`), so a
+visitor literally can't POST changes. Owner-only pages (new round, the entry flow,
+setup) redirect visitors to the read-only view.
 
-- First visit prompts for a username/password. **Username is ignored**; enter any
-  username and the `APP_PASSWORD` value as the password.
-- If `APP_PASSWORD` is unset the gate is **off** — which is why local `next dev`
-  is never prompted. Always set it in Vercel.
-- Static assets, `manifest.json`, and `/icons/` are excluded so PWA install works.
+**To unlock write access (you):** visit `https://<your-site>/unlock?key=<OWNER_KEY>`
+once per device. It sets an httpOnly cookie and you have full access (log rounds
+on your phone at the course, etc.). `…/unlock?lock=1` clears it.
 
-To remove the gate later (e.g. once Supabase Auth lands), delete `middleware.ts`
-and unset `APP_PASSWORD`.
+- `OWNER_KEY` unset in **production** → no one can write (fail-safe). Set it.
+- `OWNER_KEY` unset in **development** → everyone is owner, so `next dev` keeps
+  full access with no unlock step.
+
+When you're ready for real multi-user auth, replace this with Supabase Auth (see
+`docs/BACKLOG.md`).
 
 ## Install on your phone (PWA)
 
@@ -47,17 +52,18 @@ intended way to log rounds at the course.
 
 ## Security posture (current)
 
-Single-user, and intentionally lightweight:
+Public portfolio piece, intentionally lightweight:
 
+- **Public read-only; writes are owner-only** and enforced server-side
+  (`requireOwner` in every mutating action), so visitors can browse everything
+  but can't change anything. Your showcase data can't be broken by a visitor.
 - **No client-side DB access.** Every query runs server-side, so the Supabase
   anon key never ships to the browser (verified: 0 occurrences in the built
   client bundle). It lives only in server env + your gitignored `.env.local`.
-- **`APP_PASSWORD` gate (`proxy.ts`).** Keeps the app private; anyone who knows
-  the password is "the user."
-- RLS is **off** by design at this stage. Because the anon key isn't published
-  and the Supabase API rejects requests without it (401), the practical exposure
-  is low. If you ever want defense-in-depth (deny even a leaked key), enable RLS
-  and switch the server to a `service_role` key — but that's optional here.
+- RLS is **off** by design at this stage. The anon key isn't published and the
+  Supabase API rejects requests without it (401); writes are gated by
+  `requireOwner` regardless. Defense-in-depth (RLS + `service_role`) remains an
+  option but is unnecessary here.
 
 The proper multi-user fix (Supabase Auth → `auth.uid()` RLS policies → drop the
-password gate) is tracked in `docs/BACKLOG.md`.
+`OWNER_KEY` gate) is tracked in `docs/BACKLOG.md`.

@@ -47,10 +47,13 @@ export function EditableHoleList({
   roundId,
   clubs,
   holes,
+  owner = true,
 }: {
   roundId: string;
   clubs: string[];
   holes: HoleView[];
+  /** When false (read-only visitor), shots are shown but not editable. */
+  owner?: boolean;
 }) {
   const [editing, setEditing] = useState<ShotRow | null>(null);
   const [insertAt, setInsertAt] = useState<InsertTarget | null>(null);
@@ -89,65 +92,80 @@ export function EditableHoleList({
                 )}
               </div>
               <ol className="flex flex-col gap-0.5">
-                {h.shots.map((s) => (
-                  <Fragment key={s.id}>
-                    <InsertRow
-                      onClick={() =>
-                        setInsertAt({ hole: h.hole, par: h.par, shotNo: s.shot_no })
-                      }
-                    />
-                    <li>
-                      <button
-                        type="button"
-                        onClick={() => setEditing(s)}
-                        className="flex w-full items-baseline justify-between gap-3 rounded-md px-1.5 py-1.5 text-left text-muted-foreground transition-colors hover:bg-muted/60"
-                      >
-                        <span>
-                          <span className="tabular-nums text-foreground">
-                            {s.shot_no}.
-                          </span>{" "}
-                          <span className="text-foreground">{s.club}</span>
-                          {s.yardage != null
-                            ? s.distance_unit === "ft"
-                              ? ` · ${Math.round(s.yardage * 3)} ft`
-                              : ` · ${s.yardage}y`
-                            : ""}
-                          {s.miss_direction ? ` · ${s.miss_direction}` : ""}
-                          {s.penalty > 0 ? ` · +${s.penalty} pen` : ""}
-                        </span>
-                        <span className="shrink-0 text-right">
-                          {resultLabel(s)}
-                          {s.execution != null && (
-                            <span className="ml-2 text-xs">exec {s.execution}</span>
-                          )}
-                        </span>
-                      </button>
-                    </li>
-                  </Fragment>
-                ))}
+                {h.shots.map((s) => {
+                  const row = (
+                    <span className="flex w-full items-baseline justify-between gap-3 text-left text-muted-foreground">
+                      <span>
+                        <span className="tabular-nums text-foreground">{s.shot_no}.</span>{" "}
+                        <span className="text-foreground">{s.club}</span>
+                        {s.yardage != null
+                          ? s.distance_unit === "ft"
+                            ? ` · ${Math.round(s.yardage * 3)} ft`
+                            : ` · ${s.yardage}y`
+                          : ""}
+                        {s.miss_direction ? ` · ${s.miss_direction}` : ""}
+                        {s.penalty > 0 ? ` · +${s.penalty} pen` : ""}
+                      </span>
+                      <span className="shrink-0 text-right">
+                        {resultLabel(s)}
+                        {s.execution != null && (
+                          <span className="ml-2 text-xs">exec {s.execution}</span>
+                        )}
+                      </span>
+                    </span>
+                  );
+                  return (
+                    <Fragment key={s.id}>
+                      {owner && (
+                        <InsertRow
+                          onClick={() =>
+                            setInsertAt({ hole: h.hole, par: h.par, shotNo: s.shot_no })
+                          }
+                        />
+                      )}
+                      <li>
+                        {owner ? (
+                          <button
+                            type="button"
+                            onClick={() => setEditing(s)}
+                            className="w-full rounded-md px-1.5 py-1.5 transition-colors hover:bg-muted/60"
+                          >
+                            {row}
+                          </button>
+                        ) : (
+                          <div className="px-1.5 py-1.5">{row}</div>
+                        )}
+                      </li>
+                    </Fragment>
+                  );
+                })}
                 {/* Append at the end of the hole. */}
-                <InsertRow
-                  onClick={() =>
-                    setInsertAt({
-                      hole: h.hole,
-                      par: h.par,
-                      shotNo: lastShotNo + 1,
-                    })
-                  }
-                />
+                {owner && (
+                  <InsertRow
+                    onClick={() =>
+                      setInsertAt({
+                        hole: h.hole,
+                        par: h.par,
+                        shotNo: lastShotNo + 1,
+                      })
+                    }
+                  />
+                )}
               </ol>
             </li>
           );
         })}
       </ul>
 
-      <EditShotSheet
-        shot={editing}
-        insertAt={insertAt}
-        roundId={roundId}
-        clubs={clubs}
-        onClose={close}
-      />
+      {owner && (
+        <EditShotSheet
+          shot={editing}
+          insertAt={insertAt}
+          roundId={roundId}
+          clubs={clubs}
+          onClose={close}
+        />
+      )}
     </>
   );
 }

@@ -1,10 +1,11 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import {
   getCourse,
   getCourseHoles,
   getCourseTees,
   getTeeYardages,
 } from "@/lib/db/courses";
+import { isOwner } from "@/lib/auth/owner";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { CourseEditor } from "@/components/courses/CourseEditor";
 
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export default async function CourseEditPage({ params }: Props) {
+  if (!(await isOwner())) redirect("/"); // course editor is owner-only
   const { id } = await params;
   const course = await getCourse(id);
   if (!course) notFound();

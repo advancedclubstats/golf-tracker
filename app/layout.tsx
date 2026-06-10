@@ -5,6 +5,8 @@ import {
   Bricolage_Grotesque,
 } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { WelcomeOverlay } from "@/components/WelcomeOverlay";
+import { isOwner } from "@/lib/auth/owner";
 import "./globals.css";
 
 // Modern Clubhouse type system: Hanken (UI/body), Martian Mono (data/stats),
@@ -42,11 +44,12 @@ export const viewport: Viewport = {
   themeColor: "#F6F3EC",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const owner = await isOwner();
   return (
     <html
       lang="en"
@@ -54,6 +57,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
+        <WelcomeOverlay owner={owner} />
         <Toaster />
       </body>
     </html>

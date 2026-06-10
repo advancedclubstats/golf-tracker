@@ -33,9 +33,10 @@ server-side in every mutating action (`lib/auth/owner.ts` → `requireOwner`), s
 visitor literally can't POST changes. Owner-only pages (new round, the entry flow,
 setup) redirect visitors to the read-only view.
 
-**To unlock write access (you):** visit `https://<your-site>/unlock?key=<OWNER_KEY>`
-once per device. It sets an httpOnly cookie and you have full access (log rounds
-on your phone at the course, etc.). `…/unlock?lock=1` clears it.
+**To unlock write access (you):** click **Owner sign-in** (welcome overlay or the
+bottom-right pill) and enter `OWNER_KEY` as the password. It sets an httpOnly
+cookie and you have full access (log rounds on your phone, etc.); the bottom-right
+pill becomes **Owner mode · Sign out**. (Fallback: `…/unlock?key=<OWNER_KEY>`.)
 
 - `OWNER_KEY` unset in **production** → no one can write (fail-safe). Set it.
 - `OWNER_KEY` unset in **development** → everyone is owner, so `next dev` keeps

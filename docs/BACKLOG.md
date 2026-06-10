@@ -123,9 +123,12 @@ unlocks the next). Decisions already made this session are inlined.
   `/unlock?key=<OWNER_KEY>` (httpOnly cookie); fail-safe in prod (no key → no
   writes). Replaced the old `APP_PASSWORD`/`proxy.ts` app-wide gate.
   **REQUIRED in Vercel:** set `OWNER_KEY`, then unlock once per device.
-- **Intro / welcome screen (next).** First-visit overlay framing the project (it's
-  yours, the SG thesis, "explore the data"), dropping visitors into the dashboard;
-  plus a small read-only cue. Needs the owner's name/blurb for the copy.
+- **Intro / welcome screen** — ✅ done (2026-06-09). `WelcomeOverlay` (mounted in
+  the root layout): first-visit overlay framing the project (Matt, PM, the SG
+  thesis, "explore freely — read-only for visitors") with an **Explore** CTA, plus
+  an **Owner sign-in** password form (→ `unlockOwner` action sets the cookie) and a
+  persistent bottom-right pill (sign-in for visitors / sign-out for the owner).
+  Copy can be personalized further (links, refined positioning) anytime.
 - **Security note.** No client-side DB access — the anon key never reaches the
   browser (verified). RLS stays off by design; writes are gated by `requireOwner`.
   **Proper multi-user fix when ready:** Supabase Auth (email login) → enable RLS

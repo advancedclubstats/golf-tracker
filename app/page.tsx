@@ -23,7 +23,7 @@ export default async function Home() {
   if (data.snapshot.holesLogged === 0) {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">Golf Tracker</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Round Recall</h1>
         <p className="text-sm text-muted-foreground">
           Log your rounds, track your game.
         </p>
@@ -38,7 +38,9 @@ export default async function Home() {
   }
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 p-4">
+    // Calm Brief is a single editorial column, designed mobile-first at 390px
+    // (outer padding 24 / 22 / 30) — kept narrow on desktop too.
+    <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
       <PageHeader title="Dashboard" current="dashboard" />
       <Dashboard data={data} sg={sg} leaks={leaks} />
     </main>

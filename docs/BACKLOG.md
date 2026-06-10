@@ -112,12 +112,20 @@ unlocks the next). Decisions already made this session are inlined.
   reads "I'm Matt, a product manager" with a generic blurb. Swap in the owner's
   sharper positioning line, a one-line *why I built it*, and a LinkedIn/portfolio
   link (add an anchor in the overlay). Pure copy/markup — needs the words.
+- **Dashboard "Calm Brief" reskin (Direction D)** — ✅ done (2026-06-09). Flat
+  editorial single-column dashboard per `docs/design/design_handoff_dashboard/`:
+  lime stacked hero + lime New Round pill (the only two lime moments), 40px SG
+  total atop "Where strokes are lost", full-width scoring-shape ledger, leak rows
+  with early-read chips, two-up Snapshot/Stat line. Covers the old "SG hero strip"
+  item. Decision-vs-execution card moved off the dashboard (not in the design;
+  still on `/stats/sg`). `.eyebrow` bumped to the handoff spec (12px/0.08em)
+  app-wide; new `ink-300`/`ink-700` tokens in `globals.css`.
 - **Round Recap screen.** The expressive full-bleed recap from the design handoff,
   built additively as a header treatment on the existing round-detail page.
-- **SG hero strip on the dashboard.** Full-bleed treatment for the headline SG
-  number + biggest leak. (Folds into T8.)
-- **Version-control the design handoff.** The Modern Clubhouse token file +
-  prototypes live only in `/tmp`. Drop into `docs/design/` if we want them on disk.
+- **Version-control the design handoff** — partially done (2026-06-09): the
+  dashboard bundle now lives in `docs/design/design_handoff_dashboard/` (spec
+  README, prototype, `colors_and_type.css` token foundation). Drop future
+  screens' handoffs there too.
 
 ## Deployment & security
 

@@ -4,8 +4,6 @@
  */
 
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { StatsNav, type NavKey } from "@/components/nav/StatsNav";
 import { isOwner } from "@/lib/auth/owner";
 
@@ -15,11 +13,13 @@ export async function PageHeader({ title, current }: { title: string; current: N
   return (
     <>
       <header className="mb-4 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-heading text-[22px] font-bold tracking-[-0.02em]">{title}</h1>
         {owner && (
+          // The primary action — one of the two lime moments per screen
+          // (Calm Brief: hero surface + this pill).
           <Link
             href="/rounds/new"
-            className={cn(buttonVariants({ size: "sm" }), "shrink-0")}
+            className="shrink-0 rounded-full bg-highlight px-[15px] py-[7px] text-[13px] font-semibold text-highlight-foreground"
           >
             New Round →
           </Link>

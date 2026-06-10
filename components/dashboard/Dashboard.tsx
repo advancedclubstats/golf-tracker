@@ -1,6 +1,11 @@
 /**
  * Dashboard view — presentational Server Component.
  *
+ * Calm Brief (design Direction D): a flat, editorial, single-column layout.
+ * No card chrome — typographic scale and hairline rules carry the hierarchy;
+ * lime appears only on the hero (and the header's New Round pill). Section
+ * rhythm is a consistent 36px.
+ *
  * Renders a computed `DashboardData` (from lib/analytics/dashboard). No data
  * fetching and no business logic here: the page fetches via lib/db, computes,
  * and passes the result in. Read-only, so no "use client" needed.
@@ -8,52 +13,40 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/lib/format";
-// Note: prescriptions ("what to work on") now flow from Strokes Gained (spec 2D);
-// the old green%/make%/quality heuristic card was removed and is rebuilt SG-driven.
 import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import { LeakList } from "@/components/dashboard/LeakList";
 import { BiggestLeakHero } from "@/components/dashboard/BiggestLeakHero";
-import { ScoringShapeCard } from "@/components/dashboard/ScoringShapeCard";
-import { DecisionSplit } from "@/components/stats/DecisionSplit";
+import { ScoringShapeSection } from "@/components/dashboard/ScoringShapeSection";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <Card size="sm">
-      <CardHeader>
-        <CardTitle className="eyebrow">{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="divide-y divide-border/40">{children}</CardContent>
-    </Card>
+    <section>
+      <p className="eyebrow mb-4">{title}</p>
+      {children}
+    </section>
   );
 }
 
-/** A label/value row. `mono` (default) sets stat values in the data face;
- *  pass `mono={false}` for descriptive sentence values. */
-function Row({
-  label,
-  value,
-  mono = true,
-}: {
-  label: string;
-  value: ReactNode;
-  mono?: boolean;
-}) {
+/** A hairline key/value row (strokes-lost / course-records weight). */
+function Row({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-2 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className={cn("text-right font-medium tabular-nums", mono && "font-mono")}>
-        {value}
-      </span>
+    <div className="flex items-baseline justify-between gap-3.5 py-[9px] text-[14.5px]">
+      <span className="whitespace-nowrap text-ink-700">{label}</span>
+      <span className="text-right font-mono font-medium tabular-nums">{value}</span>
+    </div>
+  );
+}
+
+/** The tighter two-up ledger row (Snapshot / Stat line). */
+function DuoRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-[7.5px]">
+      <span className="text-[12.5px] text-muted-foreground">{label}</span>
+      <span className="text-right font-mono text-[13px] font-semibold tabular-nums">{value}</span>
     </div>
   );
 }
@@ -72,35 +65,45 @@ export function Dashboard({
   const rankedCategories = [...sg.byCategory].sort((a, b) => a.perRound - b.perRound);
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+    <div className="flex flex-col gap-9">
       {/* The edge moment: the single biggest prescribable leak. */}
       <BiggestLeakHero leaks={leaks} />
 
       {/* Dashboard answer order (spec Part 3). 1 — Scoring shape. */}
-      <ScoringShapeCard shape={scoringShape} />
+      <ScoringShapeSection shape={scoringShape} />
 
-      {/* 2 — Where strokes are lost: SG categories ranked, each vs the scratch
-          target (0). Tap through to the SG page for the full breakdown. */}
-      <Card size="sm" className="sm:col-span-2">
-        <CardHeader>
-          <CardTitle className="eyebrow">
-            <Link href="/stats/sg" className="transition-colors hover:text-foreground">
-              Where strokes are lost →
-            </Link>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="divide-y divide-border/40">
-          {sg.coveredShots > 0 ? (
-            <>
+      {/* 2 — Where strokes are lost: the per-round total as the big (but
+          hero-subordinate) number, then SG categories ranked vs scratch.
+          Tap through to the SG page for the full breakdown. */}
+      <section>
+        <p className="eyebrow mb-4">
+          <Link href="/stats/sg" className="transition-colors hover:text-foreground">
+            Where strokes are lost
+          </Link>
+        </p>
+        {sg.coveredShots > 0 ? (
+          <>
+            <div
+              className={cn(
+                "font-mono text-[40px] font-bold leading-[0.95] tracking-[-0.03em] tabular-nums",
+                sgColorClass(sg.perRound),
+              )}
+            >
+              {fmtSg(sg.perRound)}
+            </div>
+            <div className="mb-3.5 mt-1.5 text-[13px] text-muted-foreground">
+              per round vs scratch
+            </div>
+            <div>
               {rankedCategories.map((c) => (
                 <div
                   key={c.category}
-                  className="flex items-center justify-between gap-4 py-2 text-sm"
+                  className="flex items-baseline justify-between gap-3.5 border-t border-border py-2.5"
                 >
-                  <span className="text-muted-foreground">{c.category}</span>
+                  <span className="whitespace-nowrap text-[15px] text-ink-700">{c.category}</span>
                   <span
                     className={cn(
-                      "text-right font-mono font-medium tabular-nums",
+                      "font-mono text-base font-semibold tabular-nums",
                       sgColorClass(c.perRound),
                     )}
                   >
@@ -108,118 +111,96 @@ export function Dashboard({
                   </span>
                 </div>
               ))}
-              <div className="flex items-center justify-between gap-4 py-2 text-sm">
-                <span className="font-medium">Total per round vs scratch</span>
-                <span
-                  className={cn(
-                    "text-right font-mono font-semibold tabular-nums",
-                    sgColorClass(sg.perRound),
-                  )}
-                >
-                  {fmtSg(sg.perRound)}
-                </span>
-              </div>
-            </>
-          ) : (
-            <p className="py-2 text-sm text-muted-foreground">
-              Log a round with a start lie and distance to see strokes gained.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            </div>
+          </>
+        ) : (
+          <p className="py-2 text-sm text-muted-foreground">
+            Log a round with a start lie and distance to see strokes gained.
+          </p>
+        )}
+      </section>
 
-      {/* 3 — Decision vs execution: of lost strokes, thinking vs practice. */}
-      {sg.decisionSplit.totalLoss < 0 && (
-        <Card size="sm" className="sm:col-span-2">
-          <CardHeader>
-            <CardTitle className="eyebrow">Decision vs execution</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <DecisionSplit split={sg.decisionSplit} />
-          </CardContent>
-        </Card>
-      )}
-
-      {/* 4 — Specifics, gated by sample: the ranked leak list, each row drillable
-          to its shots; under-sampled cuts show as early reads, never prescribed. */}
-      <Card size="sm" className="sm:col-span-2">
-        <CardHeader>
-          <CardTitle className="eyebrow">What to work on</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <LeakList leaks={leaks} />
-        </CardContent>
-      </Card>
-
-      <Section title="Snapshot">
-        <Row label="Rounds Logged" value={snapshot.roundsLogged} />
-        <Row label="Holes Logged" value={snapshot.holesLogged} />
-        <Row label="Total vs Par" value={fmtVsPar(snapshot.totalVsPar)} />
-        <Row label="Avg vs Par / Round" value={fmtVsParAvg(snapshot.avgVsParPerRound)} />
-        <Row label="Avg vs Par / Hole" value={fmtVsParAvg(snapshot.avgVsParPerHole)} />
+      {/* 3 — Specifics, gated by sample: the ranked leak list, each row drillable
+          to its shots; under-sampled cuts show as early-read chips, never
+          prescribed. */}
+      <Section title="What to work on">
+        <LeakList leaks={leaks} />
       </Section>
 
-      <Section title="Stat Line">
-        <Row label="Fairways Hit" value={fmtPct(statLine.fwPct)} />
-        <Row label="Greens in Regulation" value={fmtPct(statLine.girPct)} />
-        <Row label="Scrambling" value={fmtPct(statLine.scramblePct)} />
-        <Row label="Avg Putts / Hole" value={fmtNum(statLine.avgPutts)} />
-        <Row label="3-Putt %" value={fmtPct(statLine.threePuttPct)} />
-      </Section>
-
-      <Section title="Recent Rounds">
-        {recentRounds.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full font-mono text-sm tabular-nums">
-              <thead>
-                <tr className="text-left text-xs text-muted-foreground">
-                  <th className="py-2 pr-2 font-medium">Date</th>
-                  <th className="py-2 px-2 font-medium">Holes</th>
-                  <th className="py-2 px-2 font-medium">Strokes</th>
-                  <th className="py-2 pl-2 text-right font-medium">vs Par</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {recentRounds.map((r) => (
-                  <tr key={r.roundId}>
-                    <td className="py-2 pr-2">{r.date ?? "—"}</td>
-                    <td className="py-2 px-2">{r.holes}</td>
-                    <td className="py-2 px-2">{r.strokes}</td>
-                    <td className="py-2 pl-2 text-right font-medium">{fmtVsPar(r.vsPar)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {/* Quieter reference: two-up ledger. */}
+      <section className="grid grid-cols-2 gap-x-[30px]">
+        <div>
+          <p className="eyebrow mb-4">Snapshot</p>
+          <div className="divide-y divide-border">
+            <DuoRow label="Rounds Logged" value={snapshot.roundsLogged} />
+            <DuoRow label="Holes Logged" value={snapshot.holesLogged} />
+            <DuoRow label="Total vs Par" value={fmtVsPar(snapshot.totalVsPar)} />
+            <DuoRow label="Avg vs Par / Round" value={fmtVsParAvg(snapshot.avgVsParPerRound)} />
+            <DuoRow label="Avg vs Par / Hole" value={fmtVsParAvg(snapshot.avgVsParPerHole)} />
           </div>
+        </div>
+        <div>
+          <p className="eyebrow mb-4">Stat line</p>
+          <div className="divide-y divide-border">
+            <DuoRow label="Fairways Hit" value={fmtPct(statLine.fwPct)} />
+            <DuoRow label="Greens in Regulation" value={fmtPct(statLine.girPct)} />
+            <DuoRow label="Scrambling" value={fmtPct(statLine.scramblePct)} />
+            <DuoRow label="Avg Putts / Hole" value={fmtNum(statLine.avgPutts)} />
+            <DuoRow label="3-Putt %" value={fmtPct(statLine.threePuttPct)} />
+          </div>
+        </div>
+      </section>
+
+      <Section title="Recent rounds">
+        {recentRounds.length > 0 ? (
+          <table className="w-full font-mono text-[13px] tabular-nums">
+            <thead>
+              <tr className="text-left text-[10px] uppercase tracking-[0.05em] text-ink-300">
+                <th className="pb-2 pr-2 font-semibold">Date</th>
+                <th className="pb-2 pr-2 font-semibold">Holes</th>
+                <th className="pb-2 pr-2 font-semibold">Strokes</th>
+                <th className="pb-2 text-right font-semibold">vs Par</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentRounds.map((r) => (
+                <tr key={r.roundId} className="border-t border-border">
+                  <td className="py-[7px] pr-2 text-ink-700">{r.date ?? "—"}</td>
+                  <td className="py-[7px] pr-2 text-ink-700">{r.holes}</td>
+                  <td className="py-[7px] pr-2 text-ink-700">{r.strokes}</td>
+                  <td className="py-[7px] text-right text-ink-700">{fmtVsPar(r.vsPar)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         ) : (
           <p className="py-2 text-sm text-muted-foreground">No rounds yet.</p>
         )}
       </Section>
 
-      <Section title="Course Records">
-        {records.bestRound && (
-          <Row
-            label="Best Round"
-            mono={false}
-            value={`${records.bestRound.holes} holes · ${records.bestRound.strokes} (${fmtVsPar(records.bestRound.vsPar)})`}
-          />
-        )}
-        {records.worstRound && (
-          <Row
-            label="Worst Round"
-            mono={false}
-            value={`${records.worstRound.holes} holes · ${records.worstRound.strokes} (${fmtVsPar(records.worstRound.vsPar)})`}
-          />
-        )}
-        {records.bestHole && (
-          <Row
-            label="Best Hole"
-            mono={false}
-            value={`Hole ${records.bestHole.hole} (par ${records.bestHole.par}) · ${fmtVsPar(records.bestHole.vsPar)} across ${records.bestHole.rounds} round${records.bestHole.rounds === 1 ? "" : "s"}`}
-          />
-        )}
-        <Row label="Birdies" value={records.birdies} />
-        <Row label="Eagles or better" value={records.eagles} />
+      <Section title="Course records">
+        <div className="divide-y divide-border">
+          {records.bestRound && (
+            <Row
+              label="Best Round"
+              value={`${records.bestRound.holes} holes · ${records.bestRound.strokes} (${fmtVsPar(records.bestRound.vsPar)})`}
+            />
+          )}
+          {records.worstRound && (
+            <Row
+              label="Worst Round"
+              value={`${records.worstRound.holes} holes · ${records.worstRound.strokes} (${fmtVsPar(records.worstRound.vsPar)})`}
+            />
+          )}
+          {records.bestHole && (
+            <Row
+              label="Best Hole"
+              value={`Hole ${records.bestHole.hole} (par ${records.bestHole.par}) · ${fmtVsPar(records.bestHole.vsPar)} across ${records.bestHole.rounds} round${records.bestHole.rounds === 1 ? "" : "s"}`}
+            />
+          )}
+          <Row label="Birdies" value={records.birdies} />
+          <Row label="Eagles or better" value={records.eagles} />
+        </div>
       </Section>
     </div>
   );

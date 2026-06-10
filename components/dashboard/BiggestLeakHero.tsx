@@ -1,7 +1,8 @@
 /**
  * The one "edge moment" on the dashboard (design system): a single, plain-English
  * call-out of the biggest prescribable leak — the most strokes recoverable per
- * round. SG-driven (replaces the old heuristic lime "What to Work On" card).
+ * round. SG-driven. Calm Brief (Direction D): the ONE filled surface on the
+ * screen, a stacked lime block whose 38px number is the biggest type moment.
  *
  * Anti-noise rule 4: only a prescribable (well-sampled) leak can headline. If
  * nothing clears its gate yet, render nothing — the ranked list below still
@@ -17,17 +18,17 @@ export function BiggestLeakHero({ leaks }: { leaks: Leak[] }) {
   if (!top) return null;
 
   return (
-    <div className="rounded-2xl border-transparent bg-highlight p-4 text-highlight-foreground shadow-sm sm:col-span-2">
-      <p className="eyebrow text-highlight-foreground/70">Biggest leak</p>
-      <div className="mt-1 flex items-baseline justify-between gap-4">
-        <span className="text-lg font-bold">{leakTitle(top)}</span>
-        <span className="font-mono text-2xl font-extrabold tabular-nums">
-          {fmtSg(top.sgPerRound)}
-          <span className="ml-1 text-xs font-normal text-highlight-foreground/70">/round</span>
-        </span>
+    <div className="rounded-[16px] bg-highlight px-5 pb-[18px] pt-4 text-highlight-foreground">
+      <p className="eyebrow text-highlight-foreground/55">Biggest leak</p>
+      <div className="mt-[5px] mb-0.5 whitespace-nowrap font-heading text-2xl font-bold tracking-[-0.02em]">
+        {leakTitle(top)}
+      </div>
+      <div className="mt-[7px] font-mono text-[38px] font-bold leading-none tracking-[-0.03em] tabular-nums">
+        {fmtSg(top.sgPerRound)}
+        <span className="ml-1.5 text-sm font-medium tracking-normal opacity-[0.62]">/ round</span>
       </div>
       {top.raw && (
-        <p className="mt-1 text-sm text-highlight-foreground/80">
+        <p className="mt-2.5 text-[13.5px] text-highlight-foreground/[0.78]">
           {fmtPct(top.raw.value)} {top.raw.label}
           {top.target != null && <> vs scratch ≈ {fmtPct(top.target)}</>} · across {top.shots} shots
         </p>

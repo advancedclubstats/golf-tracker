@@ -101,6 +101,17 @@ unlocks the next). Decisions already made this session are inlined.
 
 ## Design & polish
 
+- **Link-preview metadata (portfolio share card).** When the live URL is pasted
+  into LinkedIn / iMessage / Slack, the preview still shows the generic
+  `metadata` in `app/layout.tsx` ("Golf Tracker / Retrospective shot logging…").
+  Give it portfolio-friendly Open Graph/Twitter tags — title, description, and a
+  share image (`opengraph-image`) — so the first impression when shared looks
+  intentional. Highest-value before posting it anywhere. Needs the owner's
+  preferred headline/description (and a link if wanted).
+- **Personalize the welcome copy.** `components/WelcomeOverlay.tsx` currently
+  reads "I'm Matt, a product manager" with a generic blurb. Swap in the owner's
+  sharper positioning line, a one-line *why I built it*, and a LinkedIn/portfolio
+  link (add an anchor in the overlay). Pure copy/markup — needs the words.
 - **Round Recap screen.** The expressive full-bleed recap from the design handoff,
   built additively as a header treatment on the existing round-detail page.
 - **SG hero strip on the dashboard.** Full-bleed treatment for the headline SG

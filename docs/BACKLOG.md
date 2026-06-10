@@ -149,5 +149,7 @@ unlocks the next). Decisions already made this session are inlined.
 
 - ~~**Hole 10 par.**~~ Resolved (2026-06-09): hole 10 is a **par 4** — matches the
   app, the logged rounds, and the `course_holes` data. No change needed.
-- **Possible features** from the original brief: stroke index / handicap, showing
-  the loaded tee yardage during entry, an "un-concede" UI for picked-up holes.
+- **Possible features** from the original brief: stroke index / handicap, an
+  "un-concede" UI for picked-up holes. *(Showing the loaded tee yardage during
+  entry — ✅ done 2026-06-09: the entry header now shows "Par 4 · 354 yd" from the
+  round's tee.)*

@@ -20,7 +20,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 |---|---|---|
 | **Club** | D, 3W, 5W, 4i–9i, PW, GW, SW, LW, Putter | Always |
 | **Start lie** | Tee, Fairway, First cut, Rough, Fairway bunker, Greenside bunker, Sand, Recovery, Fringe, Green, Native | Auto-carried forward from previous shot's finish; one tap to override |
-| **Distance to hole** | yards (putts entered in **feet**, stored as yards = ft/3) | Always, **except skipped** for a tee shot with D/3W/5W on a par 4/5 |
+| **Distance to hole** | yards (putts entered in **feet**, stored as yards = ft/3) | Always, **except skipped** for a tee shot with D/3W/5W on a par 4/5. The entry header shows the hole's tee yardage (from the round's tee) as reference, e.g. "Par 4 · 354 yd". |
 | **Strike quality** | 1 Bad / 2 Okay / 3 Good / 4 Great | Every full shot; optional on putts |
 | **Result** | Fairway, Green, Fringe, Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable, Make | Always (full shots) |
 | **Miss direction** | Left / Right / Long / Short | Only if result ∈ {Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable} |

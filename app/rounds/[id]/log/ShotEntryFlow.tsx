@@ -42,6 +42,10 @@ interface ShotEntryFlowProps {
   clubs: string[];
   /** Known par per hole (from the course, or from already-logged shots). */
   parByHole: Record<number, number>;
+  /** Tee yardage per hole for the round's selected tee (empty if no tee). Shown
+   *  as on-course reference — most useful on the tee shot, where the wizard
+   *  skips yardage entry for driver/woods. */
+  yardageByHole: Record<number, number>;
   /** Selectable holes, ascending. */
   holeNumbers: number[];
   initialLogged: Record<number, HoleLog>;
@@ -114,6 +118,7 @@ export function ShotEntryFlow({
   roundId,
   clubs,
   parByHole,
+  yardageByHole,
   holeNumbers,
   initialLogged,
   lastShotByHole,
@@ -605,7 +610,12 @@ export function ShotEntryFlow({
         <div className="flex-1">
           <h2 className="font-heading text-xl font-bold leading-none">Hole {hole}</h2>
           {par !== null && (
-            <p className="eyebrow mt-1">Par {par}</p>
+            <p className="eyebrow mt-1">
+              Par {par}
+              {yardageByHole[hole] != null && (
+                <span className="text-muted-foreground"> · {yardageByHole[hole]} yd</span>
+              )}
+            </p>
           )}
         </div>
         <div className="text-right">

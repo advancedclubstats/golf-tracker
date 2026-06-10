@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getRound } from "@/lib/db/rounds";
 import { getShotsByRound } from "@/lib/db/shots";
-import { getCourseHoles } from "@/lib/db/courses";
+import { getCourseHoles, getTeeYardages } from "@/lib/db/courses";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, totalPenalties } from "@/lib/analytics/core";
 import { SESSION_HOLE_COUNTS } from "@/lib/constants";
@@ -19,15 +19,20 @@ export default async function LogPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, courseHoles, clubs] = await Promise.all([
+  const [shots, courseHoles, teeYardages, clubs] = await Promise.all([
     getShotsByRound(id),
     round.course_id ? getCourseHoles(round.course_id) : Promise.resolve([]),
+    round.tee_id ? getTeeYardages([round.tee_id]) : Promise.resolve([]),
     getClubNames(),
   ]);
 
   // Known par per hole: course pars preferred, then any already-logged shot's par.
   const parByHole: Record<number, number> = {};
   for (const h of courseHoles) parByHole[h.hole_number] = h.par;
+
+  // Tee yardage per hole for the round's tee — shown as on-course reference.
+  const yardageByHole: Record<number, number> = {};
+  for (const y of teeYardages) yardageByHole[y.hole_number] = y.yardage;
 
   // Per-hole progress so the flow can resume and skip completed holes, plus the
   // last shot per hole to seed the start-lie carry-forward on resume.
@@ -65,6 +70,7 @@ export default async function LogPage({ params }: Props) {
       roundId={id}
       clubs={clubs}
       parByHole={parByHole}
+      yardageByHole={yardageByHole}
       holeNumbers={holeNumbers}
       initialLogged={initialLogged}
       lastShotByHole={lastShotByHole}

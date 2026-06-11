@@ -114,6 +114,18 @@ function roundScore(
   return { vsPar: strokes - par, holes };
 }
 
+// Shared step-body styles from the Modern Clubhouse handoff (.q/.tap/.cta).
+const Q = "font-heading text-[28px] font-extrabold tracking-[-0.02em]";
+const QSUB = "text-[14px] leading-[1.4] text-muted-foreground";
+const TAP =
+  "w-full rounded-[18px] border-[1.5px] border-input bg-card text-[17px] font-bold text-foreground transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
+const TAP_SEL = "border-primary bg-primary text-white";
+const TAP_SOFT = "border-transparent bg-muted text-muted-foreground";
+const CTA =
+  "flex w-full items-center justify-center gap-2 rounded-[18px] bg-primary text-[17px] font-bold text-white shadow-[0_8px_22px_rgba(21,120,74,0.26)] transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
+const FOOT_LINK =
+  "h-11 rounded-[13px] text-[14px] font-semibold text-muted-foreground transition-colors active:bg-muted";
+
 export function ShotEntryFlow({
   roundId,
   clubs,
@@ -756,20 +768,15 @@ export function ShotEntryFlow({
 
       {/* Par picker when par is unknown (no course, no prior shot) */}
       {!parLocked && step === "club" && (
-        <div className="flex flex-col gap-2">
+        <div className="mb-[14px] flex flex-col gap-2">
           <span className="eyebrow">Par</span>
-          <div className="flex gap-2">
+          <div className="flex gap-2.5">
             {([3, 4, 5] as const).map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setLocalPar({ ...localPar, [hole]: p })}
-                className={cn(
-                  "h-10 flex-1 rounded-xl text-sm font-semibold transition-colors",
-                  par === p
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-muted text-foreground hover:bg-muted/70",
-                )}
+                className={cn(TAP, "h-[52px] flex-1", par === p && TAP_SEL)}
               >
                 Par {p}
               </button>
@@ -781,14 +788,14 @@ export function ShotEntryFlow({
       {/* ── Steps ─────────────────────────────────────────────────────────── */}
 
       {step === "club" && par !== null && (
-        <div className="flex flex-col gap-3">
-          <h3 className="font-heading text-2xl font-bold">Which club?</h3>
+        <div className="step flex flex-col gap-2.5">
+          <h3 className={cn(Q, "mb-1.5")}>Which club?</h3>
           {clubs.includes("D") && (
             <button
               type="button"
               disabled={busy}
               onClick={() => chooseClub("D")}
-              className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
+              className={cn(TAP, "h-[64px] text-[18px]")}
             >
               Driver
             </button>
@@ -802,7 +809,7 @@ export function ShotEntryFlow({
                   type="button"
                   disabled={busy}
                   onClick={() => chooseClub(c)}
-                  className="h-14 rounded-2xl border-2 border-border bg-card font-mono text-lg font-semibold transition-transform active:scale-[0.97]"
+                  className={cn(TAP, "h-[58px] font-mono text-[18px] font-semibold")}
                 >
                   {c}
                 </button>
@@ -813,23 +820,23 @@ export function ShotEntryFlow({
               type="button"
               disabled={busy}
               onClick={() => chooseClub("Putter")}
-              className="h-14 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97]"
+              className={cn(TAP, "h-[64px] text-[18px]")}
             >
               Putter
             </button>
           )}
 
           {/* Edit just-logged shot / Pick up / Done */}
-          <div className="mt-1 flex flex-col gap-2">
+          <div className="mt-3.5 flex flex-col gap-2">
             {editLastEligible && lastCommitted && (
               <button
                 type="button"
                 onClick={() => setEditingLast(true)}
                 disabled={busy}
-                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-muted/60 text-sm font-medium transition-colors hover:bg-muted"
+                className={cn(FOOT_LINK, "flex items-center justify-center gap-2")}
               >
                 ← Edit shot {lastCommitted.shotNo}
-                <span className="font-mono text-xs text-muted-foreground">
+                <span className="font-mono text-xs text-ink-300">
                   {lastCommitted.values.club}
                   {lastCommitted.values.result ? ` · ${lastCommitted.values.result}` : ""}
                 </span>
@@ -840,7 +847,7 @@ export function ShotEntryFlow({
                 type="button"
                 onClick={handlePickUp}
                 disabled={busy}
-                className="h-11 rounded-xl text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+                className={FOOT_LINK}
               >
                 Pick up hole →
               </button>
@@ -850,7 +857,7 @@ export function ShotEntryFlow({
                 type="button"
                 onClick={handleClearHole}
                 disabled={busy}
-                className="h-11 rounded-xl text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+                className={cn(FOOT_LINK, "text-clay active:bg-clay/10")}
               >
                 Clear hole &amp; restart
               </button>
@@ -858,7 +865,7 @@ export function ShotEntryFlow({
             <button
               type="button"
               onClick={() => router.push(`/rounds/${roundId}`)}
-              className="h-11 rounded-xl text-sm text-muted-foreground transition-colors hover:bg-muted"
+              className={FOOT_LINK}
             >
               Done
             </button>
@@ -867,13 +874,15 @@ export function ShotEntryFlow({
       )}
 
       {step === "yards" && (
-        <div className="flex flex-col gap-4">
-          <h3 className="font-heading text-2xl font-bold">How far?</h3>
+        <div className="step flex flex-col gap-4">
+          <h3 className={Q}>How far?</h3>
           <div className="text-center">
-            <div className="font-mono text-6xl font-extrabold tabular-nums">
+            <div className="font-heading text-[64px] font-extrabold leading-none tracking-[-0.03em] tabular-nums">
               {yards === "" ? "—" : yards}
             </div>
-            <div className="eyebrow mt-1">yards to the hole</div>
+            <div className="mt-2 font-mono text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+              yards to the hole
+            </div>
           </div>
           <div className="grid grid-cols-3 gap-2.5">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
@@ -881,7 +890,7 @@ export function ShotEntryFlow({
                 key={k}
                 type="button"
                 onClick={() => setYards((y) => (y.length < 3 ? (y + k).replace(/^0+/, "") : y))}
-                className="h-12 rounded-xl bg-muted font-mono text-2xl font-semibold transition-transform active:scale-[0.96]"
+                className="h-[52px] rounded-[18px] bg-muted font-mono text-[24px] font-semibold transition-transform active:scale-[0.95]"
               >
                 {k}
               </button>
@@ -889,21 +898,21 @@ export function ShotEntryFlow({
             <button
               type="button"
               onClick={() => setYards("")}
-              className="h-12 rounded-xl bg-muted font-mono text-sm text-muted-foreground transition-transform active:scale-[0.96]"
+              className="h-[52px] rounded-[18px] bg-muted font-mono text-[14px] text-muted-foreground transition-transform active:scale-[0.95]"
             >
               Clear
             </button>
             <button
               type="button"
               onClick={() => setYards((y) => (y.length < 3 ? (y + "0").replace(/^0+/, "") : y))}
-              className="h-12 rounded-xl bg-muted font-mono text-2xl font-semibold transition-transform active:scale-[0.96]"
+              className="h-[52px] rounded-[18px] bg-muted font-mono text-[24px] font-semibold transition-transform active:scale-[0.95]"
             >
               0
             </button>
             <button
               type="button"
               onClick={() => setYards((y) => y.slice(0, -1))}
-              className="h-12 rounded-xl bg-muted font-mono text-xl text-muted-foreground transition-transform active:scale-[0.96]"
+              className="h-[52px] rounded-[18px] bg-muted font-mono text-[14px] text-muted-foreground transition-transform active:scale-[0.95]"
             >
               ⌫
             </button>
@@ -915,14 +924,14 @@ export function ShotEntryFlow({
                 setYards("");
                 setStep("strike");
               }}
-              className="h-14 flex-1 rounded-2xl bg-muted text-base font-bold text-muted-foreground transition-transform active:scale-[0.97]"
+              className={cn(TAP, TAP_SOFT, "h-[56px] flex-1 text-[16px]")}
             >
               No yardage
             </button>
             <button
               type="button"
               onClick={() => setStep("strike")}
-              className="h-14 flex-1 rounded-2xl bg-primary text-base font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+              className={cn(CTA, "h-[56px] flex-1 text-[16px]")}
             >
               Next →
             </button>
@@ -931,9 +940,9 @@ export function ShotEntryFlow({
       )}
 
       {step === "strike" && (
-        <div className="flex flex-col gap-2">
-          <h3 className="font-heading text-2xl font-bold">How&apos;d you strike it?</h3>
-          <p className="mb-2 text-sm text-muted-foreground">Your honest 1–4 quality rating.</p>
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-1")}>How&apos;d you strike it?</h3>
+          <p className={cn(QSUB, "mb-4")}>Your honest 1–4 quality rating.</p>
           <div className="grid grid-cols-2 gap-2.5">
             {[1, 2, 3, 4].map((e) => (
               <button
@@ -941,10 +950,10 @@ export function ShotEntryFlow({
                 type="button"
                 disabled={busy}
                 onClick={() => chooseExecution(e)}
-                className="flex h-20 flex-col items-center justify-center gap-1 rounded-2xl border-2 border-border bg-card transition-transform active:scale-[0.97]"
+                className={cn(TAP, "flex h-[84px] flex-col items-center justify-center gap-1")}
               >
-                <span className="font-mono text-2xl font-extrabold">{e}</span>
-                <span className="text-sm font-semibold text-muted-foreground">
+                <span className="font-mono text-[26px] font-extrabold">{e}</span>
+                <span className="text-[13px] font-semibold text-muted-foreground">
                   {EXEC_LABELS[e - 1]}
                 </span>
               </button>
@@ -954,20 +963,20 @@ export function ShotEntryFlow({
       )}
 
       {step === "result" && (
-        <div className="flex flex-col gap-3">
-          <h3 className="font-heading text-2xl font-bold">Where&apos;d it end up?</h3>
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-4")}>Where&apos;d it end up?</h3>
 
           {/* Decision quality (spec 1A): one tap, default Good. Flag Bad only for
               a process error (risk / club / line / didn't commit) — not a good
               play that drew a bad result. Set before tapping the result chip. */}
-          <div className="flex items-center justify-between rounded-2xl border-2 border-border bg-card px-4 py-2.5">
+          <div className="mb-4 flex items-center justify-between gap-3 px-0.5">
             <div className="flex flex-col gap-0.5">
-              <span className="text-sm font-semibold">Decision</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-[14px] font-bold">Decision</span>
+              <span className="text-[11.5px] text-muted-foreground">
                 Tap Bad only for a thinking mistake
               </span>
             </div>
-            <div className="flex gap-1.5">
+            <div className="flex rounded-full bg-muted p-[3px]">
               {DECISION_QUALITIES.map((d) => (
                 <button
                   key={d}
@@ -975,12 +984,12 @@ export function ShotEntryFlow({
                   disabled={busy}
                   onClick={() => setDecisionQuality(d)}
                   className={cn(
-                    "h-9 rounded-xl border-2 px-4 text-sm font-bold transition-colors",
+                    "h-[34px] rounded-full px-4 text-[13px] font-bold transition-colors",
                     decisionQuality === d
                       ? d === "Bad"
-                        ? "border-chart-3 bg-chart-3 text-white"
-                        : "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background text-muted-foreground",
+                        ? "bg-clay text-white"
+                        : "bg-primary text-white"
+                      : "text-muted-foreground",
                   )}
                 >
                   {d}
@@ -996,11 +1005,13 @@ export function ShotEntryFlow({
                 type="button"
                 disabled={busy}
                 onClick={() => chooseResult(r)}
-                className="h-14 rounded-2xl border-2 border-border bg-card text-base font-bold transition-transform active:scale-[0.97]"
+                className={cn(TAP, "relative h-[58px] text-[16px]")}
               >
                 {r}
                 {PENALTY_RESULTS.has(r) && (
-                  <span className="ml-1 align-super font-mono text-[9px] text-chart-3">+1</span>
+                  <span className="ml-0.5 align-super font-mono text-[9px] font-semibold text-clay">
+                    +1
+                  </span>
                 )}
               </button>
             ))}
@@ -1008,21 +1019,20 @@ export function ShotEntryFlow({
               type="button"
               disabled={busy}
               onClick={() => chooseResult("Make")}
-              className="col-span-2 h-14 rounded-2xl border-2 border-primary bg-primary text-base font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+              className={cn(CTA, "col-span-2 h-[58px] text-[16px]")}
             >
-              ● Holed it
+              <span className="h-2 w-2 rounded-full bg-highlight" />
+              Holed it
             </button>
           </div>
         </div>
       )}
 
       {step === "miss" && (
-        <div className="flex flex-col gap-2">
-          <h3 className="font-heading text-2xl font-bold">Which way?</h3>
-          <p className="mb-2 text-sm text-muted-foreground">
-            Tag the miss so dispersion stays honest.
-          </p>
-          <div className="grid grid-cols-3 grid-rows-3 gap-2.5">
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-1")}>Which way?</h3>
+          <p className={cn(QSUB, "mb-4")}>Tag the miss so dispersion stays honest.</p>
+          <div className="grid grid-cols-3 grid-rows-[repeat(3,74px)] gap-2.5">
             {MISS_DIRECTIONS.map((d) => (
               <button
                 key={d}
@@ -1030,7 +1040,8 @@ export function ShotEntryFlow({
                 disabled={busy}
                 onClick={() => chooseMiss(d)}
                 className={cn(
-                  "flex h-[72px] items-center justify-center rounded-2xl border-2 border-border bg-card text-base font-bold transition-transform active:scale-[0.97]",
+                  TAP,
+                  "flex h-[74px] items-center justify-center text-[16px]",
                   d === "Long" && "col-start-2 row-start-1",
                   d === "Left" && "col-start-1 row-start-2",
                   d === "Right" && "col-start-3 row-start-2",
@@ -1040,7 +1051,7 @@ export function ShotEntryFlow({
                 {d}
               </button>
             ))}
-            <span className="col-start-2 row-start-2 flex items-center justify-center font-mono text-xs uppercase tracking-widest text-muted-foreground/50">
+            <span className="col-start-2 row-start-2 flex items-center justify-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-300">
               Pin
             </span>
           </div>
@@ -1048,25 +1059,25 @@ export function ShotEntryFlow({
       )}
 
       {step === "putt" && (
-        <div className="flex flex-col gap-3">
-          <h3 className="font-heading text-2xl font-bold">
+        <div className="step flex flex-col gap-3.5">
+          <h3 className={Q}>
             {puttNo === 1 ? "First putt" : puttNo === 2 ? "Second putt" : `Putt ${puttNo}`}
           </h3>
 
           {puttPhase === "main" ? (
             <>
-              <p className="text-sm text-muted-foreground">
+              <p className={cn(QSUB, "-mt-2")}>
                 How far, in feet? (step off long ones — a pace ≈ 3 ft)
               </p>
               <div className="text-center">
-                <div className="font-mono text-5xl font-extrabold tabular-nums">
+                <div className="font-heading text-[50px] font-extrabold leading-none tracking-[-0.03em] tabular-nums">
                   {puttFeet === "" ? "—" : puttFeet}
-                  <span className="ml-1 align-baseline text-xl text-muted-foreground">
+                  <span className="ml-1.5 align-baseline text-[22px] font-bold text-muted-foreground">
                     ft
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-3 gap-2.5">
                 {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
                   <button
                     key={k}
@@ -1074,7 +1085,7 @@ export function ShotEntryFlow({
                     onClick={() =>
                       setPuttFeet((f) => (f.length < 2 ? (f + k).replace(/^0+/, "") : f))
                     }
-                    className="h-11 rounded-xl bg-muted font-mono text-xl font-semibold transition-transform active:scale-[0.96]"
+                    className="h-[46px] rounded-[18px] bg-muted font-mono text-[20px] font-semibold transition-transform active:scale-[0.95]"
                   >
                     {k}
                   </button>
@@ -1082,7 +1093,7 @@ export function ShotEntryFlow({
                 <button
                   type="button"
                   onClick={() => setPuttFeet("")}
-                  className="h-11 rounded-xl bg-muted font-mono text-sm text-muted-foreground transition-transform active:scale-[0.96]"
+                  className="h-[46px] rounded-[18px] bg-muted font-mono text-[14px] text-muted-foreground transition-transform active:scale-[0.95]"
                 >
                   Clear
                 </button>
@@ -1091,14 +1102,14 @@ export function ShotEntryFlow({
                   onClick={() =>
                     setPuttFeet((f) => (f.length < 2 ? (f + "0").replace(/^0+/, "") : f))
                   }
-                  className="h-11 rounded-xl bg-muted font-mono text-xl font-semibold transition-transform active:scale-[0.96]"
+                  className="h-[46px] rounded-[18px] bg-muted font-mono text-[20px] font-semibold transition-transform active:scale-[0.95]"
                 >
                   0
                 </button>
                 <button
                   type="button"
                   onClick={() => setPuttFeet((f) => f.slice(0, -1))}
-                  className="h-11 rounded-xl bg-muted font-mono text-lg text-muted-foreground transition-transform active:scale-[0.96]"
+                  className="h-[46px] rounded-[18px] bg-muted font-mono text-[14px] text-muted-foreground transition-transform active:scale-[0.95]"
                 >
                   ⌫
                 </button>
@@ -1106,18 +1117,21 @@ export function ShotEntryFlow({
               {/* Optional strike rating — putts are on the green; this keeps the
                   flow fast (tap if you want it) but lets you rate the stroke. */}
               <div className="flex items-center gap-2">
-                <span className="eyebrow shrink-0">Strike</span>
-                <div className="grid flex-1 grid-cols-4 gap-2">
+                <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                  Strike
+                </span>
+                <span className="flex-1 text-[11px] text-ink-300">optional</span>
+                <div className="grid w-[188px] shrink-0 grid-cols-4 gap-2">
                   {[1, 2, 3, 4].map((e) => (
                     <button
                       key={e}
                       type="button"
                       onClick={() => setPuttExec((cur) => (cur === e ? null : e))}
                       className={cn(
-                        "h-10 rounded-xl border-2 font-mono text-base font-semibold transition-transform active:scale-[0.97]",
+                        "h-[40px] rounded-[12px] border-[1.5px] font-mono text-[15px] font-semibold transition-transform active:scale-[0.95]",
                         puttExec === e
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card",
+                          ? "border-primary bg-primary text-white"
+                          : "border-input bg-card",
                       )}
                     >
                       {e}
@@ -1130,7 +1144,7 @@ export function ShotEntryFlow({
                   type="button"
                   disabled={busy || puttFeet === ""}
                   onClick={() => setPuttPhase("miss")}
-                  className="h-16 rounded-2xl border-2 border-border bg-card text-lg font-bold transition-transform active:scale-[0.97] disabled:opacity-40"
+                  className={cn(TAP, "h-[64px] text-[18px]")}
                 >
                   Missed
                 </button>
@@ -1138,9 +1152,10 @@ export function ShotEntryFlow({
                   type="button"
                   disabled={busy || puttFeet === ""}
                   onClick={holePutt}
-                  className="h-16 rounded-2xl border-2 border-primary bg-primary text-lg font-bold text-primary-foreground transition-transform active:scale-[0.97] disabled:opacity-40"
+                  className={cn(CTA, "h-[64px] text-[18px]")}
                 >
-                  ● Holed it
+                  <span className="h-2 w-2 rounded-full bg-highlight" />
+                  Holed it
                 </button>
               </div>
               <button
@@ -1149,17 +1164,17 @@ export function ShotEntryFlow({
                   // Rare: a Texas-wedge / chip with the putter — log normally.
                   setStep("club");
                 }}
-                className="mt-1 text-sm text-muted-foreground underline underline-offset-4"
+                className="mt-4 block w-full text-[14px] font-semibold text-muted-foreground underline underline-offset-[3px]"
               >
                 Putted off the green?
               </button>
             </>
           ) : (
             <>
-              <p className="text-sm text-muted-foreground">
+              <p className={cn(QSUB, "-mt-2")}>
                 Putt miss — material only. Skip if it was close.
               </p>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <span className="eyebrow">Side</span>
                 <div className="grid grid-cols-2 gap-2.5">
                   {PUTT_SIDES.map((s) => (
@@ -1167,19 +1182,14 @@ export function ShotEntryFlow({
                       key={s}
                       type="button"
                       onClick={() => setPuttSide((cur) => (cur === s ? null : s))}
-                      className={cn(
-                        "h-14 rounded-2xl border-2 text-base font-bold transition-transform active:scale-[0.97]",
-                        puttSide === s
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card",
-                      )}
+                      className={cn(TAP, "h-[58px] text-[16px]", puttSide === s && TAP_SEL)}
                     >
                       {s}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="flex flex-col gap-1.5">
+              <div className="flex flex-col gap-2">
                 <span className="eyebrow">Length</span>
                 <div className="grid grid-cols-2 gap-2.5">
                   {PUTT_LENGTHS.map((l) => (
@@ -1187,12 +1197,7 @@ export function ShotEntryFlow({
                       key={l}
                       type="button"
                       onClick={() => setPuttLength((cur) => (cur === l ? null : l))}
-                      className={cn(
-                        "h-14 rounded-2xl border-2 text-base font-bold transition-transform active:scale-[0.97]",
-                        puttLength === l
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-card",
-                      )}
+                      className={cn(TAP, "h-[58px] text-[16px]", puttLength === l && TAP_SEL)}
                     >
                       {l}
                     </button>
@@ -1203,7 +1208,7 @@ export function ShotEntryFlow({
                 type="button"
                 disabled={busy}
                 onClick={nextPutt}
-                className="mt-1 h-14 rounded-2xl bg-primary text-base font-bold text-primary-foreground transition-transform active:scale-[0.97]"
+                className={cn(CTA, "mt-1 h-[58px] text-[16px]")}
               >
                 Next putt →
               </button>

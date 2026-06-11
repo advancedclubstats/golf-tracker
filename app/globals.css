@@ -204,4 +204,23 @@
     letter-spacing: 0.08em;
     word-spacing: -0.14em;
   }
+
+  /* Shot-entry step entrance. Animates transform ONLY (never opacity:0 as the
+     resting base) so SSR / reduced-motion / screenshots still show content. */
+  .step {
+    animation: sef-fade 0.22s ease;
+  }
+  @keyframes sef-fade {
+    from {
+      transform: translateY(6px);
+    }
+    to {
+      transform: none;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .step {
+      animation: none;
+    }
+  }
 }

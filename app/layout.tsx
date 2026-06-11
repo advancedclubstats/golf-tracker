@@ -4,6 +4,7 @@ import {
   Martian_Mono,
   Bricolage_Grotesque,
 } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { isOwner } from "@/lib/auth/owner";
@@ -76,6 +77,7 @@ export default async function RootLayout({
         {children}
         <WelcomeOverlay owner={owner} />
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );

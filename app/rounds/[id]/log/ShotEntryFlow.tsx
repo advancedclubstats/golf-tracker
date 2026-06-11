@@ -36,12 +36,24 @@ export interface HoleLog {
   penalties: number; // total penalty strokes on the hole
 }
 
+/** A shot as shown in the "This hole" recap strip (B5). */
+export interface RecapShot {
+  club: string;
+  result: Result | null;
+  yardage: number | null;
+  isPutt: boolean;
+  miss: MissDirection | null;
+  penalty: number;
+}
+
 interface ShotEntryFlowProps {
   roundId: string;
   /** The user's club bag, in order (from the Setup page). */
   clubs: string[];
   /** Known par per hole (from the course, or from already-logged shots). */
   parByHole: Record<number, number>;
+  /** Shots already logged per hole, for the "This hole" recap strip (B5). */
+  shotsByHole: Record<number, RecapShot[]>;
   /** Tee yardage per hole for the round's selected tee (empty if no tee). Shown
    *  as on-course reference — most useful on the tee shot, where the wizard
    *  skips yardage entry for driver/woods. */
@@ -126,11 +138,26 @@ const CTA =
 const FOOT_LINK =
   "h-11 rounded-[13px] text-[14px] font-semibold text-muted-foreground transition-colors active:bg-muted";
 
+/** Expanded recap row text: "{zone}{miss}{+pen} · {dist}" (B5). */
+function recapLabel(s: RecapShot): string {
+  const zone = s.isPutt ? (s.result === "Make" ? "Holed" : "Putt") : (s.result ?? "—");
+  const miss = s.miss ? ` ${s.miss.toLowerCase()}` : "";
+  const pen = s.penalty > 0 ? ` +${s.penalty}` : "";
+  const dist =
+    s.yardage == null
+      ? ""
+      : s.isPutt
+        ? ` · ${Math.round(s.yardage * 3)}ft`
+        : ` · ${Math.round(s.yardage)}yd`;
+  return `${zone}${miss}${pen}${dist}`;
+}
+
 export function ShotEntryFlow({
   roundId,
   clubs,
   parByHole,
   yardageByHole,
+  shotsByHole,
   holeNumbers,
   initialLogged,
   lastShotByHole,
@@ -141,6 +168,11 @@ export function ShotEntryFlow({
   const [localPar, setLocalPar] = useState<Record<number, number>>({});
   const [lastShot, setLastShot] =
     useState<Record<number, PrevFinish | null>>(lastShotByHole);
+  // B5 "This hole" recap: shots per hole, seeded from the page + appended on commit.
+  const [holeShots, setHoleShots] = useState<Record<number, RecapShot[]>>(
+    shotsByHole ?? {},
+  );
+  const [recapOpen, setRecapOpen] = useState(false);
   const [hole, setHole] = useState<number>(
     holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
   );
@@ -295,6 +327,21 @@ export function ShotEntryFlow({
         [hole]: { count: sn, complete: made, conceded: prev.conceded, penalties },
       };
       setLogged(map);
+      // Append to the "This hole" recap (B5).
+      setHoleShots((m) => ({
+        ...m,
+        [hole]: [
+          ...(m[hole] ?? []),
+          {
+            club: d.club,
+            result: d.result ?? null,
+            yardage: d.yardage ?? null,
+            isPutt,
+            miss: d.missDirection ?? null,
+            penalty: d.penalty ?? 0,
+          },
+        ],
+      }));
       // Remember this finish so the next shot's start-lie carries forward.
       // `startLie` (the lie this shot played from) lets a stroke-and-distance
       // penalty replay from the same spot — a re-tee stays on the Tee.
@@ -519,6 +566,7 @@ export function ShotEntryFlow({
         return next;
       });
       setLastShot((m) => ({ ...m, [hole]: null }));
+      setHoleShots((m) => ({ ...m, [hole]: [] }));
       setLastCommitted(null);
       resetDraft();
       toast.success(`Hole ${hole} cleared — start from the tee.`);
@@ -583,6 +631,21 @@ export function ShotEntryFlow({
             complete: values.result === "Make" ? true : cur.complete,
           },
         };
+      });
+      // Keep the recap (B5) in sync — the edited shot is the hole's last.
+      setHoleShots((m) => {
+        const arr = m[h];
+        if (!arr || arr.length === 0) return m;
+        const next = arr.slice();
+        next[next.length - 1] = {
+          club: values.club!,
+          result: values.result,
+          yardage: values.yardage,
+          isPutt: values.club === "Putter",
+          miss: values.missDirection,
+          penalty: values.penalty ?? 0,
+        };
+        return { ...m, [h]: next };
       });
       setLastCommitted({ ...lastCommitted, values });
       setEditingLast(false);
@@ -826,22 +889,74 @@ export function ShotEntryFlow({
             </button>
           )}
 
-          {/* Edit just-logged shot / Pick up / Done */}
-          <div className="mt-3.5 flex flex-col gap-2">
-            {editLastEligible && lastCommitted && (
+          {/* B5: "This hole" recap — collapsed club tokens / expanded shot list,
+              with Edit on the last (just-committed) shot only. */}
+          {(holeShots[hole]?.length ?? 0) > 0 && (
+            <div className="mt-3.5 overflow-hidden rounded-[16px] bg-muted">
               <button
                 type="button"
-                onClick={() => setEditingLast(true)}
-                disabled={busy}
-                className={cn(FOOT_LINK, "flex items-center justify-center gap-2")}
+                onClick={() => setRecapOpen((o) => !o)}
+                className="flex w-full items-center gap-2.5 px-3.5 py-[11px]"
               >
-                ← Edit shot {lastCommitted.shotNo}
-                <span className="font-mono text-xs text-ink-300">
-                  {lastCommitted.values.club}
-                  {lastCommitted.values.result ? ` · ${lastCommitted.values.result}` : ""}
+                <span className="shrink-0 font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                  This hole
+                </span>
+                <span className="flex flex-1 flex-wrap justify-end gap-1.5">
+                  {holeShots[hole]!.map((s, i) => (
+                    <span
+                      key={i}
+                      className={cn(
+                        "rounded-md bg-card px-1.5 py-[3px] font-mono text-[10px] font-semibold leading-none",
+                        s.penalty > 0 ? "text-clay" : "text-ink-700",
+                      )}
+                    >
+                      {s.isPutt ? "P" : s.club}
+                    </span>
+                  ))}
+                </span>
+                <span
+                  className={cn(
+                    "shrink-0 text-[11px] text-muted-foreground transition-transform",
+                    recapOpen && "rotate-180",
+                  )}
+                >
+                  ▾
                 </span>
               </button>
-            )}
+              {recapOpen && (
+                <div className="px-3.5 pb-2.5">
+                  {holeShots[hole]!.map((s, i, arr) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-2.5 border-t border-border py-[9px]"
+                    >
+                      <span className="w-[18px] shrink-0 text-center text-[12px] font-semibold text-ink-300">
+                        {i + 1}
+                      </span>
+                      <span className="w-[34px] shrink-0 text-[13px] font-semibold">
+                        {s.isPutt ? "Putt" : s.club}
+                      </span>
+                      <span className="min-w-0 flex-1 text-[13px] text-ink-700">
+                        {recapLabel(s)}
+                      </span>
+                      {i === arr.length - 1 && editLastEligible && (
+                        <button
+                          type="button"
+                          onClick={() => setEditingLast(true)}
+                          className="shrink-0 rounded-full bg-card px-3 py-1.5 text-[12px] font-bold text-primary transition-transform active:scale-95"
+                        >
+                          Edit
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pick up / Clear / Done */}
+          <div className="mt-2 flex flex-col gap-2">
             {canPickUp && (
               <button
                 type="button"
@@ -959,6 +1074,18 @@ export function ShotEntryFlow({
               </button>
             ))}
           </div>
+          {/* B2: leave a shot unrated rather than forcing a guess. */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setExecution(null);
+              setStep("result");
+            }}
+            className="mt-4 block w-full text-[14px] font-semibold text-muted-foreground underline underline-offset-[3px]"
+          >
+            Skip — don&apos;t rate this one
+          </button>
         </div>
       )}
 

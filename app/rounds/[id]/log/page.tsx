@@ -7,7 +7,7 @@ import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, totalPenalties } from "@/lib/analytics/core";
 import { SESSION_HOLE_COUNTS } from "@/lib/constants";
 import type { PrevFinish } from "@/lib/shots/lie";
-import { ShotEntryFlow, type HoleLog } from "./ShotEntryFlow";
+import { ShotEntryFlow, type HoleLog, type RecapShot } from "./ShotEntryFlow";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -41,6 +41,7 @@ export default async function LogPage({ params }: Props) {
   // last shot per hole to seed the start-lie carry-forward on resume.
   const initialLogged: Record<number, HoleLog> = {};
   const lastShotByHole: Record<number, PrevFinish | null> = {};
+  const shotsByHole: Record<number, RecapShot[]> = {};
   for (const rh of aggregateByRoundHole(shots)) {
     initialLogged[rh.hole] = {
       count: rh.lastShotNo,
@@ -48,6 +49,14 @@ export default async function LogPage({ params }: Props) {
       conceded: rh.conceded,
       penalties: totalPenalties(rh.shots),
     };
+    shotsByHole[rh.hole] = rh.shots.map((s) => ({
+      club: s.club,
+      result: s.result,
+      yardage: s.yardage,
+      isPutt: s.club === "Putter",
+      miss: s.miss_direction,
+      penalty: s.penalty ?? 0,
+    }));
     const last = rh.shots[rh.shots.length - 1];
     lastShotByHole[rh.hole] = last
       ? {
@@ -74,6 +83,7 @@ export default async function LogPage({ params }: Props) {
       clubs={clubs}
       parByHole={parByHole}
       yardageByHole={yardageByHole}
+      shotsByHole={shotsByHole}
       holeNumbers={holeNumbers}
       initialLogged={initialLogged}
       lastShotByHole={lastShotByHole}

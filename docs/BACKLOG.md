@@ -110,23 +110,68 @@ dark-ready now, flipped on globally as the LAST step after a dark review);
 flash overlay + putt escape link both in scope; follow production for bunker-lie
 distinction + idempotent-commit/undo-as-DELETE.
 
-- **A1 · Token foundation** — ✅ done (2026-06-10). Added `--clay`,
-  `--fairway-900`, `--fairway-300` (light+dark) to `globals.css`; the rest of the
-  Modern Clubhouse palette already mapped (paper=background, lime=highlight,
-  fairway-700=primary, sunk=muted, line=border, ink-700/300, negative=destructive).
-- **A2 · Visual reskin** (no behavior change): persistent chrome (header + stepper
-  + lie pill + hole strip), then each step (Club / Yards / Strike / Result / miss /
-  putt) to the handoff's type/spacing/radii. Pixel-faithful to the prototype.
-- **B1 · Undo on commit toast** (3.4s pill; snapshot → rollback, DELETE if persisted).
-- **B2 · Skippable Strike** (execution nullable; "Skip — don't rate this one").
-- **B3 · Smart yardage** (per-club typical distances from history → prefill chips).
-- **B4 · Context-aware back** (home glyph at root, back arrow on inner steps).
-- **B5 · "This hole" recap strip** (Club step; collapsed tokens / expanded list;
-  Edit on last shot only).
-- **C · Net-new moments**: hole-complete flash overlay (~1.3s auto-advance);
-  "Putted off the green?" escape link out of putt mode.
-- **D · Flip dark mode ON** (next-themes provider, system-following) + dark-review
-  the dashboard/stats screens. The closing step.
+**Implementation notes for the resume:** all flow code is in
+`app/rounds/[id]/log/ShotEntryFlow.tsx` (~1300 lines, the live round-logging
+wizard — high-stakes, verify each change). Reskin uses Tailwind arbitrary-values
+mapped to app tokens via shared consts at module top: `Q`, `QSUB`, `TAP`,
+`TAP_SEL`, `TAP_SOFT`, `CTA`, `FOOT_LINK` — reuse these. Step containers carry a
+`.step` class (entrance animation in `globals.css`, transform-only so SSR/reduced-
+motion still show content). **Verify with the preview MCP** (`.claude/launch.json`
+has the `dev` config): `preview_start` → `preview_resize` mobile → navigate to a
+real round's `/log` and screenshot. Owner-only page; local dev is owner (no
+`OWNER_KEY`). Gotcha: hole-strip chips share digit labels with numpads, so
+DOM-clicking by text is ambiguous in eval. Test round with data:
+`64c33e46-ae63-423e-92d7-d646a7072a28`.
+
+- **A1 · Token foundation** — ✅ done (2026-06-10). `--clay`, `--fairway-900`,
+  `--fairway-300` (light+dark) in `globals.css`; rest of the palette already
+  mapped (paper=background, lime=highlight, fairway-700=primary, sunk=muted,
+  line=border, ink-700/300, negative=destructive, ink-500=muted-foreground).
+- **A2 · Visual reskin** — ✅ done (2026-06-10). Chrome (header w/ ⌂/← glyph,
+  stepper, lie pill, hole strip) + all 6 step bodies (Club/Yards/Strike/Result/
+  miss/putt). Live-verified. Note: `app/rounds/[id]/log/page.tsx` now passes
+  `shotsByHole` (for B5).
+- **B2 · Skippable Strike** — ✅ done. "Skip — don't rate this one" link →
+  `setExecution(null); setStep("result")`. `execution` state is `number|null`;
+  commit sends `execution ?? undefined` (unrated).
+- **B4 · Context-aware back** — ✅ done (fell out of A2). ⌂ at Club root, ← inner;
+  `back()` already had the logic (exit / reopen-last / walk steps).
+- **B5 · "This hole" recap strip** — ✅ done. `RecapShot` type + `shotsByHole`
+  prop (built in `page.tsx` from `getShotsByRound`), `holeShots` state appended in
+  `commitShot`, reset in `handleClearHole`, last-row re-synced in `saveLastEdit`.
+  `recapLabel()` helper. Edit shows on the last row only when `editLastEligible`.
+
+### Remaining — pick up here (B3 → B1 → C → D)
+
+- **B3 · Smart yardage** (NEXT — lower risk, read-only). Yards step: prefill chips
+  above the numpad showing the player's **typical** (not raw recent) distances for
+  the selected `club`. Decision: typical = most-common, contextual if feasible.
+  Plan: in `page.tsx`, derive `clubDistances: Record<club, number[]>` from the
+  loaded `shots` (mode/median of recent same-club full-shot yardages; cap ~3,
+  dedupe); pass as a prop; render `.ychip` chips (see FlowCSS `.ychips/.ychip`)
+  that set `yards` + advance. Prototype seeds from a hardcoded bag — replace with
+  history. Putts excluded.
+- **B1 · Undo on commit toast** (most delicate — touches commit/rollback). Routine
+  (non-terminal) commits show a toast with a 3.4s **Undo** pill (1.6s without).
+  The flow currently uses `toast` from `sonner` (success strings). Plan: capture a
+  full state snapshot (`logged`, `lastShot`, `holeShots`, `lastCommitted`, draft)
+  before `commitShot`, and on Undo: `deleteShot(id, roundId)` (already exists) +
+  restore snapshot + return to the step the user was on (Result/miss for through-
+  green, putt-miss for putts). Guard against an in-flight save. Make the toast
+  tappable per FlowCSS `.toast/.toast-undo` (lime pill, `--ink-900` bg).
+- **C · Hole-complete flash overlay** (net-new). On Make / holed putt: a full-
+  screen overlay (`.flash.hole`, `--fairway-900` bg, 88px lime ring + ✓, "Hole n ·
+  strokes (vs-par)" + "On to hole {next} →"), auto-dismiss ~1.3s then advance. Today
+  `completeHole()` just toasts + advances — wrap it with a `flash` state + timeout.
+  (The "Putted off the green?" escape link already ships in the putt step.)
+- **D · Flip dark mode ON** (closing step). Dark is built-ready (tokens have dark
+  values) but DORMANT — no provider mounts `.dark`. Add a `next-themes`
+  ThemeProvider (already a dep; `components/ui/sonner.tsx` uses `useTheme`) in
+  `app/layout.tsx`, `attribute="class"`, `defaultTheme="system"`,
+  `suppressHydrationWarning` on `<html>`. THEN dark-review every screen
+  (dashboard/stats were styled light-first; their dark token values are unreviewed).
+  Optional manual toggle later. Do this LAST so the live portfolio never shows
+  half-baked dark mid-build.
 
 ## Design & polish
 

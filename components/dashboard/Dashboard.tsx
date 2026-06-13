@@ -18,9 +18,11 @@ import { fmtVsPar, fmtVsParAvg, fmtPct, fmtNum, fmtSg, sgColorClass } from "@/li
 import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
+import type { Momentum } from "@/lib/analytics/momentum";
 import { LeakList } from "@/components/dashboard/LeakList";
 import { BiggestLeakHero } from "@/components/dashboard/BiggestLeakHero";
 import { ScoringShapeSection } from "@/components/dashboard/ScoringShapeSection";
+import { MomentumSection } from "@/components/dashboard/MomentumSection";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -55,10 +57,12 @@ export function Dashboard({
   data,
   sg,
   leaks,
+  momentum,
 }: {
   data: DashboardData;
   sg: StrokesGained;
   leaks: Leak[];
+  momentum: Momentum;
 }) {
   const { snapshot, statLine, scoringShape, recentRounds, records } = data;
   // Spec Part 3 item 2: SG categories ranked by recoverable/round (worst first).
@@ -119,6 +123,10 @@ export function Dashboard({
           </p>
         )}
       </section>
+
+      {/* Momentum (Ask 1): the *motion* — which categories are gaining/slipping —
+          sits between the static "where lost" picture and the prescription. */}
+      <MomentumSection momentum={momentum} />
 
       {/* 3 — Specifics, gated by sample: the ranked leak list, each row drillable
           to its shots; under-sampled cuts show as early-read chips, never

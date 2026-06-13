@@ -14,6 +14,7 @@ import {
   type StrokesGained,
 } from "@/lib/analytics/sg";
 import { computeLeaks, type Leak } from "@/lib/analytics/leaks";
+import { computeMomentum, type Momentum } from "@/lib/analytics/momentum";
 import {
   computeHoleAttribution,
   type HoleAttribution,
@@ -89,6 +90,15 @@ export async function getLeaks(prefetched?: {
 }): Promise<{ leaks: Leak[]; rounds: number }> {
   const { shots } = await getEnrichedShots(prefetched);
   return computeLeaks(shots);
+}
+
+/** Dashboard Momentum: per-category recent-vs-prior trend. Shares the tee-fill. */
+export async function getMomentum(prefetched?: {
+  shots: ShotRow[];
+  rounds: RoundRow[];
+}): Promise<Momentum> {
+  const { shots, rounds } = await getEnrichedShots(prefetched);
+  return computeMomentum(shots, rounds);
 }
 
 /** Per-hole SG attribution (spec Part 3, the killer screen). Shares the tee-fill. */

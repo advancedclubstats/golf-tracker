@@ -201,6 +201,13 @@ improving = "weapon". Tags cross-reference "What to work on" standing.
   `eligible = sampleCount ≥ 2N && |delta| ≥ ~0.15 SG/rd`. Sort each bucket by
   |delta| desc; a near-empty section is correct (don't pad).
 
+**Ask 1 — dashboard Momentum section** — ✅ DONE (2026-06-10). `lib/analytics/
+momentum.ts` (`computeMomentum`: per-category recent-vs-prior split, 2N floor,
+±0.15 threshold, tag from all-time leak rank × bucket), `Sparkline.tsx`,
+`MomentumSection.tsx` inserted between "Where strokes are lost" and "What to work
+on" via `getMomentum` in sg-server. Handles populated / below-floor early / steady
+states. Live-verified populated (12 rounds). Original spec below for reference:
+
 **Ask 1 — dashboard Momentum section (shipped direction = B, "sparkline buckets"):**
 - New section **between `Where strokes are lost` and `What to work on`** in
   `components/dashboard/Dashboard.tsx`. Head: mono `MOMENTUM` eyebrow + right

@@ -87,26 +87,24 @@ function TrendSparkCell({ value, trend }: { value: number | null; trend?: Sparkl
   );
 }
 
-/** metric value + an in-cell ▲/▼ delta (Clubs), or a faint em-dash below floor. */
+/**
+ * metric value + an in-cell ▲/▼ delta (Clubs). The delta rides in a fixed-width
+ * slot so the values stay right-aligned in a clean column whether or not a club
+ * has a delta; a faint em-dash fills the slot below the floor.
+ */
 function TrendGlyphCell({ value, trend }: { value: number | null; trend?: DeltaTrend }) {
   const v = value == null ? "—" : fmtNum(value);
-  if (!trend || trend.delta == null) {
-    return (
-      <span>
-        {v} <span className="text-ink-300">—</span>
-      </span>
-    );
-  }
+  const hasDelta = !!trend && trend.delta != null;
   return (
-    <span>
-      {v}{" "}
+    <span className="inline-flex items-baseline justify-end gap-1">
+      <span>{v}</span>
       <span
         className={cn(
-          "text-[0.72rem] font-bold",
-          trend.delta >= 0 ? "text-positive" : "text-destructive",
+          "inline-block w-10 text-left text-[0.72rem] font-bold",
+          hasDelta ? (trend!.delta! >= 0 ? "text-positive" : "text-destructive") : "text-ink-300",
         )}
       >
-        {deltaText(trend.delta)}
+        {hasDelta ? deltaText(trend!.delta!) : "—"}
       </span>
     </span>
   );

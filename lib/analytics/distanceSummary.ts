@@ -25,6 +25,12 @@ import {
   APPROACH_BUCKETS,
 } from "@/lib/constants";
 import {
+  TOUR_MAKE_PCT,
+  TOUR_THREE_PUTT_PCT,
+  TOUR_UP_DOWN_PCT,
+  TOUR_GREEN_PCT,
+} from "@/lib/benchmarks";
+import {
   aggregateByRoundHole,
   isRealPutt,
   puttBucketOf,
@@ -41,6 +47,8 @@ export interface PuttMakeRateRow {
   putts: number;
   makes: number;
   makePct: number | null;
+  /** PGA Tour band-average make% for this bucket (D-11); display-only. */
+  tourMakePct?: number;
 }
 
 export interface FirstPuttRow {
@@ -49,6 +57,10 @@ export interface FirstPuttRow {
   avgPutts: number | null;
   onePuttPct: number | null;
   threePuttPct: number | null;
+  /** PGA Tour band-average 1-putt% (= make%) for this bucket (D-11). */
+  tourOnePuttPct?: number;
+  /** PGA Tour band-average 3-putt% for this bucket (D-11). */
+  tourThreePuttPct?: number;
 }
 
 export interface PuttMissRow {
@@ -66,6 +78,8 @@ export interface AroundGreenRow {
   avgQuality: number | null;
   onGreenPct: number | null;
   upDownPct: number | null;
+  /** PGA Tour band-average up-and-down% for this bucket (D-11). */
+  tourUpDownPct?: number;
 }
 
 export interface ApproachRow {
@@ -73,6 +87,8 @@ export interface ApproachRow {
   shots: number;
   avgQuality: number | null;
   greenHitPct: number | null;
+  /** PGA Tour band-average GIR% (green-hit%) for this bucket (D-11). */
+  tourGreenHitPct?: number;
   missLPct: number;
   missRPct: number;
   missLongPct: number;
@@ -251,6 +267,7 @@ export function computeDistanceSummary(
       putts: b.putts,
       makes: b.makes,
       makePct: b.putts > 0 ? b.makes / b.putts : null,
+      tourMakePct: TOUR_MAKE_PCT[b.label],
     })),
     firstPutt: firstPutt.map((b) => ({
       label: b.label,
@@ -258,6 +275,8 @@ export function computeDistanceSummary(
       avgPutts: b.faced > 0 ? r2(b.totalPutts / b.faced) : null,
       onePuttPct: b.faced > 0 ? b.onePutt / b.faced : null,
       threePuttPct: b.faced > 0 ? b.threePutt / b.faced : null,
+      tourOnePuttPct: TOUR_MAKE_PCT[b.label],
+      tourThreePuttPct: TOUR_THREE_PUTT_PCT[b.label],
     })),
     missPatterns: missPatt.map((b) => ({
       label: b.label,
@@ -273,12 +292,14 @@ export function computeDistanceSummary(
       avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
       onGreenPct: b.shots > 0 ? b.onGreen / b.shots : null,
       upDownPct: b.upDownEligible > 0 ? b.upDown / b.upDownEligible : null,
+      tourUpDownPct: TOUR_UP_DOWN_PCT[b.label],
     })),
     approaches: appr.map((b) => ({
       label: b.label,
       shots: b.shots,
       avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
       greenHitPct: b.shots > 0 ? b.greenHit / b.shots : null,
+      tourGreenHitPct: TOUR_GREEN_PCT[b.label],
       missLPct: b.shots > 0 ? b.missL / b.shots : 0,
       missRPct: b.shots > 0 ? b.missR / b.shots : 0,
       missLongPct: b.shots > 0 ? b.missLong / b.shots : 0,

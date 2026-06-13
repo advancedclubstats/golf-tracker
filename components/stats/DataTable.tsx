@@ -162,12 +162,12 @@ export function DataTable<T>({
       <table className="w-full text-sm tabular-nums">
         <thead>
           <tr className="text-xs text-muted-foreground">
-            {columns.map((c) => {
+            {columns.map((c, ci) => {
               const active = sort?.key === c.key;
               const sortable = c.sortable !== false;
               return (
                 <th
-                  key={c.header}
+                  key={ci}
                   aria-sort={
                     active
                       ? sort!.dir === "asc"
@@ -212,9 +212,9 @@ export function DataTable<T>({
         <tbody className="divide-y divide-border/40">
           {sorted.map((row) => (
             <tr key={String(row[rowKey])}>
-              {columns.map((c) => (
+              {columns.map((c, ci) => (
                 <td
-                  key={c.header}
+                  key={ci}
                   className={cn(
                     "whitespace-nowrap px-2 py-2",
                     c.align === "right" ? "text-right" : "text-left",

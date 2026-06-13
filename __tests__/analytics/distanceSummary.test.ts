@@ -140,6 +140,31 @@ describe("distanceSummary — approaches", () => {
   });
 });
 
+describe("distanceSummary — PGA Tour benchmarks (D-11)", () => {
+  it("attaches tour make% to each make-rate bucket by label", () => {
+    expect(row(summary.makeRate, "0–3 ft").tourMakePct).toBe(0.98);
+    expect(row(summary.makeRate, "6–10 ft").tourMakePct).toBe(0.5);
+    expect(row(summary.makeRate, "20+ ft").tourMakePct).toBe(0.08);
+  });
+  it("attaches tour 1-putt% (= make%) and 3-putt% to first-putt buckets", () => {
+    expect(row(summary.firstPutt, "3–6 ft").tourOnePuttPct).toBe(0.77);
+    expect(row(summary.firstPutt, "3–6 ft").tourThreePuttPct).toBe(0.01);
+    expect(row(summary.firstPutt, "20+ ft").tourThreePuttPct).toBe(0.09);
+  });
+  it("attaches tour up-and-down% to around-the-green buckets", () => {
+    expect(row(summary.aroundGreen, "0–10 yds").tourUpDownPct).toBe(0.8);
+    expect(row(summary.aroundGreen, "10–30 yds").tourUpDownPct).toBe(0.5);
+  });
+  it("attaches tour GIR% to approach buckets", () => {
+    expect(row(summary.approaches, "30–75 yds").tourGreenHitPct).toBe(0.85);
+    expect(row(summary.approaches, "125–175 yds").tourGreenHitPct).toBe(0.66);
+    expect(row(summary.approaches, "175+ yds").tourGreenHitPct).toBe(0.5);
+  });
+  it("benchmarks are present even on empty/zeroed buckets", () => {
+    expect(row(summary.makeRate, "20+ ft")).toMatchObject({ putts: 0, tourMakePct: 0.08 });
+  });
+});
+
 describe("distanceSummary — empty input", () => {
   it("returns all five sub-tables with zeroed buckets", () => {
     const empty = computeDistanceSummary([]);

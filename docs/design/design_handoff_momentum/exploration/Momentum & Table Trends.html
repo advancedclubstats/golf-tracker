@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Momentum + Table Trends — Advanced Club Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700;800&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700&display=swap" rel="stylesheet" />
+<style>
+  /* ── Modern Clubhouse tokens — lifted verbatim from reskin/Dashboard.html ── */
+  :root {
+    --background: oklch(0.962 0.008 95);
+    --foreground: oklch(0.22 0.018 155);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.22 0.018 155);
+    --primary: oklch(0.52 0.12 158);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.93 0.01 90);
+    --secondary-foreground: oklch(0.22 0.018 155);
+    --muted: oklch(0.93 0.01 90);
+    --muted-foreground: oklch(0.49 0.012 155);
+    --accent: oklch(0.93 0.03 158);
+    --accent-foreground: oklch(0.40 0.10 158);
+    --destructive: oklch(0.56 0.18 27);
+    --border: oklch(0.90 0.008 90);
+    --input: oklch(0.85 0.01 90);
+    --ring: oklch(0.57 0.12 158);
+    --chart-3: oklch(0.68 0.14 50);
+    --highlight: oklch(0.90 0.20 118);
+    --highlight-foreground: oklch(0.30 0.06 158);
+    --positive: oklch(0.52 0.13 158);
+    --clay: oklch(0.62 0.16 47);
+    --clay-soft: oklch(0.95 0.05 60);
+    --good-soft: oklch(0.95 0.045 158);
+    --bad-soft: oklch(0.95 0.05 27);
+
+    --font-sans: "Hanken Grotesk", system-ui, sans-serif;
+    --font-mono: "Martian Mono", ui-monospace, monospace;
+    --font-heading: "Bricolage Grotesque", var(--font-sans);
+    --card-shadow: 0 1px 2px 0 oklch(0.22 0.018 155 / 0.05);
+    --card-ring: 0 0 0 1px oklch(0.22 0.018 155 / 0.10);
+  }
+  * { box-sizing: border-box; }
+
+  /* phone-screen frame inside an artboard */
+  .scr {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    padding: 16px;
+    height: 100%;
+  }
+  .scr-ctx { font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted-foreground); margin: 0 0 12px; }
+
+  /* ── primitives ─────────────────────────────────────────────────────── */
+  .eyebrow { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 600; text-transform: uppercase; color: var(--muted-foreground); letter-spacing: 0.04em; word-spacing: -0.16em; margin: 0; }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .pos { color: var(--positive); }
+  .neg { color: var(--destructive); }
+  .muted { color: var(--muted-foreground); }
+  .card { background: var(--card); color: var(--card-foreground); border-radius: 12px; box-shadow: var(--card-ring), var(--card-shadow); padding: 14px; margin-bottom: 14px; }
+  .divide > * + * { border-top: 1px solid oklch(0.90 0.008 90 / 0.5); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 0; font-size: 0.875rem; }
+  .row > span { white-space: nowrap; }
+  .row .val { font-weight: 500; text-align: right; font-variant-numeric: tabular-nums; }
+  .row .val.mono { font-family: var(--font-mono); }
+  .wsl-link { color: inherit; text-decoration: none; }
+
+  /* ── momentum shared ────────────────────────────────────────────────── */
+  .m-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
+  .m-win { font-family: var(--font-mono); font-size: 0.6rem; letter-spacing: 0.03em; color: var(--muted-foreground); text-transform: uppercase; white-space: nowrap; }
+  .m-group-label { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-size: 0.6rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--positive); margin: 6px 0 2px; }
+  .m-group-label.slip { color: var(--destructive); margin-top: 14px; }
+  .m-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; }
+  .m-row.tint-good, .m-row.tint-bad { padding: 9px 10px; margin: 2px -10px; border-radius: 10px; border-top: none !important; }
+  .m-row.tint-good { background: var(--good-soft); }
+  .m-row.tint-bad { background: var(--bad-soft); }
+  .m-l { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .m-name { font-size: 0.92rem; font-weight: 600; white-space: nowrap; }
+  .m-r { text-align: right; white-space: nowrap; }
+  .m-d { font-size: 1.05rem; font-weight: 700; }
+  .m-u { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted-foreground); margin-left: 5px; letter-spacing: 0.02em; }
+  .mtag { display: inline-flex; align-items: center; align-self: flex-start; font-family: var(--font-mono); font-size: 0.54rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; padding: 2px 6px; border-radius: 999px; }
+  .mtag-good { background: var(--good-soft); color: var(--positive); }
+  .mtag-bad { background: var(--bad-soft); color: var(--destructive); }
+  .mtag-lime { background: var(--highlight); color: var(--highlight-foreground); }
+  .mtag-warn { background: var(--clay-soft); color: var(--clay); }
+  .m-row.tint-good .mtag-good, .m-row.tint-bad .mtag-bad { background: var(--card); }
+  .m-foot { font-size: 0.7rem; line-height: 1.45; color: var(--muted-foreground); margin: 12px 0 0; }
+
+  /* Direction B — sparkline buckets */
+  .sb-bucket { margin-bottom: 4px; }
+  .sb-bucket + .sb-bucket { margin-top: 12px; }
+  .sb-row { padding: 9px 0; border-top: 1px solid oklch(0.90 0.008 90 / 0.5); }
+  .sb-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .sb-bot { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 8px; }
+  .sb-delta { text-align: right; white-space: nowrap; }
+
+  /* Direction C — movement map */
+  .mv-axis { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted-foreground); margin-bottom: 10px; }
+  .mv-axis-0 { color: var(--foreground); opacity: 0.55; }
+  .mv-list > * + * { margin-top: 14px; }
+  .mv-row { display: grid; grid-template-columns: 78px 1fr 48px; align-items: center; gap: 10px; }
+  .mv-name { font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+  .mv-track { position: relative; height: 18px; }
+  .mv-track::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: oklch(0.90 0.008 90 / 0.8); border-radius: 2px; }
+  .mv-zero { position: absolute; top: 1px; bottom: 1px; width: 1px; background: var(--foreground); opacity: 0.35; transform: translateX(-0.5px); }
+  .mv-seg { position: absolute; top: 50%; height: 3px; transform: translateY(-50%); border-radius: 3px; }
+  .mv-prior { position: absolute; top: 50%; width: 8px; height: 8px; border-radius: 999px; transform: translate(-50%, -50%); background: var(--card); box-shadow: 0 0 0 1.5px oklch(0.49 0.012 155 / 0.55); }
+  .mv-now { position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 999px; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--card); }
+  .mv-d { font-size: 0.85rem; font-weight: 700; text-align: right; }
+  .mv-legend { display: flex; gap: 16px; margin-top: 16px; font-size: 0.68rem; color: var(--muted-foreground); }
+  .mv-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
+  .lg-dot.prior { background: var(--card); box-shadow: 0 0 0 1.5px oklch(0.49 0.012 155 / 0.55); }
+  .lg-dot.now { background: var(--foreground); }
+  .mv-headline { margin-top: 12px; padding-top: 12px; border-top: 1px solid oklch(0.90 0.008 90 / 0.5); font-size: 0.8rem; line-height: 1.4; color: var(--foreground); }
+  .mv-headline strong { font-weight: 700; }
+
+  /* Early state */
+  .m-empty { text-align: left; padding: 4px 0; }
+  .m-empty-h { font-size: 0.95rem; font-weight: 600; margin: 0 0 6px; }
+  .m-empty-b { font-size: 0.8rem; line-height: 1.5; color: var(--muted-foreground); margin: 0 0 12px; }
+  .m-empty-bar { height: 8px; border-radius: 999px; background: var(--secondary); overflow: hidden; margin-bottom: 8px; }
+  .m-empty-bar span { display: block; height: 100%; background: var(--positive); border-radius: 999px; }
+  .m-empty-c { font-size: 0.7rem; color: var(--muted-foreground); margin: 0; }
+  .m-empty-c .mono { color: var(--foreground); }
+
+  /* ── tables ─────────────────────────────────────────────────────────── */
+  .tbl-card { padding-bottom: 12px; }
+  .tbl-win { font-family: var(--font-mono); font-size: 0.56rem; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted-foreground); white-space: nowrap; }
+  .tbl-scroll { position: relative; overflow-x: auto; margin: 0 -2px; }
+  .tbl { width: 100%; min-width: 360px; border-collapse: collapse; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 0.8rem; }
+  .tbl.holes { min-width: 0; }
+  .tbl thead th { text-align: right; font-size: 0.58rem; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--muted-foreground); padding: 6px 10px 8px; white-space: nowrap; }
+  .tbl thead th.sticky-c { text-align: left; padding-left: 2px; }
+  .tbl tbody tr { border-top: 1px solid oklch(0.90 0.008 90 / 0.5); }
+  .tbl td { padding: 9px 10px; white-space: nowrap; }
+  .tbl td.num { text-align: right; }
+  .tbl td.club { text-align: left; font-weight: 600; padding-left: 2px; color: var(--foreground); }
+  .tbl .u { color: var(--muted-foreground); font-size: 0.85em; margin-left: 1px; }
+  .sticky-c { position: sticky; left: 0; background: var(--card); z-index: 1; }
+  .vp-h { white-space: nowrap; }
+  .tbl td.vp { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+  .vpnum { font-weight: 600; }
+  .miss { color: var(--muted-foreground); }
+  .cnum { font-weight: 600; color: var(--foreground); }
+  .ct { font-size: 0.72rem; font-weight: 700; margin-left: 6px; }
+  .ct-none { color: oklch(0.49 0.012 155 / 0.5); font-weight: 400; }
+  .vp-none { font-family: var(--font-sans); font-size: 0.6rem; }
+  .tbl-fade { pointer-events: none; position: absolute; top: 0; bottom: 0; right: 0; width: 28px; background: linear-gradient(90deg, transparent, var(--card)); }
+
+  /* segmented control (matches UI-kit .seg) */
+  .seg { display: inline-flex; background: var(--secondary); border-radius: 999px; padding: 3px; gap: 2px; margin-bottom: 12px; }
+  .seg-btn { font-family: var(--font-sans); font-size: 0.72rem; font-weight: 600; border: none; background: transparent; color: var(--muted-foreground); padding: 6px 14px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+  .seg-btn.on { background: var(--card); color: var(--foreground); box-shadow: var(--card-shadow); }
+
+  /* notes card on canvas */
+  .note { width: 300px; background: oklch(0.97 0.02 95); border: 1px solid var(--border); border-radius: 14px; padding: 18px; font-family: var(--font-sans); color: var(--foreground); height: 100%; }
+  .note h3 { font-family: var(--font-heading); font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 10px; }
+  .note .eyebrow { margin-bottom: 12px; }
+  .note p { font-size: 0.82rem; line-height: 1.55; color: var(--foreground); margin: 0 0 10px; }
+  .note ul { margin: 0 0 10px; padding-left: 0; list-style: none; }
+  .note li { font-size: 0.8rem; line-height: 1.45; color: var(--foreground); padding: 6px 0; border-top: 1px solid oklch(0.90 0.008 90 / 0.6); display: flex; gap: 8px; }
+  .note li b { font-weight: 700; }
+  .note .quad { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 10px 0; }
+  .note .qd { border-radius: 10px; padding: 8px; font-size: 0.66rem; line-height: 1.35; }
+  .note .qd .qt { font-weight: 700; display: block; margin-bottom: 2px; }
+  .qd.q1 { background: var(--bad-soft); }
+  .qd.q2 { background: var(--good-soft); }
+  .qd.q3 { background: var(--clay-soft); }
+  .qd.q4 { background: var(--highlight); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="momentum.jsx"></script>
+<script type="text/babel" src="tables.jsx"></script>
+
+<script type="text/babel">
+const { DesignCanvas, DCSection, DCArtboard } = window;
+
+function Scr({ children }) {
+  return (
+    <div className="scr">
+      <p className="scr-ctx">Dashboard</p>
+      {children}
+    </div>
+  );
+}
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="ask1" title="Ask 1 · Dashboard “Momentum” section"
+        subtitle="Where you’re gaining and slipping, in SG terms — paired with “Where strokes are lost.” 3 directions + the honest early state.">
+
+        <DCArtboard id="notes1" label="The framework" width={300} height={672}>
+          <div className="note">
+            <p className="eyebrow">Magnitude × direction</p>
+            <h3>Same leak, different advice</h3>
+            <div className="quad">
+              <div className="qd q1"><span className="qt">Big leak · worse</span>Urgent — the headline</div>
+              <div className="qd q2"><span className="qt">Big leak · better</span>Stay the course</div>
+              <div className="qd q3"><span className="qt">Fine · declining</span>Heads-up</div>
+              <div className="qd q4"><span className="qt">Strength · better</span>Your weapon</div>
+            </div>
+            <ul>
+              <li><b>Split, not a window.</b> Last 5 rounds vs the prior 5 — a ~10-round floor.</li>
+              <li><b>Honest.</b> Below the floor = absent, never a flat-line guess.</li>
+              <li><b>Named denominator.</b> Always “+0.41 / rd · last 5 rounds.”</li>
+              <li><b>Restraint.</b> Momentum lives in this one section — nowhere else.</li>
+            </ul>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="dirA" label="A · Paired ledger" width={390} height={672}>
+          <Scr><WhereStrokesLost /><MomentumA /></Scr>
+        </DCArtboard>
+
+        <DCArtboard id="dirB" label="B · Sparkline buckets" width={390} height={760}>
+          <Scr><WhereStrokesLost /><MomentumB /></Scr>
+        </DCArtboard>
+
+        <DCArtboard id="dirC" label="C · Movement map" width={390} height={672}>
+          <Scr><WhereStrokesLost /><MomentumC /></Scr>
+        </DCArtboard>
+
+        <DCArtboard id="early" label="Early state (4 rounds)" width={390} height={520}>
+          <Scr><WhereStrokesLost /><MomentumEarly /></Scr>
+        </DCArtboard>
+      </DCSection>
+
+      <DCSection id="ask2" title="Ask 2 · Table trend treatment"
+        subtitle="A sense of recent change without breaking the mobile layout. In-cell trend first; one global filter only where a glyph would overflow. Same 2N floor — no data, no trend.">
+
+        <DCArtboard id="notes2" label="In-cell vs fallback" width={300} height={560}>
+          <div className="note">
+            <p className="eyebrow">The breakpoint rule</p>
+            <h3>Glyph until it can’t fit</h3>
+            <ul>
+              <li><b>Primary.</b> A colored ▲▼ delta or mini-sparkline rides inside an existing cell — adds zero width.</li>
+              <li><b>Clubs.</b> ▲▼ tucked into the Carry value, even though the table already overflows (Miss L/R clips).</li>
+              <li><b>Holes.</b> Fewer columns → a mini-sparkline fits inside the vs-par cell.</li>
+              <li><b>Fallback.</b> 5 numeric columns (Distance) leave no room → one global “Last 20 / All” control re-windows the whole table.</li>
+            </ul>
+            <p>Never a per-row control, never a new numeric column, never per-section.</p>
+          </div>
+        </DCArtboard>
+
+        <DCArtboard id="clubs" label="Clubs · in-cell glyph (overflows)" width={390} height={470}>
+          <Scr><ClubsTable /></Scr>
+        </DCArtboard>
+
+        <DCArtboard id="holes" label="Holes · in-cell sparkline" width={390} height={400}>
+          <Scr><HolesTable /></Scr>
+        </DCArtboard>
+
+        <DCArtboard id="distance" label="Distance · filter fallback" width={390} height={470}>
+          <Scr><DistanceFallback /></Scr>
+        </DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

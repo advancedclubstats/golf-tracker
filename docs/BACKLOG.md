@@ -173,6 +173,65 @@ DOM-clicking by text is ambiguous in eval. Test round with data:
   Optional manual toggle later. Do this LAST so the live portfolio never shows
   half-baked dark mid-build.
 
+## QUEUED — Dashboard "Momentum" + detail-table trends
+
+Source: `docs/design/design_handoff_momentum/` (Claude Design handoff v2;
+`RoundRecall Dashboard.html` is the primary spec, `exploration/` has the
+side-by-side directions + early state + `momentum.jsx`/`tables.jsx` components).
+Adds the *motion* to the all-time SG picture: "of my known weaknesses, which are
+getting better/worse, and is practice paying off?" **Restraint is the product
+decision** — momentum lives in exactly ONE dashboard section + ONE compact
+in-table treatment; do NOT scatter trend arrows across screens (explicit anti-goal).
+
+**The framework (don't invent another):** every trend = magnitude × direction →
+a tag. Big leak + worsening = the headline (Slipping); big leak + improving =
+"working, stay the course" (Gaining); fine + declining = "new slip"; strength +
+improving = "weapon". Tags cross-reference "What to work on" standing.
+
+**Data contract (non-negotiable):**
+- **Native per-metric windowing**, default **N=5**: SG category → last N *rounds*;
+  club stat → last N *shots with that club*; hole stat → last N *plays of that hole*.
+- A trend needs a **SPLIT** (recent N vs prior N), so the floor is **2N** (10
+  rounds / 40 shots / 10 plays), not N.
+- **Honesty rule:** below the 2N floor → ABSENT from trend surfaces (never a guess
+  or flat line; em-dash + reason in tables, e.g. "— needs 10 plays").
+- **Always name the denominator** in copy: "+0.41 / rd · last 5 rounds", never
+  "putting improving lately."
+- Per category: `{recentMean, priorMean, delta, samplePoints[], sampleCount}`;
+  `eligible = sampleCount ≥ 2N && |delta| ≥ ~0.15 SG/rd`. Sort each bucket by
+  |delta| desc; a near-empty section is correct (don't pad).
+
+**Ask 1 — dashboard Momentum section (shipped direction = B, "sparkline buckets"):**
+- New section **between `Where strokes are lost` and `What to work on`** in
+  `components/dashboard/Dashboard.tsx`. Head: mono `MOMENTUM` eyebrow + right
+  `VS PRIOR 5 ROUNDS`. Two buckets — **▲ Gaining** (positive) / **▼ Slipping**
+  (negative) — each 1–N `.m-row` entries: name + tag chip (work/weapon/accel/new),
+  bottom row = 92×30 sparkline (last 10 round values, dotted scratch baseline,
+  gradient fill, "now" dot; direction color passed in) + signed delta (20px mono) +
+  "/rd · last N rounds". Footnote explains the floor. Early state (below floor):
+  honest empty treatment with a current/floor progress bar.
+- Needs a NEW analytic: per-SG-category recent-vs-prior split over the last 2N
+  rounds (build on `lib/analytics/sg.ts` + the rounds ordering). Reuse the
+  scratch baseline (=0) as the sparkline reference. Sparkline = a small reusable
+  inline-SVG component (algorithm spelled out in the README §Sparkline).
+
+**Ask 2 — detail-table trends (in-cell first, global filter only as fallback):**
+- **Clubs** (`/stats/clubs`): in-cell **▲/▼ + signed delta** inside the Carry cell
+  (e.g. `162 ▲4`), window last 20 shots vs prior 20, floor 40; sub-floor clubs show
+  a faint em-dash. Wrap the (already-overflowing) table in `overflow-x:auto` with a
+  right fade. Zero added width — the point.
+- **Holes** (`/stats/holes`): 56×20 in-cell mini-sparkline inside the vs-par cell,
+  window last 5 plays, floor 10.
+- **Distance** (`/stats/distance`): no room for a glyph → ONE global segmented
+  control `Last 20 shots / All time` that recomputes every row. No per-row trend.
+- Mobile: tables already overflow (Miss L/R clips) — **do not add numeric columns.**
+
+**Notes for the build:** mobile-first ~390px; tokens already in the app (lime =
+highlight, clay, fairway-900/300, ink-300/700, positive/negative=destructive); the
+tag-fill pastels (`#DDF3E5`/`#FBE0DD`/`#FBE8DA`) are new — add as needed. Verify via
+the preview MCP. Sequence suggestion: the per-category trend analytic + Momentum
+section first (highest value, self-contained), then the three table treatments.
+
 ## Design & polish
 
 - **Link-preview metadata (portfolio share card)** — ✅ done (2026-06-10).

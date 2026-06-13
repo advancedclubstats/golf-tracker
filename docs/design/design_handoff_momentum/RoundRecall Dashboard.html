@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — Advanced Club Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    /* warm paper palette (colors_and_type.css) */
+    --paper: #F6F3EC;
+    --paper-sunk: #EFEBE1;
+    --card: #FFFFFF;
+    --ink-900: #14201A;
+    --ink-700: #36433C;
+    --ink-500: #66726B;
+    --ink-300: #9AA39D;
+    --line: #E4E0D5;
+    --line-soft: rgba(20, 32, 26, 0.07);
+
+    --fairway-900: #0B2E1E;
+    --fairway-700: #15784A;
+    --fairway-600: #1E8F59;
+    --lime-500: #CDF23E;
+    --clay-500: #E07A3E;
+
+    --positive: #1E8F59;
+    --negative: #D5443B;
+    --par-gray: #C7C2B4;
+
+    --on-lime-strong: #14201A;
+    --on-lime-muted: rgba(11, 46, 30, 0.58);
+
+    --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+    --font-ui: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+    --font-mono: "Martian Mono", "SFMono-Regular", ui-monospace, monospace;
+
+    --shadow-sm: 0 1px 2px rgba(20, 32, 26, 0.06);
+    --shadow-md: 0 6px 22px rgba(20, 32, 26, 0.07);
+    --shadow-pop: 0 10px 30px rgba(150, 180, 30, 0.30);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink-900);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+  .app { width: 100%; max-width: 430px; padding: 20px 20px 36px; }
+
+  /* ── shared primitives ──────────────────────────────────────────────── */
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em; word-spacing: -0.16em;
+    color: var(--ink-500); margin: 0;
+  }
+  .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .pos { color: var(--positive); }
+  .neg { color: var(--negative); }
+
+  section.block { margin-top: 32px; }
+  .block > .eyebrow { margin-bottom: 16px; }
+  .sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+
+  .divide > * + * { border-top: 1px solid var(--line); }
+  .lrow { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 0; }
+  .lrow .lbl { font-size: 16px; color: var(--ink-900); white-space: nowrap; }
+  .lrow .val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-weight: 600; font-size: 16px; letter-spacing: -0.01em; }
+
+  /* ── header / tabs ──────────────────────────────────────────────────── */
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+  header.top h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+  .btn-round {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--fairway-700); color: #fff;
+    height: 44px; padding: 0 18px; border-radius: 999px;
+    font-family: var(--font-ui); font-size: 15px; font-weight: 600; white-space: nowrap;
+    border: none; cursor: pointer; text-decoration: none; box-shadow: var(--shadow-sm);
+  }
+  .btn-round:active { background: var(--fairway-900); transform: scale(0.98); }
+  nav.tabs { display: flex; gap: 6px; margin-bottom: 4px; overflow-x: auto; scrollbar-width: none; }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    display: inline-flex; align-items: center; height: 36px; padding: 0 12px;
+    border-radius: 999px; font-size: 14.5px; font-weight: 600; white-space: nowrap;
+    color: var(--ink-700); text-decoration: none; cursor: pointer; flex: 0 0 auto;
+  }
+  .tab.active { background: var(--paper-sunk); color: var(--ink-900); }
+
+  /* ── biggest-leak hero (lime) ───────────────────────────────────────── */
+  .hero {
+    background: var(--lime-500); border-radius: 24px; padding: 20px 22px 22px;
+    margin-top: 22px; box-shadow: var(--shadow-pop); position: relative; overflow: hidden;
+  }
+  .hero .eyebrow { color: var(--on-lime-muted); }
+  .hero-title { font-family: var(--font-display); font-size: 24px; font-weight: 700; letter-spacing: -0.01em; color: var(--on-lime-strong); margin: 10px 0 2px; }
+  .hero-num { font-family: var(--font-mono); font-size: 58px; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--on-lime-strong); display: block; margin: 2px 0 8px; }
+  .hero-num .u { font-size: 20px; font-weight: 500; letter-spacing: 0; color: var(--on-lime-muted); margin-left: 8px; }
+  .hero-sub { font-size: 14px; color: var(--on-lime-muted); margin: 0; font-weight: 500; }
+
+  /* ── scoring shape ──────────────────────────────────────────────────── */
+  .ss-head { display: flex; align-items: baseline; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .ss-net { font-family: var(--font-mono); font-size: 40px; font-weight: 700; letter-spacing: -0.03em; }
+  .ss-net-label { font-size: 15px; color: var(--ink-500); white-space: nowrap; }
+  .ss-bar { display: flex; height: 12px; width: 100%; overflow: hidden; border-radius: 999px; margin-bottom: 20px; gap: 2px; }
+  .ss-bar > div { height: 100%; border-radius: 2px; }
+  .c-eagle { background: var(--fairway-600); }
+  .c-birdie { background: #6FC58C; }
+  .c-par { background: var(--par-gray); }
+  .c-bogey { background: var(--clay-500); }
+  .c-double { background: var(--negative); }
+  .ss-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 0; }
+  .ss-item .lbl { display: flex; align-items: center; gap: 10px; font-size: 16px; color: var(--ink-900); }
+  .dot { width: 9px; height: 9px; border-radius: 999px; flex: 0 0 auto; }
+  .ss-val { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+  .ss-val .tgt { color: var(--ink-300); font-weight: 500; margin-left: 6px; }
+  .ss-val .gap { margin-left: 8px; font-weight: 700; }
+
+  /* ── where strokes are lost ─────────────────────────────────────────── */
+  .wsl-big { font-family: var(--font-mono); font-size: 46px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; color: var(--negative); }
+  .wsl-cap { font-size: 14px; color: var(--ink-500); margin: 6px 0 6px; }
+
+  /* ── momentum (option B — sparkline buckets) ────────────────────────── */
+  .m-bucket + .m-bucket { margin-top: 22px; }
+  .m-blabel { display: flex; align-items: center; gap: 7px; font-family: var(--font-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin: 0 0 4px; }
+  .m-blabel.gain { color: var(--positive); }
+  .m-blabel.slip { color: var(--negative); }
+  .m-row { padding: 14px 0; border-top: 1px solid var(--line); }
+  .m-top { display: flex; align-items: center; gap: 10px; }
+  .m-name { font-family: var(--font-ui); font-size: 16px; font-weight: 700; color: var(--ink-900); white-space: nowrap; }
+  .m-tag {
+    display: inline-flex; align-items: center; font-family: var(--font-mono); font-size: 10px;
+    font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase;
+    padding: 3px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .tag-work { background: #DDF3E5; color: var(--positive); }
+  .tag-weapon { background: var(--lime-500); color: var(--fairway-900); }
+  .tag-accel { background: #FBE0DD; color: var(--negative); }
+  .tag-new { background: #FBE8DA; color: #B8511F; }
+  .m-bot { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 10px; }
+  .m-spark { width: 92px; height: 30px; flex: 0 0 auto; }
+  .m-delta { text-align: right; white-space: nowrap; }
+  .m-delta .d { font-family: var(--font-mono); font-size: 20px; font-weight: 700; letter-spacing: -0.02em; }
+  .m-delta .w { font-family: var(--font-mono); font-size: 11px; color: var(--ink-500); margin-top: 2px; letter-spacing: 0.01em; }
+  .m-foot { font-size: 13px; line-height: 1.5; color: var(--ink-500); margin: 18px 0 0; }
+  .m-foot strong { color: var(--ink-700); font-weight: 600; }
+
+  /* ── what to work on ────────────────────────────────────────────────── */
+  .leak { padding: 14px 0; }
+  .leak-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .leak-l { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+  .leak-rank { font-family: var(--font-mono); font-size: 14px; color: var(--ink-300); flex: 0 0 auto; }
+  .leak-title { font-size: 16px; font-weight: 700; color: var(--ink-900); white-space: nowrap; }
+  .leak-val { font-family: var(--font-mono); font-size: 18px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+  .leak-val .u { font-size: 11px; font-weight: 500; color: var(--ink-300); margin-left: 3px; }
+  .leak-sub { font-size: 13px; color: var(--ink-500); margin: 5px 0 0; padding-left: 24px; }
+  .early-note { font-size: 13px; color: var(--ink-500); margin: 20px 0 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: baseline; gap: 7px; background: var(--paper-sunk); border-radius: 999px; padding: 7px 13px; }
+  .chip .c { font-size: 14px; font-weight: 700; color: var(--ink-900); }
+  .chip .v { font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+
+  /* ── snapshot / stat line ───────────────────────────────────────────── */
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .twocol .eyebrow { margin-bottom: 12px; }
+  .srow { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 11px 0; }
+  .srow .k { font-size: 12.5px; line-height: 1.25; color: var(--ink-500); white-space: nowrap; }
+  .srow .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; flex: 0 0 auto; }
+
+  /* ── recent rounds ──────────────────────────────────────────────────── */
+  table.rounds { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 15px; }
+  table.rounds thead th { text-align: left; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-500); padding: 0 8px 10px; }
+  table.rounds thead th:first-child { padding-left: 0; }
+  table.rounds thead th:last-child, table.rounds td:last-child { text-align: right; padding-right: 0; }
+  table.rounds tbody tr { border-top: 1px solid var(--line); }
+  table.rounds td { padding: 13px 8px; color: var(--ink-900); }
+  table.rounds td:first-child { padding-left: 0; }
+
+  /* ── course records ─────────────────────────────────────────────────── */
+  .rec-row { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 14px 0; }
+  .rec-row .k { font-size: 16px; color: var(--ink-900); flex: 0 0 auto; white-space: nowrap; }
+  .rec-row .v { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; letter-spacing: -0.01em; text-align: right; }
+
+  /* ── footer ─────────────────────────────────────────────────────────── */
+  .footer { display: flex; justify-content: flex-end; margin-top: 32px; }
+  .owner { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-size: 13px; color: var(--ink-500); box-shadow: var(--shadow-sm); }
+
+  /* entrance — subtle, opt-in via JS class so static render is never hidden */
+  @media (prefers-reduced-motion: no-preference) {
+    .js-anim .fade { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+</head>
+<body>
+<main class="app" data-screen-label="Dashboard">
+
+  <!-- Header -->
+  <header class="top fade" style="animation-delay:0ms">
+    <h1>Dashboard</h1>
+    <a class="btn-round" href="#">New Round →</a>
+  </header>
+
+  <!-- Tabs -->
+  <nav class="tabs fade" style="animation-delay:30ms">
+    <a class="tab active" href="#">Dashboard</a>
+    <a class="tab" href="#">Rounds</a>
+    <a class="tab" href="#">Holes</a>
+    <a class="tab" href="#">Clubs</a>
+    <a class="tab" href="#">Distance</a>
+  </nav>
+
+  <!-- Biggest leak hero -->
+  <div class="hero fade" style="animation-delay:60ms">
+    <p class="eyebrow">Biggest leak</p>
+    <p class="hero-title">Putts 10–20 ft</p>
+    <span class="hero-num">−0.93<span class="u">/ round</span></span>
+    <p class="hero-sub">6% made vs scratch ≈ 22% · across 54 shots</p>
+  </div>
+
+  <!-- Scoring shape -->
+  <section class="block fade" style="animation-delay:90ms">
+    <p class="eyebrow">Scoring shape</p>
+    <div class="ss-head">
+      <span class="ss-net pos">+13%</span>
+      <span class="ss-net-label">birdies − doubles per hole</span>
+    </div>
+    <div class="ss-bar">
+      <div class="c-eagle" style="width:2%"></div>
+      <div class="c-birdie" style="width:16%"></div>
+      <div class="c-par" style="width:59%"></div>
+      <div class="c-bogey" style="width:19%"></div>
+      <div class="c-double" style="width:4%"></div>
+    </div>
+    <div class="divide">
+      <div class="ss-item"><span class="lbl"><span class="dot c-eagle"></span>Eagle+</span><span class="ss-val">2%<span class="tgt">/ 1%</span><span class="gap pos">+1</span></span></div>
+      <div class="ss-item"><span class="lbl"><span class="dot c-birdie"></span>Birdie</span><span class="ss-val">16%<span class="tgt">/ 13%</span><span class="gap pos">+3</span></span></div>
+      <div class="ss-item"><span class="lbl"><span class="dot c-par"></span>Par</span><span class="ss-val">59%<span class="tgt">/ 58%</span><span class="gap pos">+1</span></span></div>
+      <div class="ss-item"><span class="lbl"><span class="dot c-bogey"></span>Bogey</span><span class="ss-val">19%<span class="tgt">/ 24%</span><span class="gap pos">−5</span></span></div>
+      <div class="ss-item"><span class="lbl"><span class="dot c-double"></span>Double+</span><span class="ss-val">4%<span class="tgt">/ 4%</span></span></div>
+    </div>
+  </section>
+
+  <!-- Where strokes are lost (the static state) -->
+  <section class="block fade" style="animation-delay:120ms">
+    <p class="eyebrow">Where strokes are lost</p>
+    <div class="wsl-big mono">−1.28</div>
+    <p class="wsl-cap">per round vs scratch</p>
+    <div class="divide">
+      <div class="lrow"><span class="lbl">Putting</span><span class="val neg">−1.46/rd</span></div>
+      <div class="lrow"><span class="lbl">Approach</span><span class="val neg">−0.47/rd</span></div>
+      <div class="lrow"><span class="lbl">Short game</span><span class="val neg">−0.08/rd</span></div>
+      <div class="lrow"><span class="lbl">Off the tee</span><span class="val pos">+0.73/rd</span></div>
+    </div>
+  </section>
+
+  <!-- Momentum (the motion — paired with Where strokes are lost) -->
+  <section class="block fade" style="animation-delay:150ms">
+    <div class="sechead">
+      <p class="eyebrow">Momentum</p>
+      <p class="eyebrow" style="letter-spacing:0.04em">vs prior 5 rounds</p>
+    </div>
+
+    <div class="m-bucket">
+      <p class="m-blabel gain">▲ Gaining</p>
+      <div class="m-row">
+        <div class="m-top"><span class="m-name">Putting</span><span class="m-tag tag-work">#1 leak · working</span></div>
+        <div class="m-bot">
+          <span class="m-spark" data-spark="-1.95,-1.78,-1.84,-1.6,-1.66,-1.5,-1.42,-1.3,-1.18,-1.05" data-dir="up"></span>
+          <span class="m-delta"><span class="d pos">+0.41</span><div class="w">/rd · last 5 rounds</div></span>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-top"><span class="m-name">Off the tee</span><span class="m-tag tag-weapon">weapon</span></div>
+        <div class="m-bot">
+          <span class="m-spark" data-spark="0.28,0.4,0.36,0.55,0.5,0.62,0.66,0.78,0.84,0.95" data-dir="up"></span>
+          <span class="m-delta"><span class="d pos">+0.30</span><div class="w">/rd · last 5 rounds</div></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="m-bucket">
+      <p class="m-blabel slip">▼ Slipping</p>
+      <div class="m-row">
+        <div class="m-top"><span class="m-name">Approach</span><span class="m-tag tag-accel">#2 leak · accelerating</span></div>
+        <div class="m-bot">
+          <span class="m-spark" data-spark="-0.02,-0.12,-0.08,-0.18,-0.28,-0.36,-0.4,-0.5,-0.58,-0.72" data-dir="down"></span>
+          <span class="m-delta"><span class="d neg">−0.48</span><div class="w">/rd · last 5 rounds</div></span>
+        </div>
+      </div>
+      <div class="m-row">
+        <div class="m-top"><span class="m-name">Short game</span><span class="m-tag tag-new">new slip</span></div>
+        <div class="m-bot">
+          <span class="m-spark" data-spark="0.22,0.16,0.14,0.06,0.04,-0.02,-0.06,-0.12,-0.16,-0.22" data-dir="down"></span>
+          <span class="m-delta"><span class="d neg">−0.22</span><div class="w">/rd · last 5 rounds</div></span>
+        </div>
+      </div>
+    </div>
+
+    <p class="m-foot">Sparkline = your last 10 rounds in that category; the dotted line is scratch. Only categories past the <strong>10-round floor</strong> that moved meaningfully appear — momentum lives only here.</p>
+  </section>
+
+  <!-- What to work on -->
+  <section class="block fade" style="animation-delay:180ms">
+    <p class="eyebrow">What to work on</p>
+    <div class="divide">
+      <div class="leak">
+        <div class="leak-head"><span class="leak-l"><span class="leak-rank">1.</span><span class="leak-title">Putts 10–20 ft</span></span><span class="leak-val neg">−0.93<span class="u">/rd</span></span></div>
+        <p class="leak-sub">6% made · scratch ≈ 22% · 54 shots</p>
+      </div>
+      <div class="leak">
+        <div class="leak-head"><span class="leak-l"><span class="leak-rank">2.</span><span class="leak-title">Approach 75–125 yds</span></span><span class="leak-val neg">−0.60<span class="u">/rd</span></span></div>
+        <p class="leak-sub">63% greens · scratch ≈ 70% · 43 shots</p>
+      </div>
+      <div class="leak">
+        <div class="leak-head"><span class="leak-l"><span class="leak-rank">3.</span><span class="leak-title">Putts 6–10 ft</span></span><span class="leak-val neg">−0.58<span class="u">/rd</span></span></div>
+        <p class="leak-sub">26% made · scratch ≈ 50% · 31 shots</p>
+      </div>
+      <div class="leak">
+        <div class="leak-head"><span class="leak-l"><span class="leak-rank">4.</span><span class="leak-title">SW</span></span><span class="leak-val neg">−0.22<span class="u">/rd</span></span></div>
+        <p class="leak-sub">21 shots</p>
+      </div>
+      <div class="leak">
+        <div class="leak-head"><span class="leak-l"><span class="leak-rank">5.</span><span class="leak-title">Around green 10–30 yds</span></span><span class="leak-val neg">−0.15<span class="u">/rd</span></span></div>
+        <p class="leak-sub">85% on green · scratch ≈ 82% · 41 shots</p>
+      </div>
+    </div>
+    <p class="early-note">Early reads — not enough data to prescribe yet</p>
+    <div class="chips">
+      <span class="chip"><span class="c">6i</span><span class="v neg">−0.18</span></span>
+      <span class="chip"><span class="c">5i</span><span class="v neg">−0.09</span></span>
+      <span class="chip"><span class="c">8i</span><span class="v neg">−0.08</span></span>
+      <span class="chip"><span class="c">GW</span><span class="v neg">−0.07</span></span>
+      <span class="chip"><span class="c">4i</span><span class="v neg">−0.07</span></span>
+    </div>
+  </section>
+
+  <!-- Snapshot / Stat line -->
+  <section class="block fade" style="animation-delay:210ms">
+    <div class="twocol">
+      <div>
+        <p class="eyebrow">Snapshot</p>
+        <div class="divide">
+          <div class="srow"><span class="k">Rounds Logged</span><span class="v">12</span></div>
+          <div class="srow"><span class="k">Holes Logged</span><span class="v">187</span></div>
+          <div class="srow"><span class="k">Total vs Par</span><span class="v">+19</span></div>
+          <div class="srow"><span class="k">Avg vs Par / Round</span><span class="v">+1.58</span></div>
+          <div class="srow"><span class="k">Avg vs Par / Hole</span><span class="v">+0.10</span></div>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow">Stat line</p>
+        <div class="divide">
+          <div class="srow"><span class="k">Fairways Hit</span><span class="v">35%</span></div>
+          <div class="srow"><span class="k">Greens in Regulation</span><span class="v">70%</span></div>
+          <div class="srow"><span class="k">Scrambling</span><span class="v">36%</span></div>
+          <div class="srow"><span class="k">Avg Putts / Hole</span><span class="v">1.75</span></div>
+          <div class="srow"><span class="k">3-Putt %</span><span class="v">5%</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Recent rounds -->
+  <section class="block fade" style="animation-delay:240ms">
+    <p class="eyebrow">Recent rounds</p>
+    <table class="rounds">
+      <thead><tr><th>Date</th><th>Holes</th><th>Strokes</th><th>vs Par</th></tr></thead>
+      <tbody>
+        <tr><td>2026-06-11</td><td>18</td><td>75</td><td>+4</td></tr>
+        <tr><td>2026-06-08</td><td>9</td><td>34</td><td>−2</td></tr>
+        <tr><td>2026-06-07</td><td>18</td><td>80</td><td>+9</td></tr>
+        <tr><td>2026-06-06</td><td>18</td><td>77</td><td>+6</td></tr>
+        <tr><td>2026-06-04</td><td>18</td><td>70</td><td>−1</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- Course records -->
+  <section class="block fade" style="animation-delay:270ms">
+    <p class="eyebrow">Course records</p>
+    <div class="divide">
+      <div class="rec-row"><span class="k">Best Round</span><span class="v">16 holes · 61 (−3)</span></div>
+      <div class="rec-row"><span class="k">Worst Round</span><span class="v">18 holes · 80 (+9)</span></div>
+      <div class="rec-row"><span class="k">Best Hole</span><span class="v">Hole 2 (par 5) · −7 across 11 rounds</span></div>
+      <div class="rec-row"><span class="k">Birdies</span><span class="v">30</span></div>
+      <div class="rec-row"><span class="k">Eagles or better</span><span class="v">3</span></div>
+    </div>
+  </section>
+
+  <div class="footer fade" style="animation-delay:300ms">
+    <span class="owner">Owner mode · Sign out</span>
+  </div>
+</main>
+
+<script>
+  // Render compact sparklines from data-spark attrs. Presentational only.
+  (function () {
+    var GREEN = '#1E8F59', RED = '#D5443B';
+    document.querySelectorAll('[data-spark]').forEach(function (el) {
+      var pts = el.dataset.spark.split(',').map(Number);
+      var up = el.dataset.dir === 'up';
+      var color = up ? GREEN : RED;
+      var w = el.clientWidth || 92, h = el.clientHeight || 30, pad = 3;
+      var vals = pts.concat([0]); // include scratch so the 0-line sits in range
+      var min = Math.min.apply(null, vals), max = Math.max.apply(null, vals);
+      var range = (max - min) || 1;
+      var step = (w - pad * 2) / (pts.length - 1);
+      var xy = pts.map(function (p, i) {
+        return [pad + i * step, pad + (h - pad * 2) * (1 - (p - min) / range)];
+      });
+      var line = xy.map(function (c) { return c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' ');
+      var area = pad + ',' + (h - pad) + ' ' + line + ' ' + (w - pad).toFixed(1) + ',' + (h - pad);
+      var zeroY = (pad + (h - pad * 2) * (1 - (0 - min) / range)).toFixed(1);
+      var last = xy[xy.length - 1];
+      var gid = 'sg' + Math.random().toString(36).slice(2, 7);
+      el.innerHTML =
+        '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block;color:' + color + '">' +
+          '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+            '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.16"/>' +
+            '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+          '</linearGradient></defs>' +
+          '<line x1="' + pad + '" y1="' + zeroY + '" x2="' + (w - pad) + '" y2="' + zeroY + '" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2" opacity="0.35"/>' +
+          '<polygon points="' + area + '" fill="url(#' + gid + ')"/>' +
+          '<polyline points="' + line + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+          '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.8" fill="' + color + '"/>' +
+        '</svg>';
+    });
+  })();
+</script>
+</body>
+</html>

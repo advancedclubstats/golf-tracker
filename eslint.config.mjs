@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design handoffs are prototype references (HTML/JSX from Claude Design),
+    // not app code — never lint them.
+    "docs/**",
   ]),
   {
     // Enforce layer boundary: components/ must not import lib/db/ directly.

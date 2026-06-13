@@ -39,7 +39,22 @@ export interface ClubSummaryRow {
   missLongPct: number;
   missShortPct: number;
   bunkerPct: number;
+  /** Strike-quality trend (Ask 2 — in-cell delta glyph). */
+  qualTrend: ClubQualTrend;
 }
+
+/** In-cell strike-quality trend: recent N shots vs prior N (absent below 2N). */
+export interface ClubQualTrend {
+  /** recent mean − prior mean of execution (higher = improving). Null below floor. */
+  delta: number | null;
+  /** Rated shots with this club. */
+  count: number;
+  /** 2N-shot floor. */
+  floor: number;
+}
+
+const CLUB_WINDOW = 20;
+const CLUB_FLOOR = CLUB_WINDOW * 2;
 
 interface ClubAcc {
   club: string;
@@ -57,6 +72,8 @@ interface ClubAcc {
   missLong: number;
   missShort: number;
   bunkerShots: number;
+  /** Rated execution samples with an ordering key, for the quality trend. */
+  qualSamples: { t: number; exec: number }[];
 }
 
 function newAcc(club: string): ClubAcc {
@@ -76,11 +93,16 @@ function newAcc(club: string): ClubAcc {
     missLong: 0,
     missShort: 0,
     bunkerShots: 0,
+    qualSamples: [],
   };
 }
 
 /** Compute per-club stats from raw shot rows. */
-export function computeClubSummary(shots: readonly ShotRow[]): ClubSummaryRow[] {
+export function computeClubSummary(
+  shots: readonly ShotRow[],
+  /** roundId → date, to order shots for the quality trend (Ask 2). Omit → no trend. */
+  dateOf?: Record<string, string | null>,
+): ClubSummaryRow[] {
   const clubs = new Map<string, ClubAcc>();
 
   for (const row of shots) {
@@ -100,6 +122,11 @@ export function computeClubSummary(shots: readonly ShotRow[]): ClubSummaryRow[] 
     if (typeof exec === "number" && exec > 0) {
       c.execSum += exec;
       c.execCount++;
+      if (dateOf) {
+        // Order by play date, then shot_no within a round.
+        const d = new Date(dateOf[row.round_id] ?? 0).getTime() || 0;
+        c.qualSamples.push({ t: d * 100 + row.shot_no, exec });
+      }
     }
 
     const yd = row.yardage;
@@ -145,17 +172,28 @@ export function computeClubSummary(shots: readonly ShotRow[]): ClubSummaryRow[] 
     return ai - bi;
   });
 
-  return sorted.map((c) => ({
-    club: c.club,
-    shots: c.shots,
-    avgQuality: c.execCount > 0 ? r2(c.execSum / c.execCount) : null,
-    avgYds: c.ydCount > 0 ? Math.round(c.ydSum / c.ydCount) : null,
-    fwPct: c.teeShots > 0 ? c.fwHits / c.teeShots : null,
-    greenPct: c.approachShots > 0 ? c.greenHits / c.approachShots : null,
-    missLPct: c.shots > 0 ? c.missL / c.shots : 0,
-    missRPct: c.shots > 0 ? c.missR / c.shots : 0,
-    missLongPct: c.shots > 0 ? c.missLong / c.shots : 0,
-    missShortPct: c.shots > 0 ? c.missShort / c.shots : 0,
-    bunkerPct: c.shots > 0 ? c.bunkerShots / c.shots : 0,
-  }));
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  return sorted.map((c) => {
+    // Quality trend: recent N rated shots vs prior N, ordered by play.
+    const execs = c.qualSamples.sort((a, b) => a.t - b.t).map((s) => s.exec);
+    let delta: number | null = null;
+    if (execs.length >= CLUB_FLOOR) {
+      delta =
+        mean(execs.slice(-CLUB_WINDOW)) - mean(execs.slice(-CLUB_FLOOR, -CLUB_WINDOW));
+    }
+    return {
+      club: c.club,
+      shots: c.shots,
+      avgQuality: c.execCount > 0 ? r2(c.execSum / c.execCount) : null,
+      avgYds: c.ydCount > 0 ? Math.round(c.ydSum / c.ydCount) : null,
+      fwPct: c.teeShots > 0 ? c.fwHits / c.teeShots : null,
+      greenPct: c.approachShots > 0 ? c.greenHits / c.approachShots : null,
+      missLPct: c.shots > 0 ? c.missL / c.shots : 0,
+      missRPct: c.shots > 0 ? c.missR / c.shots : 0,
+      missLongPct: c.shots > 0 ? c.missLong / c.shots : 0,
+      missShortPct: c.shots > 0 ? c.missShort / c.shots : 0,
+      bunkerPct: c.shots > 0 ? c.bunkerShots / c.shots : 0,
+      qualTrend: { delta, count: c.execCount, floor: CLUB_FLOOR },
+    };
+  });
 }

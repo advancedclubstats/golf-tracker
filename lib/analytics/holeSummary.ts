@@ -40,7 +40,26 @@ export interface HoleSummaryRow {
   threePuttPct: number;
   /** Average non-putt execution rating. `null` if no rated non-putt shots. */
   shotQuality: number | null;
+  /** Vs-par trend over recent plays (Ask 2 — in-cell sparkline). */
+  vsParTrend: HoleVsParTrend;
 }
+
+/** In-cell vs-par trend for a hole (last 2N plays; absent below the floor). */
+export interface HoleVsParTrend {
+  /** The always-shown number (avgVsPar). */
+  value: number;
+  /** Last 2N per-play vs-par values, oldest → newest; null below the floor. */
+  points: number[] | null;
+  /** Times this hole has been played (complete). */
+  plays: number;
+  /** 2N play floor for the trend. */
+  floor: number;
+  /** Recent N mean < prior N mean (lower vs-par = better). Null below floor. */
+  improving: boolean | null;
+}
+
+const HOLE_WINDOW = 5;
+const HOLE_FLOOR = HOLE_WINDOW * 2;
 
 /** A round-hole that was excluded from the summary (last shot wasn't 'Make'). */
 export interface ExcludedRoundHole {
@@ -66,7 +85,11 @@ export interface HoleSummary {
  * partial holes are excluded and reported in `excluded` (matches the `.gs`
  * "Complete round-holes counted / excluded" footer).
  */
-export function computeHoleSummary(shots: readonly ShotRow[]): HoleSummary {
+export function computeHoleSummary(
+  shots: readonly ShotRow[],
+  /** roundId → date, to order plays for the vs-par trend (Ask 2). Omit → no trend. */
+  dateOf?: Record<string, string | null>,
+): HoleSummary {
   const roundHoles = aggregateByRoundHole(shots);
   const complete = roundHoles.filter((r) => r.complete).map(enrichRoundHole);
   const incomplete = roundHoles.filter((r) => !r.complete);
@@ -112,6 +135,26 @@ export function computeHoleSummary(shots: readonly ShotRow[]): HoleSummary {
     const tnpc = group.reduce((s, r) => s + r.nonPuttExecCount, 0);
     const shotQuality = tnpc > 0 ? r2(tnps / tnpc) : null;
 
+    // Vs-par trend: per-play (strokes − par), ordered by round date.
+    const series = dateOf
+      ? [...group]
+          .sort(
+            (a, b) =>
+              (new Date(dateOf[a.roundId] ?? 0).getTime() || 0) -
+              (new Date(dateOf[b.roundId] ?? 0).getTime() || 0),
+          )
+          .map((r) => r.strokes - par)
+      : [];
+    let trendPoints: number[] | null = null;
+    let improving: boolean | null = null;
+    if (series.length >= HOLE_FLOOR) {
+      trendPoints = series.slice(-HOLE_FLOOR);
+      const recent = series.slice(-HOLE_WINDOW);
+      const prior = series.slice(-HOLE_FLOOR, -HOLE_WINDOW);
+      const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+      improving = mean(recent) < mean(prior); // lower vs-par is better
+    }
+
     rows.push({
       hole,
       par,
@@ -126,6 +169,13 @@ export function computeHoleSummary(shots: readonly ShotRow[]): HoleSummary {
       avgPutts: r2(avgPutts),
       threePuttPct,
       shotQuality,
+      vsParTrend: {
+        value: r2(avgScore - par),
+        points: trendPoints,
+        plays: n,
+        floor: HOLE_FLOOR,
+        improving,
+      },
     });
   }
 

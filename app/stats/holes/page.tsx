@@ -1,4 +1,5 @@
 import { getAllShots } from "@/lib/db/shots";
+import { getAllRounds } from "@/lib/db/rounds";
 import { computeHoleSummary, type HoleSummaryRow } from "@/lib/analytics/holeSummary";
 import { getHoleAttribution } from "@/lib/sg-server";
 import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
@@ -14,7 +15,7 @@ const columns: ColumnConfig<HoleSummaryRow>[] = [
   { header: "Rds", key: "rounds", align: "right" },
   { header: "Avg", key: "avgScore", format: "num", align: "right" },
   { header: "Best", key: "best", format: "num", align: "right" },
-  { header: "vs Par", key: "avgVsPar", format: "vsParAvg", align: "right" },
+  { header: "vs Par", key: "avgVsPar", format: "sparkline", trendKey: "vsParTrend", align: "right", sortable: false },
   { header: "FW%", key: "fwPct", format: "pct", align: "right" },
   { header: "GIR%", key: "girPct", format: "pct", align: "right" },
   { header: "Scr%", key: "scramblePct", format: "pct", align: "right" },
@@ -24,8 +25,9 @@ const columns: ColumnConfig<HoleSummaryRow>[] = [
 ];
 
 export default async function HoleSummaryPage() {
-  const shots = await getAllShots();
-  const summary = computeHoleSummary(shots);
+  const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
+  const dateOf = Object.fromEntries(rounds.map((r) => [r.id, r.date]));
+  const summary = computeHoleSummary(shots, dateOf);
   const attribution = await getHoleAttribution();
 
   const pickedUp = summary.excluded.filter((e) => e.conceded).length;
@@ -57,6 +59,7 @@ export default async function HoleSummaryPage() {
           {summary.completeCount} complete hole{summary.completeCount === 1 ? "" : "s"} counted
           {pickedUp > 0 && ` · ${pickedUp} picked up`}
           {unfinished > 0 && ` · ${unfinished} unfinished excluded`}
+          {" · "}vs-par sparkline = last 10 plays
         </p>
       )}
     </main>

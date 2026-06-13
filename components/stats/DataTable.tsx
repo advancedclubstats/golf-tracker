@@ -12,8 +12,9 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { fmtPct, fmtNum, fmtVsParAvg } from "@/lib/format";
+import { Sparkline } from "@/components/dashboard/Sparkline";
 
-export type CellFormat = "text" | "num" | "pct" | "vsParAvg";
+export type CellFormat = "text" | "num" | "pct" | "vsParAvg" | "sparkline" | "deltaGlyph";
 
 export interface ColumnConfig<T> {
   header: string;
@@ -22,9 +23,25 @@ export interface ColumnConfig<T> {
   align?: "left" | "right";
   /** Sortable unless explicitly false (e.g. distance-bucket label columns). */
   sortable?: boolean;
+  /** Companion field holding the in-cell trend object (Ask 2). */
+  trendKey?: keyof T & string;
 }
 
 type Dir = "asc" | "desc";
+
+/** vs-par trend (Holes); see holeSummary HoleVsParTrend. */
+interface SparklineTrend {
+  points: number[] | null;
+  plays: number;
+  floor: number;
+  improving: boolean | null;
+}
+/** delta glyph (Clubs); recent vs prior of a metric. */
+interface DeltaTrend {
+  delta: number | null;
+  count: number;
+  floor: number;
+}
 
 function renderCell(value: unknown, format: CellFormat = "text") {
   switch (format) {
@@ -37,6 +54,62 @@ function renderCell(value: unknown, format: CellFormat = "text") {
     default:
       return value == null ? "—" : String(value);
   }
+}
+
+/** "▲4" / "▼0.3" — the glyph carries direction, so no sign char. */
+function deltaText(d: number): string {
+  return `${d >= 0 ? "▲" : "▼"}${Math.round(Math.abs(d) * 10) / 10}`;
+}
+
+/** vs-par value + an in-cell sparkline (Holes), or the value + "needs N plays". */
+function TrendSparkCell({ value, trend }: { value: number | null; trend?: SparklineTrend }) {
+  const v = value == null ? "—" : fmtVsParAvg(value);
+  if (!trend || trend.points == null) {
+    return (
+      <span className="inline-flex flex-col items-end leading-tight">
+        <span>{v}</span>
+        {trend && (
+          <span className="font-sans text-[9px] text-ink-300">needs {trend.floor} plays</span>
+        )}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center justify-end gap-2">
+      <Sparkline
+        points={trend.points}
+        width={56}
+        height={20}
+        className={trend.improving ? "text-positive" : "text-destructive"}
+      />
+      <span>{v}</span>
+    </span>
+  );
+}
+
+/** metric value + an in-cell ▲/▼ delta (Clubs), or a faint em-dash below floor. */
+function TrendGlyphCell({ value, trend }: { value: number | null; trend?: DeltaTrend }) {
+  const v = value == null ? "—" : fmtNum(value);
+  if (!trend || trend.delta == null) {
+    return (
+      <span>
+        {v} <span className="text-ink-300">—</span>
+      </span>
+    );
+  }
+  return (
+    <span>
+      {v}{" "}
+      <span
+        className={cn(
+          "text-[0.72rem] font-bold",
+          trend.delta >= 0 ? "text-positive" : "text-destructive",
+        )}
+      >
+        {deltaText(trend.delta)}
+      </span>
+    </span>
+  );
 }
 
 function compare(av: unknown, bv: unknown, dir: Dir): number {
@@ -149,7 +222,19 @@ export function DataTable<T>({
                     c.format && c.format !== "text" && "font-mono",
                   )}
                 >
-                  {renderCell(row[c.key], c.format)}
+                  {c.format === "sparkline" ? (
+                    <TrendSparkCell
+                      value={row[c.key] as number | null}
+                      trend={c.trendKey ? (row[c.trendKey] as unknown as SparklineTrend) : undefined}
+                    />
+                  ) : c.format === "deltaGlyph" ? (
+                    <TrendGlyphCell
+                      value={row[c.key] as number | null}
+                      trend={c.trendKey ? (row[c.trendKey] as unknown as DeltaTrend) : undefined}
+                    />
+                  ) : (
+                    renderCell(row[c.key], c.format)
+                  )}
                 </td>
               ))}
             </tr>

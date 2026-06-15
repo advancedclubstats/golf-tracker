@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Distance Summary — Advanced Club Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Martian+Mono:wght@400;500;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700;12..96,800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #F6F3EC;
+    --paper-sunk: #EFEBE1;
+    --card: #FFFFFF;
+    --card-cream: #FBF9F3;
+    --ink-900: #14201A;
+    --ink-700: #36433C;
+    --ink-500: #66726B;
+    --ink-300: #9AA39D;
+    --line: #E4E0D5;
+
+    --fairway-900: #0B2E1E;
+    --fairway-800: #11603B;
+    --fairway-700: #15784A;
+    --fairway-600: #1E8F59;
+    --lime-500: #CDF23E;
+    --clay-500: #E07A3E;
+    --negative: #D5443B;
+
+    --font-display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+    --font-ui: "Hanken Grotesk", system-ui, -apple-system, sans-serif;
+    --font-mono: "Martian Mono", "SFMono-Regular", ui-monospace, monospace;
+
+    --r-md: 16px;
+    --r-lg: 24px;
+    --shadow-sm: 0 1px 2px rgba(20, 32, 26, 0.06);
+    --shadow-md: 0 6px 22px rgba(20, 32, 26, 0.07);
+    --shadow-hero: 0 16px 40px rgba(11, 46, 30, 0.30);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--paper);
+    color: var(--ink-900);
+    font-family: var(--font-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+  }
+  #root { width: 100%; display: flex; justify-content: center; }
+  .app { width: 100%; max-width: 430px; padding: 20px 20px 40px; }
+
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.07em; word-spacing: -0.16em;
+    color: var(--ink-500); margin: 0;
+  }
+
+  /* ── header / tabs ──────────────────────────────────────────────────── */
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+  header.top h1 { font-family: var(--font-display); font-size: 30px; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+  .btn-round {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--fairway-700); color: #fff; height: 44px; padding: 0 18px; border-radius: 999px;
+    font-family: var(--font-ui); font-size: 15px; font-weight: 600; white-space: nowrap;
+    border: none; cursor: pointer; text-decoration: none; box-shadow: var(--shadow-sm);
+  }
+  nav.tabs { display: flex; gap: 6px; margin-bottom: 6px; overflow-x: auto; scrollbar-width: none; }
+  nav.tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    display: inline-flex; align-items: center; height: 36px; padding: 0 12px; border-radius: 999px;
+    font-size: 14.5px; font-weight: 600; white-space: nowrap; color: var(--ink-700);
+    text-decoration: none; cursor: pointer; flex: 0 0 auto;
+  }
+  .tab.active { background: var(--paper-sunk); color: var(--ink-900); }
+
+  /* ── global window toggle ───────────────────────────────────────────── */
+  .seg { display: inline-flex; background: var(--paper-sunk); border-radius: 999px; padding: 4px; gap: 2px; margin: 16px 0 4px; }
+  .seg button {
+    border: none; background: transparent; font-family: var(--font-ui); font-size: 14px; font-weight: 600;
+    color: var(--ink-500); padding: 0 18px; height: 40px; border-radius: 999px; cursor: pointer; white-space: nowrap;
+  }
+  .seg button.on { background: var(--card); color: var(--ink-900); box-shadow: var(--shadow-sm); }
+
+  /* ── ranked hero (dark headline) ────────────────────────────────────── */
+  .hero {
+    background: var(--fairway-900); color: #EAF1EC; border-radius: var(--r-lg);
+    padding: 22px 22px 18px; margin: 16px 0 6px; box-shadow: var(--shadow-hero); overflow: hidden;
+  }
+  .hero.light { background: var(--card); color: var(--ink-900); box-shadow: var(--shadow-md); }
+  .hero-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .hero .eyebrow { color: rgba(205, 242, 62, 0.92); }
+  .hero.light .eyebrow { color: var(--ink-500); }
+  .hero-win { font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.03em; color: rgba(234, 241, 236, 0.55); white-space: nowrap; }
+  .hero.light .hero-win { color: var(--ink-300); }
+
+  .hero-lead { margin: 14px 0 6px; }
+  .hero-num { font-family: var(--font-mono); font-size: 52px; font-weight: 700; line-height: 1; letter-spacing: -0.04em; display: inline-flex; align-items: baseline; gap: 12px; }
+  .hero-num .u { font-family: var(--font-ui); font-size: 14px; font-weight: 500; letter-spacing: 0; color: rgba(234, 241, 236, 0.6); }
+  .hero.light .hero-num .u { color: var(--ink-500); }
+  .hero-cap { font-size: 13.5px; line-height: 1.5; color: rgba(234, 241, 236, 0.66); margin: 10px 0 0; max-width: 38ch; }
+  .hero-cap strong { color: #fff; font-weight: 700; }
+  .hero.light .hero-cap { color: var(--ink-500); }
+  .hero.light .hero-cap strong { color: var(--ink-900); }
+
+  .gaprank { list-style: none; margin: 16px 0 0; padding: 0; }
+  .gr { padding: 15px 0; border-top: 1px solid rgba(234, 241, 236, 0.14); }
+  .hero.light .gr { border-top: 1px solid var(--line); }
+  .gr:first-child { border-top: none; }
+  .gr-top { display: flex; align-items: baseline; gap: 11px; }
+  .gr-rank { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: rgba(234, 241, 236, 0.45); width: 14px; flex: 0 0 auto; }
+  .hero.light .gr-rank { color: var(--ink-300); }
+  .gr-name { font-family: var(--font-ui); font-size: 16px; font-weight: 700; color: #fff; flex: 1 1 auto; letter-spacing: -0.01em; }
+  .hero.light .gr-name { color: var(--ink-900); }
+  .gr-sg { font-family: var(--font-mono); font-size: 18px; font-weight: 700; letter-spacing: -0.02em; white-space: nowrap; }
+  .gr-sg .u { font-size: 10px; font-weight: 500; opacity: 0.7; margin-left: 2px; }
+  .gr-bar { margin: 11px 0 9px; padding-left: 25px; }
+  .gr-sub { font-size: 12px; line-height: 1.4; color: rgba(234, 241, 236, 0.6); margin: 0; padding-left: 25px; font-variant-numeric: tabular-nums; }
+  .hero.light .gr-sub { color: var(--ink-500); }
+  .hero-foot { font-size: 11px; line-height: 1.5; color: rgba(234, 241, 236, 0.42); margin: 14px 0 2px; }
+  .hero.light .hero-foot { color: var(--ink-300); }
+
+  /* ── sections / tables ──────────────────────────────────────────────── */
+  .d-block { margin-top: 30px; }
+  .d-sechead { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .d-note { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.02em; color: var(--ink-300); white-space: nowrap; }
+  .d-foot { font-size: 12.5px; line-height: 1.5; color: var(--ink-500); margin: 12px 2px 0; }
+  .d-foot strong { color: var(--ink-700); font-weight: 700; }
+
+  .tbl-wrap { position: relative; }
+  .tbl-wrap::after { content: ""; position: absolute; top: 0; right: 0; bottom: 14px; width: 30px; background: linear-gradient(to right, rgba(246, 243, 236, 0), var(--paper) 82%); pointer-events: none; opacity: 0; transition: opacity 0.18s; }
+  .tbl-wrap.more::after { opacity: 1; }
+  .tbl-scroll { overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tbl-scroll::-webkit-scrollbar { display: none; }
+
+  .dtbl { border-collapse: collapse; width: max-content; min-width: 100%; }
+  .dtbl thead th {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em;
+    text-transform: uppercase; color: var(--ink-500); text-align: right; padding: 0 0 11px 13px; white-space: nowrap;
+  }
+  .dtbl thead th.stick, .dtbl thead th.wgap { text-align: left; }
+  .dtbl tbody tr { border-top: 1px solid var(--line); }
+  .dtbl tbody td { padding: 13px 0 13px 13px; white-space: nowrap; vertical-align: middle; }
+  .dtbl .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; text-align: right; font-size: 15px; font-weight: 500; color: var(--ink-900); letter-spacing: -0.01em; }
+  .dtbl .num.big { font-weight: 700; }
+  .dtbl .num.warn { color: var(--clay-500); font-weight: 700; }
+  .dtbl .num.lead { color: var(--ink-900); font-weight: 700; }
+  .dtbl .num.lead::after { content: ""; display: inline-block; width: 5px; height: 5px; border-radius: 999px; background: var(--clay-500); margin-left: 6px; vertical-align: middle; }
+  .dtbl .dist { font-family: var(--font-ui); font-size: 15px; font-weight: 600; color: var(--ink-900); text-align: left; }
+  .stick { position: sticky; left: 0; background: var(--paper); padding-right: 14px !important; z-index: 2; }
+  .rthin td { color: var(--ink-300); }
+  .rthin .dist { color: var(--ink-500); }
+  .thin-tag { font-family: var(--font-mono); font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--clay-500); background: #FBE8DA; border-radius: 5px; padding: 1px 5px; margin-left: 7px; vertical-align: middle; }
+
+  /* ── the gap cell ───────────────────────────────────────────────────── */
+  .gapwrap { padding-left: 14px; }
+  .gc { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 90px; }
+  .gc-row { display: flex; align-items: center; gap: 7px; width: 100%; }
+  .gc-tour { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.02em; color: var(--ink-300); }
+  .gc-heat { font-family: var(--font-mono); font-weight: 700; font-size: 17px; letter-spacing: -0.02em; }
+  .cell-thin { font-family: var(--font-mono); color: var(--ink-300); font-size: 15px; }
+
+  .gapbar { position: relative; flex: 1 1 auto; min-width: 40px; border-radius: 999px; background: var(--paper-sunk); overflow: hidden; }
+  .gb-fill { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(20, 32, 26, 0.32); }
+  .gb-gap { position: absolute; top: 0; bottom: 0; }
+  .gb-tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--ink-900); }
+  .gapbar.on-dark { background: rgba(255, 255, 255, 0.12); }
+  .gapbar.on-dark .gb-fill { background: rgba(255, 255, 255, 0.42); }
+  .gapbar.on-dark .gb-tick { background: #fff; }
+
+  .gapchip { font-family: var(--font-mono); font-size: 11px; font-weight: 600; padding: 2px 6px; border-radius: 6px; letter-spacing: -0.02em; white-space: nowrap; flex: 0 0 auto; }
+  .gapchip.big { font-size: 14px; padding: 3px 9px; }
+  .gapchip.sev3 { color: #fff; background: var(--negative); }
+  .gapchip.sev2 { color: #fff; background: var(--clay-500); }
+  .gapchip.sev1 { color: var(--ink-700); background: var(--paper-sunk); }
+  .gapchip.sev0 { color: var(--ink-500); background: var(--paper-sunk); }
+  .gapchip.ahead { color: var(--fairway-700); background: #DDF3E5; }
+
+  /* ── footer ─────────────────────────────────────────────────────────── */
+  .footer { display: flex; justify-content: flex-end; margin-top: 30px; }
+  .owner { display: inline-flex; align-items: center; gap: 8px; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; font-size: 13px; color: var(--ink-500); box-shadow: var(--shadow-sm); }
+
+  /* Entrance is transform-only and gated behind .ready (added after mount), so
+     the static / print / pre-JS state is always fully visible — never opacity:0. */
+  @media (prefers-reduced-motion: no-preference) {
+    .ready .fade { animation: rise 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+    @keyframes rise { from { transform: translateY(9px); } to { transform: none; } }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="distance-data.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="distance-tables.jsx"></script>
+<script type="text/babel" src="distance-hero.jsx"></script>
+
+<script type="text/babel">
+  const { useState, useEffect } = React;
+
+  const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "cellStyle": "chip",
+    "sort": "dist",
+    "darkHero": true
+  }/*EDITMODE-END*/;
+
+  function App() {
+    const [t, setTweak] = useTweaks(TWEAK_DEFAULTS);
+    const [win, setWin] = useState("all");
+    const W = win === "all" ? window.DIST.allTime : window.DIST.last5;
+    const winLabel = win === "all"
+      ? W.rounds + " rounds · all time"
+      : "last " + W.rounds + " rounds";
+
+    const tableProps = { W, cellStyle: t.cellStyle, sort: t.sort };
+
+    useEffect(() => {
+      const wraps = [...document.querySelectorAll(".tbl-wrap")];
+      const sync = (w) => {
+        const sc = w.querySelector(".tbl-scroll");
+        w.classList.toggle("more", sc.scrollWidth - sc.clientWidth - sc.scrollLeft > 4);
+      };
+      const bound = wraps.map((w) => {
+        const sc = w.querySelector(".tbl-scroll");
+        const h = () => sync(w);
+        sync(w); sc.addEventListener("scroll", h, { passive: true });
+        return [sc, h];
+      });
+      return () => bound.forEach(([sc, h]) => sc.removeEventListener("scroll", h));
+    });
+
+    return (
+      <main className="app" data-screen-label="Distance Summary">
+        <header className="top fade">
+          <h1>Distance</h1>
+          <a className="btn-round" href="#">New Round →</a>
+        </header>
+
+        <nav className="tabs fade">
+          <a className="tab" href="#">Dashboard</a>
+          <a className="tab" href="#">Rounds</a>
+          <a className="tab" href="#">Holes</a>
+          <a className="tab" href="#">Clubs</a>
+          <a className="tab active" href="#">Distance</a>
+          <a className="tab" href="#">Scoring</a>
+        </nav>
+
+        <div className="seg fade" role="tablist">
+          <button className={win === "last5" ? "on" : ""} onClick={() => setWin("last5")}>Last 5 rounds</button>
+          <button className={win === "all" ? "on" : ""} onClick={() => setWin("all")}>All time</button>
+        </div>
+
+        <div className="fade" style={{ animationDelay: "40ms" }}>
+          <GapHero W={W} winLabel={winLabel} dark={t.darkHero} />
+        </div>
+
+        <MakeRateTable {...tableProps} />
+        <FirstPuttTable {...tableProps} />
+        <MissTable W={W} />
+        <AroundGreenTable W={W} />
+        <ApproachTable {...tableProps} />
+
+        <div className="footer">
+          <span className="owner">Owner mode · Sign out</span>
+        </div>
+
+        <TweaksPanel>
+          <TweakSection label="Gap treatment" />
+          <TweakRadio label="In-table cell" value={t.cellStyle}
+            options={[{ value: "bar", label: "Bar + chip" }, { value: "chip", label: "Chip" }, { value: "heat", label: "Heat" }]}
+            onChange={(v) => setTweak("cellStyle", v)} />
+          <TweakRadio label="Row order" value={t.sort}
+            options={[{ value: "dist", label: "By distance" }, { value: "gap", label: "Biggest gap" }]}
+            onChange={(v) => setTweak("sort", v)} />
+          <TweakSection label="Headline" />
+          <TweakToggle label="Dark hero card" value={t.darkHero} onChange={(v) => setTweak("darkHero", v)} />
+        </TweaksPanel>
+      </main>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  requestAnimationFrame(() => requestAnimationFrame(() => document.getElementById("root").classList.add("ready")));
+</script>
+<script>
+(async () => {
+  // Prepend so page-supplied @page / break rules (deck-stage's margin:0,
+  // author CSS) keep source-order precedence over the baseline.
+  const baseCss = document.createElement('style');
+  baseCss.textContent = "@media print {\n  @page { margin: 0.5cm; }\n  html, body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }\n  section, article, figure, table { break-inside: avoid; }\n  *, *::before, *::after {\n    animation-delay: -99s !important; animation-duration: .001s !important;\n    animation-iteration-count: 1 !important; animation-fill-mode: both !important;\n    animation-play-state: running !important; transition-duration: 0s !important;\n  }\n}";
+  document.head.prepend(baseCss);
+  if (document.readyState === 'loading') {
+    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+  let ds = document.querySelector('deck-stage');
+  // whenDefined never resolves when nothing registers the element, so only
+  // await it when a <deck-stage> tag exists (and race a timeout regardless).
+  if (ds && !customElements.get('deck-stage')) {
+    try {
+      await Promise.race([
+        customElements.whenDefined('deck-stage'),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    } catch (e) {}
+    ds = document.querySelector('deck-stage');
+  }
+  // dc-runtime assigns window.DCLogic at init and mounts into #dc-root on
+  // DOMContentLoaded; settle on that subtree so React has rendered before
+  // print(). Non-DC pages fall through to weighing body.
+  const isDc = !ds && 'DCLogic' in window;
+  const settleRoot = ds || (isDc ? document.getElementById('dc-root') : null) || document.body;
+  if (settleRoot) {
+    // Weigh only content children — skip script/style/template so inline
+    // Babel/CSS doesn't register as stable "content" before the framework
+    // has mounted anything.
+    const MEDIA = 'img,svg,canvas,video,picture,iframe,embed,object';
+    const weigh = () => {
+      let text = 0, media = 0;
+      for (const c of settleRoot.children) {
+        const t = c.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+        text += (c.textContent || '').trim().length;
+        media += c.querySelectorAll(MEDIA).length + (c.matches(MEDIA) ? 1 : 0);
+      }
+      return text + media * 100;
+    };
+    // "Non-zero and stable" alone is not sufficient to mean rendered: generic
+    // body can carry a static shell while async main content is pending, and
+    // #dc-root can carry the root DC's static text while child refs are still
+    // .sc-placeholder boxes. Gate generic on readyState 'complete', and never
+    // accept stability while a dc-runtime placeholder is present.
+    const isGeneric = settleRoot === document.body;
+    const deadline = Date.now() + 15000;
+    let last = -1, stable = 0;
+    while (Date.now() < deadline) {
+      const n = weigh();
+      const ready =
+        (!isGeneric || document.readyState === 'complete') &&
+        !settleRoot.querySelector('.sc-placeholder');
+      if (n > 0 && n === last && ready) { if (++stable >= 2) break; } else { stable = 0; }
+      last = n;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  try { await document.fonts.ready; } catch (e) {}
+  // Jump every animation to its end state so print() never captures a slide
+  // mid-entrance. Ordering matters: the 0s-transition style must be live
+  // BEFORE data-deck-active is set so attribute-keyed transitions don't
+  // start a (now-0s) run from the pre-active base.
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}';
+  document.head.appendChild(st);
+  for (const d of document.querySelectorAll('deck-stage')) {
+    for (const c of d.children) {
+      const t = c.tagName;
+      if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+      c.setAttribute('data-deck-active', '');
+    }
+  }
+  try {
+    const sweep = () => {
+      for (const a of document.getAnimations()) {
+        try { a.finish(); } catch (e) {
+          try { a.currentTime = (a.effect && a.effect.getComputedTiming().duration) || 0; a.pause(); } catch (e2) {}
+        }
+      }
+    };
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+  } catch (e) {}
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 200);
+})();
+</script>
+</body>
+</html>

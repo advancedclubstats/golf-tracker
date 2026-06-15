@@ -13,8 +13,17 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { fmtPct, fmtNum, fmtVsParAvg } from "@/lib/format";
 import { Sparkline } from "@/components/dashboard/Sparkline";
+import { TableGapCell } from "@/components/stats/GapCell";
+import type { GapInfo } from "@/lib/analytics/distanceSummary";
 
-export type CellFormat = "text" | "num" | "pct" | "vsParAvg" | "sparkline" | "deltaGlyph";
+export type CellFormat =
+  | "text"
+  | "num"
+  | "pct"
+  | "vsParAvg"
+  | "sparkline"
+  | "deltaGlyph"
+  | "gapCell";
 
 export interface ColumnConfig<T> {
   header: string;
@@ -220,7 +229,9 @@ export function DataTable<T>({
                     c.format && c.format !== "text" && "font-mono",
                   )}
                 >
-                  {c.format === "sparkline" ? (
+                  {c.format === "gapCell" ? (
+                    <TableGapCell gap={row[c.key] as unknown as GapInfo | undefined} />
+                  ) : c.format === "sparkline" ? (
                     <TrendSparkCell
                       value={row[c.key] as number | null}
                       trend={c.trendKey ? (row[c.trendKey] as unknown as SparklineTrend) : undefined}

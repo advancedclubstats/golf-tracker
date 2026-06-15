@@ -241,6 +241,39 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Design & polish
 
+- **Distance Summary "good → great" redesign (gap to Tour)** — ✅ done (2026-06-14).
+  Design handoff `docs/design/design_handoff_distance/`. The page now has a point
+  of view: a ranked **"Biggest gaps to Tour"** hero (dark fairway card) leading
+  with **strokes/round** lost across the three widest gaps, and a consistent
+  you-vs-Tour **delta chip** replacing the bare Tour column **everywhere a Tour
+  benchmark exists** — make-rate, first-putt 1-putt% AND 3-putt%, around-the-green
+  up&down%, and approach GIR%. Severity is driven by OPPORTUNITY (strokes/round),
+  not raw points; gated to n≥10 (`gates.ts`) so thin buckets render `—` and never
+  drive the headline.
+  - Chip is direction-aware: the sign reflects *goodness* (`+` better than Tour,
+    `−` worse), so lower-is-better 3-putt% reads the same as higher-is-better
+    make% (e.g. 3-putt 14% vs Tour 9% → clay `−5`).
+  - In-table cell is **chip-only**; the you-vs-Tour mini-bar (`GapBar`) is reserved
+    for the hero headline, the one moment on the page.
+  - Analytics: `distanceSummary.ts` gains a pure `GapInfo` (with `lowerIsBetter`)
+    per benchmarked row + a ranked `hero: HeroGap[]`. Strokes-vs-Tour isn't
+    directly available (baseline is *scratch*, Tour benchmarks are %s), so each
+    %-gap is converted with a documented per-shot stroke value (make ≈ 1.0,
+    GIR ≈ 0.55, 3-putt/up&down ≈ 1.0). Tests cover gate, gap math, both metric
+    directions, severity, and hero ranking.
+  - UI: new `components/stats/GapCell.tsx` (`GapBar`/`GapChip`/`TableGapCell`) +
+    `DistanceGapHero.tsx`; `DataTable` gains a serializable `gapCell` format. Hero
+    ranks make-rate + approach only (first-putt would double-count the putting gap).
+  - Minor prototype omissions (intentional): no 3-putt ≥10% warn-tint or
+    miss-pattern lead-dot. Row-order / cell-style / dark-hero "tweaks" were design
+    forks — shipped chip-only, by-distance, dark-hero.
+- **PGA Tour benchmark columns on Distance Summary** — ✅ done (2026-06-12).
+  Static "Tour" column beside Make%, 1-Putt%, 3-Putt%, Up&Down%, and Green% on
+  the Distance Summary tables (D-11). Values are representative band averages in
+  `lib/benchmarks.ts` (ShotLink / Broadie), attached as optional `tour*` fields
+  by `distanceSummary.ts` and read by the serializable `DataTable` columns in
+  `components/stats/DistanceTables.tsx`. No benchmark on Miss Patterns. Tests +
+  lint green.
 - **Link-preview metadata (portfolio share card)** — ✅ done (2026-06-10).
   Dynamic branded OG image via the App Router file convention
   (`app/opengraph-image.tsx`, 1200×630, rendered with next/og `ImageResponse` —

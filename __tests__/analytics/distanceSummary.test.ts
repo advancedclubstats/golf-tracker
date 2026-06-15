@@ -173,5 +173,80 @@ describe("distanceSummary — empty input", () => {
     expect(empty.aroundGreen).toHaveLength(2);
     expect(empty.approaches).toHaveLength(4);
     expect(empty.missPatterns).toHaveLength(5);
+    expect(empty.hero).toHaveLength(0);
+  });
+});
+
+// ─── Gap-to-Tour redesign ─────────────────────────────────────────────────────
+//
+// The single-round `fixture` keeps every bucket below the n≥10 floor, so it is
+// the gate test. This four-round window clears the floor for two buckets with
+// known rates, so it exercises the gap math, severity, and hero ranking.
+function multiRound(): ShotRow[] {
+  const out: ShotRow[] = [];
+  for (let rd = 0; rd < 4; rd++) {
+    const round_id = `R${rd}`;
+    // 3 putts from 9 ft (6–10 ft): 1 make → 33% make vs Tour 50%.
+    out.push(shot({ round_id, hole: 1, shot_no: 3, club: "Putter", result: "Make", yardage: 3 }));
+    out.push(shot({ round_id, hole: 2, shot_no: 3, club: "Putter", result: null, yardage: 3 }));
+    out.push(shot({ round_id, hole: 3, shot_no: 3, club: "Putter", result: null, yardage: 3 }));
+    // 3 approaches from 100 yd (75–125 yds): 1 green → 33% GIR vs Tour 78%.
+    out.push(shot({ round_id, hole: 1, shot_no: 2, club: "9i", result: "Green", yardage: 100 }));
+    out.push(shot({ round_id, hole: 2, shot_no: 2, club: "9i", result: "Rough", yardage: 100 }));
+    out.push(shot({ round_id, hole: 3, shot_no: 2, club: "9i", result: "Rough", yardage: 100 }));
+  }
+  return out;
+}
+
+describe("distanceSummary — gap to Tour", () => {
+  const thinGap = row(summary.makeRate, "6–10 ft").gap!; // single-round, n=1
+
+  it("thin buckets carry the gap but never a severity colour", () => {
+    expect(thinGap.thin).toBe(true);
+    expect(thinGap.sev).toBeNull();
+  });
+
+  it("thin buckets never drive the headline", () => {
+    expect(summary.hero).toHaveLength(0);
+  });
+
+  const m = computeDistanceSummary(multiRound());
+
+  it("computes signed points gap and strokes/round vs Tour past the floor", () => {
+    const g = row(m.makeRate, "6–10 ft").gap!;
+    expect(g.thin).toBe(false);
+    expect(g.n).toBe(12);
+    expect(g.you).toBeCloseTo(1 / 3, 5);
+    expect(g.tour).toBe(0.5);
+    expect(g.gap).toBeCloseTo(1 / 3 - 0.5, 5);
+    // gap × (12 putts / 4 rounds) × 1.0 stroke/make.
+    expect(g.sgRd).toBeCloseTo((1 / 3 - 0.5) * 3, 5);
+    expect(g.sev).toBe(3);
+  });
+
+  it("ranks the hero by strokes/round (opportunity), not raw points", () => {
+    // Approach trails by more points AND costs more strokes → it ranks first,
+    // even though both are screaming.
+    expect(m.hero).toHaveLength(2);
+    expect(m.hero[0].label).toBe("Approach 75–125 yds");
+    expect(m.hero[1].label).toBe("Putts 6–10 ft");
+    expect(m.hero[0].sgRd).toBeLessThan(m.hero[1].sgRd);
+    expect(m.hero[0].perRound).toBeCloseTo(3, 5);
+  });
+
+  it("treats 3-putt% as lower-is-better: fewer than Tour reads as ahead", () => {
+    // Fixture has no 3-putts; Tour 3-putts 3% from 10–20 ft, so you are ahead.
+    const g = row(summary.firstPutt, "10–20 ft").threePuttGap!;
+    expect(g.lowerIsBetter).toBe(true);
+    expect(g.you).toBe(0);
+    expect(g.tour).toBe(0.03);
+    // Ahead → strokes gained is non-negative (no penalty), severity benign.
+    expect(g.sgRd).toBeGreaterThanOrEqual(0);
+  });
+
+  it("gives around-the-green an up-and-down gap (higher-is-better)", () => {
+    const g = row(summary.aroundGreen, "10–30 yds").gap!;
+    expect(g.lowerIsBetter).toBe(false);
+    expect(g.tour).toBe(0.5);
   });
 });

@@ -38,7 +38,104 @@ import {
   puttYardsToFeet,
   r2,
 } from "@/lib/analytics/core";
+import { SAMPLE_THRESHOLDS } from "@/lib/analytics/gates";
 import type { ShotRow } from "@/lib/schemas/shot";
+
+// ─── Gap to Tour: the redesign's point of view ────────────────────────────────
+//
+// The page used to state the Tour gap as two bare percentages and leave the
+// subtraction — and the prioritisation — to the reader. The redesign answers
+// "where am I furthest from elite, and does it matter?" by ranking each
+// benchmarked bucket by OPPORTUNITY (strokes/round lost), not by raw points.
+//
+// Strokes-vs-Tour is not directly available: `activeBaseline` is a *scratch*
+// strokes table and the Tour benchmarks are percentages only (`lib/benchmarks`).
+// So we convert each percentage gap into strokes with a transparent, per-shot
+// stroke value — the same shape the brief's fallback prescribes, but expressed
+// in the SG currency the rest of the app speaks. Both constants are documented
+// approximations; the bucket *ranking* is robust to their exact magnitude.
+
+/** Value of converting one missed putt into a make ≈ one stroke (1-putt vs 2). */
+const MAKE_STROKE_VALUE = 1.0;
+/** Value of hitting a green vs missing it ≈ half a stroke (still get up-and-down some). */
+const GREEN_STROKE_VALUE = 0.55;
+/** A 3-putt costs ~1 stroke over a 2-putt (here lower is better). */
+const THREE_PUTT_STROKE_VALUE = 1.0;
+/** Getting up-and-down vs not ≈ saving ~1 stroke. */
+const UPDOWN_STROKE_VALUE = 1.0;
+/** Distance/lie buckets need n≥10 before a gap can rank or earn a severity colour. */
+const BUCKET_GATE = SAMPLE_THRESHOLDS.bucket;
+
+/** Severity 0..3 from strokes/round lost — the magnitude that earns the red. */
+function severityOf(sgRd: number): 0 | 1 | 2 | 3 {
+  if (sgRd >= -0.04) return 0; // even or ahead of Tour
+  if (sgRd > -0.2) return 1; // real but small
+  if (sgRd > -0.45) return 2; // worth attention
+  return 3; // screaming
+}
+
+/** Severity 1..3 for the hero list (already gated, always behind Tour). */
+function heroSeverityOf(sgRd: number): 1 | 2 | 3 {
+  if (sgRd > -0.2) return 1;
+  if (sgRd > -0.45) return 2;
+  return 3;
+}
+
+/** The consistent gap treatment, computed once per benchmarked bucket. */
+export interface GapInfo {
+  /** Your rate, 0..1 (make%, 1-putt%, or GIR%). */
+  you: number;
+  /** Tour band-average rate for this bucket, 0..1. */
+  tour: number;
+  /** you − tour, signed fraction (raw metric difference). */
+  gap: number;
+  /** Strokes/round lost vs Tour for this bucket (negative = behind, either direction). */
+  sgRd: number;
+  /** 0..3 severity driven by `sgRd`; `null` when the bucket is thin (n<gate). */
+  sev: 0 | 1 | 2 | 3 | null;
+  /** Below the n≥10 floor — never coloured, never drives the headline. */
+  thin: boolean;
+  /** Attempts in this bucket. */
+  n: number;
+  /** True for metrics where less is better (e.g. 3-putt%) — flips good/bad direction. */
+  lowerIsBetter: boolean;
+}
+
+/** One row of the ranked "Biggest gaps to Tour" hero. */
+export interface HeroGap {
+  /** "Putts 10–20 ft" / "Approach 75–125 yds". */
+  label: string;
+  group: "Putting" | "Approach";
+  you: number;
+  tour: number;
+  sgRd: number;
+  sev: 1 | 2 | 3;
+  n: number;
+  /** Times you face this shot per round. */
+  perRound: number;
+  noun: string;
+}
+
+/**
+ * Build a bucket's gap-to-Tour, or `undefined` when there's no comparison to
+ * make (no attempts, or the bucket carries no Tour band).
+ */
+function buildGap(
+  you: number | null,
+  tour: number | undefined,
+  n: number,
+  rounds: number,
+  strokeValue: number,
+  lowerIsBetter = false,
+): GapInfo | undefined {
+  if (you == null || tour == null) return undefined;
+  const gap = you - tour;
+  // Deficit toward "good": positive = worse than Tour, in either metric direction.
+  const deficit = lowerIsBetter ? gap : -gap;
+  const sgRd = rounds > 0 ? -deficit * (n / rounds) * strokeValue : 0;
+  const thin = n < BUCKET_GATE;
+  return { you, tour, gap, sgRd, sev: thin ? null : severityOf(sgRd), thin, n, lowerIsBetter };
+}
 
 // ─── Row shapes ───────────────────────────────────────────────────────────────
 
@@ -49,6 +146,8 @@ export interface PuttMakeRateRow {
   makePct: number | null;
   /** PGA Tour band-average make% for this bucket (D-11); display-only. */
   tourMakePct?: number;
+  /** You-vs-Tour gap treatment (redesign); absent when there's nothing to compare. */
+  gap?: GapInfo;
 }
 
 export interface FirstPuttRow {
@@ -61,6 +160,10 @@ export interface FirstPuttRow {
   tourOnePuttPct?: number;
   /** PGA Tour band-average 3-putt% for this bucket (D-11). */
   tourThreePuttPct?: number;
+  /** You-vs-Tour gap on 1-putt% (redesign); does not feed the hero (avoids double-count). */
+  gap?: GapInfo;
+  /** You-vs-Tour gap on 3-putt% (lower is better); display-only. */
+  threePuttGap?: GapInfo;
 }
 
 export interface PuttMissRow {
@@ -80,6 +183,8 @@ export interface AroundGreenRow {
   upDownPct: number | null;
   /** PGA Tour band-average up-and-down% for this bucket (D-11). */
   tourUpDownPct?: number;
+  /** You-vs-Tour gap on up-and-down% (redesign); display-only. */
+  gap?: GapInfo;
 }
 
 export interface ApproachRow {
@@ -93,6 +198,8 @@ export interface ApproachRow {
   missRPct: number;
   missLongPct: number;
   missShortPct: number;
+  /** You-vs-Tour gap on GIR% (redesign). */
+  gap?: GapInfo;
 }
 
 export interface DistanceSummary {
@@ -101,6 +208,8 @@ export interface DistanceSummary {
   missPatterns: PuttMissRow[];
   aroundGreen: AroundGreenRow[];
   approaches: ApproachRow[];
+  /** Ranked top-3 biggest gaps to Tour (strokes/round), gated to n≥10. */
+  hero: HeroGap[];
 }
 
 // ─── Internal accumulators ────────────────────────────────────────────────────
@@ -115,6 +224,9 @@ export function computeDistanceSummary(
 ): DistanceSummary {
   const roundHoles = aggregateByRoundHole(shots);
   const complete = roundHoles.filter((r) => r.complete);
+  // Rounds represented in this window — the denominator for "per round" frequency
+  // that weights each gap by how often the shot is faced.
+  const rounds = new Set(shots.map((s) => s.round_id)).size;
 
   // ── Sub-table 1: Make Rate by Distance (every Putter shot) ──
   const makeRate = PUTT_BUCKETS.map((b) => ({
@@ -261,23 +373,100 @@ export function computeDistanceSummary(
     }
   }
 
-  return {
-    makeRate: makeRate.map((b) => ({
+  const makeRateRows: PuttMakeRateRow[] = makeRate.map((b) => {
+    const makePct = b.putts > 0 ? b.makes / b.putts : null;
+    const tourMakePct = TOUR_MAKE_PCT[b.label];
+    return {
       label: b.label,
       putts: b.putts,
       makes: b.makes,
-      makePct: b.putts > 0 ? b.makes / b.putts : null,
-      tourMakePct: TOUR_MAKE_PCT[b.label],
-    })),
-    firstPutt: firstPutt.map((b) => ({
+      makePct,
+      tourMakePct,
+      gap: buildGap(makePct, tourMakePct, b.putts, rounds, MAKE_STROKE_VALUE),
+    };
+  });
+
+  const firstPuttRows: FirstPuttRow[] = firstPutt.map((b) => {
+    const onePuttPct = b.faced > 0 ? b.onePutt / b.faced : null;
+    const threePuttPct = b.faced > 0 ? b.threePutt / b.faced : null;
+    const tourOnePuttPct = TOUR_MAKE_PCT[b.label];
+    const tourThreePuttPct = TOUR_THREE_PUTT_PCT[b.label];
+    return {
       label: b.label,
       faced: b.faced,
       avgPutts: b.faced > 0 ? r2(b.totalPutts / b.faced) : null,
-      onePuttPct: b.faced > 0 ? b.onePutt / b.faced : null,
-      threePuttPct: b.faced > 0 ? b.threePutt / b.faced : null,
-      tourOnePuttPct: TOUR_MAKE_PCT[b.label],
-      tourThreePuttPct: TOUR_THREE_PUTT_PCT[b.label],
-    })),
+      onePuttPct,
+      threePuttPct,
+      tourOnePuttPct,
+      tourThreePuttPct,
+      gap: buildGap(onePuttPct, tourOnePuttPct, b.faced, rounds, MAKE_STROKE_VALUE),
+      threePuttGap: buildGap(
+        threePuttPct,
+        tourThreePuttPct,
+        b.faced,
+        rounds,
+        THREE_PUTT_STROKE_VALUE,
+        true, // fewer 3-putts is better
+      ),
+    };
+  });
+
+  const approachRows: ApproachRow[] = appr.map((b) => {
+    const greenHitPct = b.shots > 0 ? b.greenHit / b.shots : null;
+    const tourGreenHitPct = TOUR_GREEN_PCT[b.label];
+    return {
+      label: b.label,
+      shots: b.shots,
+      avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
+      greenHitPct,
+      tourGreenHitPct,
+      missLPct: b.shots > 0 ? b.missL / b.shots : 0,
+      missRPct: b.shots > 0 ? b.missR / b.shots : 0,
+      missLongPct: b.shots > 0 ? b.missLong / b.shots : 0,
+      missShortPct: b.shots > 0 ? b.missShort / b.shots : 0,
+      gap: buildGap(greenHitPct, tourGreenHitPct, b.shots, rounds, GREEN_STROKE_VALUE),
+    };
+  });
+
+  // Hero: the three widest gaps to Tour by strokes/round, gated to n≥10. Built
+  // off make-rate + approach only — the cuts that carry a Tour benchmark and don't
+  // overlap (first-putt would double-count the putting gap, so it's excluded).
+  const heroPool: HeroGap[] = [];
+  for (const r of makeRateRows) {
+    if (r.gap && !r.gap.thin && r.gap.sgRd < -0.05) {
+      heroPool.push({
+        label: `Putts ${r.label}`,
+        group: "Putting",
+        you: r.gap.you,
+        tour: r.gap.tour,
+        sgRd: r.gap.sgRd,
+        sev: heroSeverityOf(r.gap.sgRd),
+        n: r.gap.n,
+        perRound: rounds > 0 ? r.gap.n / rounds : 0,
+        noun: "putts",
+      });
+    }
+  }
+  for (const r of approachRows) {
+    if (r.gap && !r.gap.thin && r.gap.sgRd < -0.05) {
+      heroPool.push({
+        label: `Approach ${r.label}`,
+        group: "Approach",
+        you: r.gap.you,
+        tour: r.gap.tour,
+        sgRd: r.gap.sgRd,
+        sev: heroSeverityOf(r.gap.sgRd),
+        n: r.gap.n,
+        perRound: rounds > 0 ? r.gap.n / rounds : 0,
+        noun: "shots",
+      });
+    }
+  }
+  const hero = heroPool.sort((a, b) => a.sgRd - b.sgRd).slice(0, 3);
+
+  return {
+    makeRate: makeRateRows,
+    firstPutt: firstPuttRows,
     missPatterns: missPatt.map((b) => ({
       label: b.label,
       misses: b.misses,
@@ -286,24 +475,20 @@ export function computeDistanceSummary(
       shortPct: b.misses > 0 ? b.short / b.misses : null,
       longPct: b.misses > 0 ? b.long / b.misses : null,
     })),
-    aroundGreen: arg.map((b) => ({
-      label: b.label,
-      shots: b.shots,
-      avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
-      onGreenPct: b.shots > 0 ? b.onGreen / b.shots : null,
-      upDownPct: b.upDownEligible > 0 ? b.upDown / b.upDownEligible : null,
-      tourUpDownPct: TOUR_UP_DOWN_PCT[b.label],
-    })),
-    approaches: appr.map((b) => ({
-      label: b.label,
-      shots: b.shots,
-      avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
-      greenHitPct: b.shots > 0 ? b.greenHit / b.shots : null,
-      tourGreenHitPct: TOUR_GREEN_PCT[b.label],
-      missLPct: b.shots > 0 ? b.missL / b.shots : 0,
-      missRPct: b.shots > 0 ? b.missR / b.shots : 0,
-      missLongPct: b.shots > 0 ? b.missLong / b.shots : 0,
-      missShortPct: b.shots > 0 ? b.missShort / b.shots : 0,
-    })),
+    aroundGreen: arg.map((b) => {
+      const upDownPct = b.upDownEligible > 0 ? b.upDown / b.upDownEligible : null;
+      const tourUpDownPct = TOUR_UP_DOWN_PCT[b.label];
+      return {
+        label: b.label,
+        shots: b.shots,
+        avgQuality: b.execCount > 0 ? r2(b.execSum / b.execCount) : null,
+        onGreenPct: b.shots > 0 ? b.onGreen / b.shots : null,
+        upDownPct,
+        tourUpDownPct,
+        gap: buildGap(upDownPct, tourUpDownPct, b.shots, rounds, UPDOWN_STROKE_VALUE),
+      };
+    }),
+    approaches: approachRows,
+    hero,
   };
 }

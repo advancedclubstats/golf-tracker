@@ -13,6 +13,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
+import { DistanceGapHero } from "@/components/stats/DistanceGapHero";
 import type {
   DistanceSummary,
   PuttMakeRateRow,
@@ -27,16 +28,16 @@ const makeRateCols: ColumnConfig<PuttMakeRateRow>[] = [
   { header: "Putts", key: "putts", align: "right" },
   { header: "Makes", key: "makes", align: "right" },
   { header: "Make%", key: "makePct", format: "pct", align: "right" },
-  { header: "Tour", key: "tourMakePct", format: "pct", align: "right", sortable: false },
+  { header: "vs Tour", key: "gap", format: "gapCell", align: "left", sortable: false },
 ];
 const firstPuttCols: ColumnConfig<FirstPuttRow>[] = [
   { header: "Distance", key: "label", align: "left", sortable: false },
   { header: "Faced", key: "faced", align: "right" },
   { header: "Avg Putts", key: "avgPutts", format: "num", align: "right" },
   { header: "1-Putt%", key: "onePuttPct", format: "pct", align: "right" },
-  { header: "Tour", key: "tourOnePuttPct", format: "pct", align: "right", sortable: false },
+  { header: "vs Tour", key: "gap", format: "gapCell", align: "left", sortable: false },
   { header: "3-Putt%", key: "threePuttPct", format: "pct", align: "right" },
-  { header: "Tour", key: "tourThreePuttPct", format: "pct", align: "right", sortable: false },
+  { header: "vs Tour", key: "threePuttGap", format: "gapCell", align: "left", sortable: false },
 ];
 const missCols: ColumnConfig<PuttMissRow>[] = [
   { header: "Distance", key: "label", align: "left", sortable: false },
@@ -52,14 +53,14 @@ const aroundGreenCols: ColumnConfig<AroundGreenRow>[] = [
   { header: "Qual", key: "avgQuality", format: "num", align: "right" },
   { header: "On Green%", key: "onGreenPct", format: "pct", align: "right" },
   { header: "Up&Down%", key: "upDownPct", format: "pct", align: "right" },
-  { header: "Tour", key: "tourUpDownPct", format: "pct", align: "right", sortable: false },
+  { header: "vs Tour", key: "gap", format: "gapCell", align: "left", sortable: false },
 ];
 const approachCols: ColumnConfig<ApproachRow>[] = [
   { header: "Distance", key: "label", align: "left", sortable: false },
   { header: "Shots", key: "shots", align: "right" },
   { header: "Qual", key: "avgQuality", format: "num", align: "right" },
   { header: "Green%", key: "greenHitPct", format: "pct", align: "right" },
-  { header: "Tour", key: "tourGreenHitPct", format: "pct", align: "right", sortable: false },
+  { header: "vs Tour", key: "gap", format: "gapCell", align: "left", sortable: false },
   { header: "Miss L", key: "missLPct", format: "pct", align: "right" },
   { header: "Miss R", key: "missRPct", format: "pct", align: "right" },
   { header: "Long", key: "missLongPct", format: "pct", align: "right" },
@@ -95,6 +96,7 @@ export function DistanceTables({
   const [view, setView] = useState<"recent" | "all">("all");
   const s = view === "recent" ? recent : all;
   const showMiss = s.missPatterns.some((b) => b.misses > 0);
+  const winLabel = view === "recent" ? `last ${recentRounds} rounds` : "all time";
 
   return (
     <>
@@ -116,6 +118,8 @@ export function DistanceTables({
           </button>
         ))}
       </div>
+
+      <DistanceGapHero hero={s.hero} winLabel={winLabel} />
 
       <SubTable title="Putting — Make Rate by Distance" columns={makeRateCols} rows={s.makeRate} />
       <SubTable

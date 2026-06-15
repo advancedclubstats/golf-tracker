@@ -301,6 +301,15 @@ section first (highest value, self-contained), then the three table treatments.
   app-wide; new `ink-300`/`ink-700` tokens in `globals.css`.
 - **Round Recap screen.** The expressive full-bleed recap from the design handoff,
   built additively as a header treatment on the existing round-detail page.
+  *List-level version* — ✅ done (2026-06-15). The Rounds list now expands each
+  round inline to a per-round SG-by-category + FW%/GIR%/putts/3-putts/vs-par
+  breakdown, each shown as a leave-one-out, hole-count-fair delta vs the player's
+  average (`computeRoundBreakdowns` in `lib/analytics/roundCard.ts`, rendered by
+  `components/rounds/RoundsList.tsx` + `RoundChips.tsx`). The expressive
+  full-bleed per-round screen is still open.
+  **Open decision:** the chips label "Off the tee" as "Driving" for brevity,
+  while the dashboard/SG pages say "Off the tee" — pick one and make labels
+  consistent app-wide.
 - **Version-control the design handoff** — partially done (2026-06-09): the
   dashboard bundle now lives in `docs/design/design_handoff_dashboard/` (spec
   README, prototype, `colors_and_type.css` token foundation). Drop future

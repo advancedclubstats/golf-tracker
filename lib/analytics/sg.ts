@@ -15,7 +15,7 @@
  */
 
 import type { ShotRow } from "@/lib/schemas/shot";
-import type { StartLie } from "@/lib/constants";
+import type { StartLie, Obstruction } from "@/lib/constants";
 import { expectedStrokes } from "@/lib/analytics/sg-baseline";
 
 export const SG_CATEGORIES = [
@@ -33,8 +33,13 @@ export function categoryOf(
   lie: StartLie | null,
   yards: number | null,
   par: number,
+  obstruction?: Obstruction | null,
 ): SgCategory {
   if (lie === "Green") return "Putting";
+  // A non-Clear obstruction is a recovery situation regardless of surface — the
+  // same bucket the legacy `Recovery` lie landed in (so an obstructed shot isn't
+  // mis-filed as Short game just because it's close to the green).
+  if (obstruction != null && obstruction !== "Clear") return "Approach";
   if (lie === "Tee") return par >= 4 ? "Off the tee" : "Approach";
   if (lie != null && SAND_LIES.has(lie)) {
     return (yards ?? Infinity) <= 50 ? "Short game" : "Approach";
@@ -107,10 +112,14 @@ export function fillTeeDistances(
 
 /** SG for a single shot given its successor (or null if it holed out). */
 export function shotSG(shot: ShotRow, next: ShotRow | null): number | null {
-  const startE = expectedStrokes(shot.start_lie, shot.yardage);
+  const startE = expectedStrokes(shot.start_lie, shot.yardage, shot.obstruction);
   if (startE == null) return null;
   const finishE =
-    shot.result === "Make" ? 0 : next ? expectedStrokes(next.start_lie, next.yardage) : null;
+    shot.result === "Make"
+      ? 0
+      : next
+        ? expectedStrokes(next.start_lie, next.yardage, next.obstruction)
+        : null;
   if (finishE == null) return null;
   return startE - finishE - 1 - (shot.penalty ?? 0);
 }
@@ -151,7 +160,7 @@ export function perShotSG(shots: readonly ShotRow[]): {
       entries.push({
         shot,
         sg,
-        category: categoryOf(shot.start_lie, shot.yardage, shot.par),
+        category: categoryOf(shot.start_lie, shot.yardage, shot.par, shot.obstruction),
       });
     }
   }

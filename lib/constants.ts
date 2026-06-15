@@ -59,6 +59,11 @@ export const SESSION_HOLE_COUNTS: Record<SessionType, number> = {
 
 // Finish zone (where the ball came to rest). `Fringe` and `Recovery` were added
 // for the strokes-gained shot chain (Fringe ≠ Green; Recovery = trees/punch-out).
+//
+// This is the canonical/legacy enum: it KEEPS `Recovery` so historical rows
+// still validate and read (rule 3 of the obstruction brief). New shots no longer
+// use `Recovery` as a surface — a ball behind a tree is now Rough + obstruction
+// Blocked (see OBSTRUCTION). The entry grid offers RESULT_GRID, which omits it.
 export const RESULTS = [
   "Fairway",
   "Green",
@@ -74,6 +79,62 @@ export const RESULTS = [
 ] as const;
 
 export type Result = (typeof RESULTS)[number];
+
+/**
+ * Finishes offered in the shot-entry result grid, in display order. `Recovery`
+ * is intentionally absent — it's decomposed into surface + obstruction:Blocked,
+ * so surface and obstruction never both encode the trees. `Make` is the separate
+ * full-width "Holed it" CTA, not a grid surface.
+ */
+export const RESULT_GRID = [
+  "Fairway",
+  "Green",
+  "Fringe",
+  "Rough",
+  "Bunker",
+  "OB",
+  "Hazard",
+  "Lost",
+  "Unplayable",
+] as const satisfies readonly Result[];
+
+// ─── Obstruction (orthogonal start-state attribute) ───────────────────────────
+// Records whether something was *in the way* of a shot — independent of the
+// surface the ball sits on (start_lie). Default 'Clear'; the ~80% case costs
+// zero taps. See docs/design/obstruction_capture_brief.md.
+
+export const OBSTRUCTION = ["Clear", "Partial", "Blocked"] as const;
+export type Obstruction = (typeof OBSTRUCTION)[number];
+
+/** Default for new shots and historical rows (DB column default). */
+export const OBSTRUCTION_DEFAULT: Obstruction = "Clear";
+
+/**
+ * UI copy for the three levels (the chosen "short verbs" set). The same words
+ * are reused for the pill, the expanded option label, and recap tokens so a
+ * tired golfer maps the same real situation to the same answer every time.
+ *   Clear   — Normal shot at the target available (default).
+ *   Partial — Could still advance, but forced into an abnormal shot (flight it).
+ *   Blocked — Couldn't advance to target; had to extricate (chip out).
+ */
+export const OBSTRUCTION_COPY: Record<Obstruction, { label: string; hint: string }> = {
+  Clear: { label: "Clear", hint: "Normal shot at the target" },
+  Partial: { label: "Flighted", hint: "Forced into an abnormal shot" },
+  Blocked: { label: "Chip out", hint: "Couldn't advance to the target" },
+};
+
+/**
+ * Through-the-green resting surfaces: the only finishes where an obstruction is
+ * meaningful (the ball came to rest in play). When obstruction is non-Clear, the
+ * other finishes (Green, the penalties, Holed it) are suppressed — you can't rest
+ * obstructed *and* be on the green / in the hole / taking a drop.
+ */
+export const THROUGH_GREEN_RESULTS = new Set<Result>([
+  "Fairway",
+  "Rough",
+  "Bunker",
+  "Fringe",
+]);
 
 export const MISS_DIRECTIONS = ["Left", "Right", "Long", "Short"] as const;
 export type MissDirection = (typeof MISS_DIRECTIONS)[number];

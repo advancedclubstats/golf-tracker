@@ -32,14 +32,18 @@
  * `expectedStrokes` takes yards and converts for putts.
  */
 
-import type { StartLie } from "@/lib/constants";
+import type { StartLie, Obstruction } from "@/lib/constants";
 
 type Table = Record<number, number>;
 
 /** A pluggable expected-strokes source. Yards in; null when no baseline applies. */
 export interface Baseline {
   readonly name: string;
-  expectedStrokes(lie: StartLie | null, yards: number | null): number | null;
+  expectedStrokes(
+    lie: StartLie | null,
+    yards: number | null,
+    obstruction?: Obstruction | null,
+  ): number | null;
 }
 
 const TABLES: Record<"Tee" | "Fairway" | "Rough" | "Sand" | "Recovery" | "Green", Table> = {
@@ -132,8 +136,13 @@ function interpolate(table: Table, dist: number): number {
  */
 export const broadieScratchBaseline: Baseline = {
   name: "broadie-scratch",
-  expectedStrokes(lie, yards) {
-    const key = tableFor(lie);
+  expectedStrokes(lie, yards, obstruction) {
+    // Obstruction mapping (keeps every current SG number stable): a non-Clear
+    // obstruction prices the shot off the Recovery table regardless of surface
+    // — this is what the legacy `Recovery` lie did. Partial and Blocked both map
+    // to Recovery for now; stored distinctly so they can diverge later.
+    const key =
+      obstruction != null && obstruction !== "Clear" ? "Recovery" : tableFor(lie);
     if (key === null || yards == null) return null;
     const dist = key === "Green" ? yards * 3 : yards; // green table is in feet
     return interpolate(TABLES[key], dist);
@@ -153,6 +162,7 @@ export const activeBaseline: Baseline = broadieScratchBaseline;
 export function expectedStrokes(
   lie: StartLie | null,
   yards: number | null,
+  obstruction?: Obstruction | null,
 ): number | null {
-  return activeBaseline.expectedStrokes(lie, yards);
+  return activeBaseline.expectedStrokes(lie, yards, obstruction);
 }

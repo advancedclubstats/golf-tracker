@@ -56,6 +56,7 @@ export default async function LogPage({ params }: Props) {
       isPutt: s.club === "Putter",
       miss: s.miss_direction,
       penalty: s.penalty ?? 0,
+      obstruction: s.obstruction,
     }));
     const last = rh.shots[rh.shots.length - 1];
     lastShotByHole[rh.hole] = last

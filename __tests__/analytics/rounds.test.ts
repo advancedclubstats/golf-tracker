@@ -16,6 +16,7 @@ function shot(p: Partial<ShotRow>): ShotRow {
     distance_unit: null,
     start_lie: null,
     start_lie_manual: false,
+    obstruction: "Clear",
     situation_created: null,
     short_sided: null,
     decision_quality: "Good",

@@ -18,6 +18,7 @@ import {
   SITUATIONS,
   DECISION_QUALITIES,
   DISTANCE_UNITS,
+  OBSTRUCTION,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
 import { ClubNameSchema } from "@/lib/schemas/club";
@@ -77,6 +78,15 @@ export const ShotInsertSchema = z.object({
    * defaults it to false, so non-wizard inserts needn't set it.
    */
   start_lie_manual: z.boolean().optional(),
+
+  /**
+   * Obstruction at this shot's START — whether something was in the way of the
+   * shot. ORTHOGONAL to `start_lie` (surface): a ball in the rough behind a tree
+   * is Rough + Blocked. Carries forward from the prior shot's tagged finish
+   * (then the next shot's control defaults back to Clear). Default 'Clear' (DB
+   * default), so non-wizard inserts and historical rows needn't set it.
+   */
+  obstruction: z.enum(OBSTRUCTION).optional(),
 
   /**
    * The "domino" field: did this shot improve or compound the position?
@@ -148,6 +158,8 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   distance_unit: z.enum(DISTANCE_UNITS).nullable(),
   start_lie: z.enum(START_LIES).nullable(),
   start_lie_manual: z.boolean(),
+  // Concrete (not nullable): the DB column is NOT NULL DEFAULT 'Clear'.
+  obstruction: z.enum(OBSTRUCTION),
   situation_created: z.enum(SITUATIONS).nullable(),
   short_sided: z.boolean().nullable(),
   decision_quality: z.enum(DECISION_QUALITIES),

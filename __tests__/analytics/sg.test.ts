@@ -22,6 +22,7 @@ function shot(p: Partial<ShotRow>): ShotRow {
     distance_unit: "yd",
     start_lie: null,
     start_lie_manual: false,
+    obstruction: "Clear",
     situation_created: null,
     short_sided: null,
     decision_quality: "Good",
@@ -47,6 +48,14 @@ describe("categoryOf", () => {
     expect(categoryOf("Greenside bunker", 15, 4)).toBe("Short game");
     expect(categoryOf("Fairway bunker", 120, 5)).toBe("Approach");
   });
+
+  it("treats a non-Clear obstruction as a recovery (Approach), not Short game", () => {
+    // Close to the green but obstructed → recovery situation, like legacy Recovery.
+    expect(categoryOf("Rough", 20, 4, "Blocked")).toBe("Approach");
+    expect(categoryOf("Fairway", 25, 4, "Partial")).toBe("Approach");
+    // Clear keeps the surface/distance bucketing.
+    expect(categoryOf("Rough", 20, 4, "Clear")).toBe("Short game");
+  });
 });
 
 describe("expectedStrokes", () => {
@@ -55,6 +64,20 @@ describe("expectedStrokes", () => {
     expect(expectedStrokes("Fairway", 150)).toBeCloseTo(3.03, 5); // interp 140/160 (scratch)
     expect(expectedStrokes(null, 100)).toBeNull();
     expect(expectedStrokes("Fairway", null)).toBeNull();
+  });
+
+  it("a non-Clear obstruction prices off the Recovery table regardless of surface", () => {
+    // Clear: surface table is used (unchanged).
+    expect(expectedStrokes("Rough", 150, "Clear")).toBeCloseTo(
+      expectedStrokes("Rough", 150)!,
+      5,
+    );
+    // Partial + Blocked both map to Recovery for now (stored distinctly).
+    const recovery = expectedStrokes("Recovery", 150)!;
+    expect(expectedStrokes("Rough", 150, "Partial")).toBeCloseTo(recovery, 5);
+    expect(expectedStrokes("Fairway", 150, "Blocked")).toBeCloseTo(recovery, 5);
+    // Backward-compat: a legacy Recovery lie + default Clear is unchanged.
+    expect(expectedStrokes("Recovery", 150, "Clear")).toBeCloseTo(recovery, 5);
   });
 });
 

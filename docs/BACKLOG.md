@@ -173,6 +173,20 @@ DOM-clicking by text is ambiguous in eval. Test round with data:
   Optional manual toggle later. Do this LAST so the live portfolio never shows
   half-baked dark mid-build.
 
+## DONE — Obstruction capture (highest-fidelity SG)
+
+Shipped the result-step placement from `design_handoff_obstruction`. New
+orthogonal `obstruction` start-state field (`Clear | Partial | Blocked`, default
+`Clear`), captured as a progressive-disclosure control mirroring Decision on the
+"Where'd it end up?" step (copy: Clear · Flighted · Chip out; green→terracotta→red
+dots). Non-Clear suppresses non-through-the-green finishes; the tagged finish
+carries forward as the next shot's start (read-only chip), its own control
+resetting to Clear. `Recovery` removed from the entry grid (`RESULT_GRID`) but
+kept in `RESULTS` for legacy rows. Baseline maps `obstruction != Clear` → Recovery
+table, so no existing SG number changes. Wired: `constants.ts`,
+`lib/schemas/shot.ts`, `ShotEntryFlow.tsx`, `sg-baseline.ts`/`sg.ts`,
+`lib/shots/lie.ts` (`nextStartObstruction`), migration `014_obstruction.sql`.
+
 ## QUEUED — Dashboard "Momentum" + detail-table trends
 
 Source: `docs/design/design_handoff_momentum/` (Claude Design handoff v2;

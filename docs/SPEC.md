@@ -89,7 +89,8 @@ Penalties roll into `over` automatically, so an OB tee shot (Result=OB, MissDire
 - If no shot has `result = 'Green'` (chip-in / hole-out): `GIR = strokes ≤ par−2` (penalties already baked into `strokes`)
 
 ## Putt counting
-- "Putts on the hole" = Putter rows that occur *after* the first `result = 'Green'` shot. A Texas wedge (Putter from off the green that lands on the green) is **not** counted as a putt.
+- "Putts on the hole" = strokes played with the ball already on the green, i.e. `start_lie = 'Green'`. This is **club-agnostic** (PGA-Tour definition): a putter used from the fringe/fairway is **not** a putt, and a stroke from the green is one even with a non-putter. See D-12.
+  - *Legacy fallback* (rows logged before lie capture, `start_lie` null): a Putter row whose own `result` is not `'Green'` — the shot that *reaches* the green (a Texas wedge) is tagged `'Green'` and excluded.
 - "Make rate by distance" includes every Putter row, regardless of whether the ball was on the green — but a Texas wedge from 30 yards rarely goes in, so it just naturally appears as a low-make-rate long-distance Putter shot.
 
 ## Conventions

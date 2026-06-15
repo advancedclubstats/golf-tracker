@@ -124,15 +124,33 @@ describe("penalty helpers", () => {
 // ─── Putt classification ──────────────────────────────────────────────────────
 
 describe("isRealPutt", () => {
-  it("a Putter that reaches the green (Texas wedge) is NOT a real putt", () => {
-    expect(isRealPutt(shot({ club: "Putter", result: "Green" }))).toBe(false);
+  // Primary signal: the lie. A putt is any stroke from the green (D-12).
+  it("a stroke from the green is a putt, regardless of club", () => {
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Green", result: null }))).toBe(true);
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Green", result: "Make" }))).toBe(true);
+    // result tagged 'Green' (ball stayed on the green) is still a putt.
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Green", result: "Green" }))).toBe(true);
+    // Club-agnostic: even a wedge played from the green counts.
+    expect(isRealPutt(shot({ club: "LW", start_lie: "Green", result: "Green" }))).toBe(true);
   });
-  it("a Putter on the green (blank or Make) is a real putt", () => {
-    expect(isRealPutt(shot({ club: "Putter", result: null }))).toBe(true);
-    expect(isRealPutt(shot({ club: "Putter", result: "Make" }))).toBe(true);
+  it("a putter used from off the green is NOT a putt", () => {
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Fringe", result: null }))).toBe(false);
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Fairway", result: "Green" }))).toBe(false);
+    expect(isRealPutt(shot({ club: "Putter", start_lie: "Fringe", result: "Make" }))).toBe(false);
   });
-  it("a non-Putter is never a real putt", () => {
-    expect(isRealPutt(shot({ club: "LW", result: "Make" }))).toBe(false);
+
+  // Fallback for legacy rows logged before lie capture (null start_lie).
+  describe("legacy rows without a start_lie", () => {
+    it("a Putter that reaches the green (Texas wedge) is NOT a real putt", () => {
+      expect(isRealPutt(shot({ club: "Putter", start_lie: null, result: "Green" }))).toBe(false);
+    });
+    it("a Putter with blank/Make result is a real putt", () => {
+      expect(isRealPutt(shot({ club: "Putter", start_lie: null, result: null }))).toBe(true);
+      expect(isRealPutt(shot({ club: "Putter", start_lie: null, result: "Make" }))).toBe(true);
+    });
+    it("a non-Putter is never a real putt", () => {
+      expect(isRealPutt(shot({ club: "LW", start_lie: null, result: "Make" }))).toBe(false);
+    });
   });
 });
 

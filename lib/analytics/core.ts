@@ -106,13 +106,18 @@ export function penaltiesBeforeFirstPutt(shots: readonly ShotRow[]): number {
 // ─── Putt classification ──────────────────────────────────────────────────────
 
 /**
- * A "real putt" = a Putter stroke taken once the ball is already on the green.
- * Convention: the shot that brings the ball onto the green is tagged
- * `result = 'Green'` (even a Texas wedge with the putter), so a real putt is any
- * Putter row whose own `result` is NOT 'Green'. (Matches `.gs` isRealPutt;
- * see SPEC.md "Putt counting".)
+ * A "real putt" = a stroke played with the ball already on the green. This is
+ * the PGA-Tour definition and it is **club-agnostic**: a putter used from the
+ * fringe/fairway is NOT a putt, and a stroke from the green IS one (even the
+ * rare non-putter). The signal is the lie, never the club (D-12).
+ *
+ * Primary: the captured `start_lie === 'Green'`. Legacy rows logged before lie
+ * capture (D-04 era) carry a null `start_lie`; for those we fall back to the old
+ * club+result proxy — a Putter whose own `result` is NOT 'Green' (the shot that
+ * *reaches* the green, e.g. a Texas wedge, is tagged 'Green' and excluded).
  */
 export function isRealPutt(shot: ShotRow): boolean {
+  if (shot.start_lie != null) return shot.start_lie === "Green";
   return shot.club === "Putter" && shot.result !== "Green";
 }
 

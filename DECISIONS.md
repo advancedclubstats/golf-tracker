@@ -117,3 +117,15 @@ The app requires a live network connection to save shots. There is no offline qu
 **Known implication:** If the player loses cell service during a round, they cannot log shots until connectivity is restored. Acceptable for v1.
 
 **Revisit:** Post-v1, after the core analytics are proven.
+
+---
+
+## D-12 — A putt is defined by lie (on the green), not by club
+
+`isRealPutt` (`lib/analytics/core.ts`) counts a stroke as a putt iff it was played from `start_lie = 'Green'` — the PGA-Tour definition, **club-agnostic**. A putter used from the fringe/fairway is **not** a putt; a stroke played from the green is, even with a non-putter. This feeds putt totals, 3-putt rate, and the first-putt-performance table; it does **not** touch the make-rate-by-distance table, which intentionally includes every Putter row (`club = 'Putter'`).
+
+Supersedes the old club+result proxy (Putter whose own `result ≠ 'Green'`), which both miscounted a putter played from off the green *as* a putt and dropped on-green putts whose `result` was tagged `'Green'`. The proxy survives only as a **fallback for legacy rows with a null `start_lie`** (lie was "captured going forward" — see Option A in `constants.ts`).
+
+**Back-fix:** none needed. Analytics are pure functions over raw shots, recomputed per request, and `start_lie` is fully populated in the live data — so every historical round recounts correctly on deploy. Measured impact on current data: total putts 328→335, 3-putt holes 10→9, 13 holes recount.
+
+**Why:** Matches how the SG layer already categorises Putting (`categoryOf`: `lie === 'Green'`), so putt-counting and SG now share one definition; matches the PGA Tour; and fixes a user-visible inflated 3-putt rate.

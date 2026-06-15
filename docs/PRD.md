@@ -79,7 +79,7 @@ These are baked into the analytics. Changing any of them requires updating both 
 
 **Per-hole derived stats:**
 - `strokes = max(ShotNo) + sum(Penalty)`
-- `putts` = count of Putter rows that occur *after* the first `Result=Green` shot (a Texas wedge is not a putt)
+- `putts` = count of shots played from `StartLie=Green` (club-agnostic — a putter off the green is not a putt, a Texas wedge is not a putt; D-12). Legacy rows with no lie fall back to Putter-rows-after-the-first-`Result=Green`-shot.
 - `gir` (Green in Regulation):
   - If a shot has `Result=Green` at ShotNo G: `gir = (G + penalties_through_G) ≤ par − 2`
   - Otherwise (chip-in / hole-out with no green-touching shot logged): `gir = strokes ≤ par − 2`

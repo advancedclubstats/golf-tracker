@@ -43,7 +43,7 @@ Entered via a wizard, one shot at a time. Fields collected:
 
 ## 2. Derived per-hole values (the basis for everything)
 - **strokes** = max(shot_no) + Σ penalties
-- **putts** = count of Putter shots whose result ≠ Green ("real putts")
+- **putts** = count of shots played from `start_lie = Green` ("real putts"; club-agnostic, D-12). Legacy rows with a null lie fall back to Putter-rows-whose-result-≠-Green.
 - **strokes-to-reach-green** = (1) shot_no of first `Green` result + penalties through it; else (2) firstPutter.shot_no − 1 + penalties before it; else (3) total strokes
 - **GIR** = strokes-to-reach-green ≤ par − 2
 - **tee result** = result of shot 1; **fairway hit** = par≥4 and tee result = Fairway

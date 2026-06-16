@@ -74,9 +74,8 @@ describe("computeLeaks", () => {
     expect(approach.shots).toBe(1);
     expect(approach.tier).toBe("early");
     expect(approach.prescribable).toBe(false);
-    // The 7i club cut is also under its n≥15 gate.
-    const club = leaks.find((l) => l.kind === "club" && l.label === "7i")!;
-    expect(club.prescribable).toBe(false);
+    // Clubs are no longer cut as leaks — a club is a proxy for distance.
+    expect(leaks.some((l) => l.label === "7i")).toBe(false);
   });
 
   it("orders the impact list worst-cost first", () => {

@@ -14,7 +14,5 @@ export function leakTitle(leak: Leak): string {
       return `Putts ${leak.label}`;
     case "atg":
       return `Around green ${leak.label}`;
-    case "club":
-      return leak.label;
   }
 }

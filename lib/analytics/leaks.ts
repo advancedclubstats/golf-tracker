@@ -8,8 +8,8 @@
  *   2. Meaning — vs the scratch target (the SG gap; scratch = 0 SG/shot).
  *   3. Impact  — `shotsDetail`: every qualifying shot, what it cost, the miss.
  *
- * Sample-gated (spec 2C, via `gates.ts`): clubs need n≥15, distance buckets
- * n≥10. Below threshold a leak still surfaces but as an "early read"
+ * Sample-gated (spec 2C, via `gates.ts`): distance buckets need n≥10. Below
+ * threshold a leak still surfaces but as an "early read"
  * (`prescribable=false`) and must never be presented as a recommendation.
  *
  * Pure; builds on `perShotSG`. The SG gap (vs 0) is the spine; `target`/`raw`
@@ -65,7 +65,7 @@ export interface LeakShot {
   decision: DecisionQuality;
 }
 
-export type LeakKind = "approach" | "putt" | "atg" | "club";
+export type LeakKind = "approach" | "putt" | "atg";
 
 export interface Leak {
   /** Stable key (kind + label). */
@@ -117,7 +117,7 @@ function toLeakShot(s: ShotRow, sg: number): LeakShot {
 }
 
 /**
- * Rank leaks across approach/putt/around-the-green distance buckets and clubs.
+ * Rank leaks across approach/putt/around-the-green distance buckets.
  * Returns every cut (sorted most-negative SG/round first) with its tier; the
  * consumer shows prescribable ones as the recommendation list and the rest as
  * early reads.
@@ -149,13 +149,8 @@ export function computeLeaks(shots: readonly ShotRow[]): {
   for (const { shot, sg, category } of entries) {
     const detail = toLeakShot(shot, sg);
 
-    // Club cut (full-swing clubs only; putting is covered by the putt buckets).
-    if (shot.club && shot.club !== "Putter") {
-      const c = get("club", shot.club, null, "club", null, null);
-      c.sg += sg;
-      c.shots.push(detail);
-    }
-
+    // No club cut: a club is a proxy for distance, already covered by the
+    // approach / around-the-green / putt distance buckets below.
     if (category === "Putting") {
       const b = shot.yardage != null ? puttBucketOf(puttYardsToFeet(shot.yardage)) : null;
       if (b) {

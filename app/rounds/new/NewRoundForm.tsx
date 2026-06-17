@@ -36,10 +36,15 @@ export interface CourseOption {
 const NO_COURSE = "none";
 
 /** Shared field-card style — full-width 56px white card with a hairline border,
- *  matching the New Round mockup. Date / Course / Tee / Starting hole all use it
- *  so every control reads as the same on-brand surface. */
+ *  matching the New Round mockup. Course / Tee / Starting hole triggers use this
+ *  (flex row: leading icon · value · chevron). */
 const FIELD =
   "flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300";
+
+/** Same card surface for native <input>/<textarea> controls — no `flex`, which
+ *  breaks the sizing of a native date input on mobile WebKit (it overflows). */
+const FIELD_INPUT =
+  "min-h-14 w-full rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300";
 
 function todayString() {
   const d = new Date();
@@ -191,7 +196,7 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
           <Input
             id="date"
             type="date"
-            className={cn(FIELD, "pl-11")}
+            className={cn(FIELD_INPUT, "block pl-11")}
             {...register("date")}
           />
         </div>
@@ -222,13 +227,13 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
                     <SelectValue />
                   </span>
                 </SelectTrigger>
-                <SelectContent align="start" alignItemWithTrigger={false}>
+                <SelectContent align="start" alignItemWithTrigger={false} className="p-1">
                   {courses.map((c) => (
-                    <SelectItem key={c.id} value={c.id} className="text-base">
+                    <SelectItem key={c.id} value={c.id} className="py-2.5 pl-3 text-base">
                       {c.name}
                     </SelectItem>
                   ))}
-                  <SelectItem value={NO_COURSE} className="text-base">
+                  <SelectItem value={NO_COURSE} className="py-2.5 pl-3 text-base">
                     No course
                   </SelectItem>
                 </SelectContent>
@@ -254,13 +259,13 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
                 <SelectTrigger id="tee_id" className={cn(FIELD, "justify-between")}>
                   <SelectValue placeholder="Select a tee" />
                 </SelectTrigger>
-                <SelectContent align="start" alignItemWithTrigger={false}>
+                <SelectContent align="start" alignItemWithTrigger={false} className="p-1">
                   {tees.map((t) => (
-                    <SelectItem key={t.id} value={t.id} className="text-base">
+                    <SelectItem key={t.id} value={t.id} className="py-2.5 pl-3 text-base">
                       {t.name}
                     </SelectItem>
                   ))}
-                  <SelectItem value={NO_COURSE} className="text-base">
+                  <SelectItem value={NO_COURSE} className="py-2.5 pl-3 text-base">
                     No tee
                   </SelectItem>
                 </SelectContent>
@@ -307,7 +312,7 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
           id="notes"
           placeholder="Weather, course conditions, anything notable…"
           rows={3}
-          className="min-h-28 resize-none rounded-xl border-[1.5px] border-input bg-card px-4 py-3 text-base shadow-sm"
+          className={cn(FIELD_INPUT, "min-h-28 resize-none py-3")}
           {...register("notes")}
         />
         {errors.notes && (

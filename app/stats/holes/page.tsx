@@ -15,7 +15,7 @@ const columns: ColumnConfig<HoleSummaryRow>[] = [
   { header: "Rds", key: "rounds", align: "right" },
   { header: "Avg", key: "avgScore", format: "num", align: "right" },
   { header: "Best", key: "best", format: "num", align: "right" },
-  { header: "vs Par", key: "avgVsPar", format: "sparkline", trendKey: "vsParTrend", align: "right", sortable: false },
+  { header: "vs Par", key: "avgVsPar", format: "sparkline", trendKey: "vsParTrend", align: "right" },
   { header: "FW%", key: "fwPct", format: "pct", align: "right" },
   { header: "GIR%", key: "girPct", format: "pct", align: "right" },
   { header: "Scr%", key: "scramblePct", format: "pct", align: "right" },

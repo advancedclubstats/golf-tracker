@@ -86,6 +86,7 @@ export default async function LogPage({ params }: Props) {
       yardageByHole={yardageByHole}
       shotsByHole={shotsByHole}
       holeNumbers={holeNumbers}
+      startingHole={round.starting_hole}
       initialLogged={initialLogged}
       lastShotByHole={lastShotByHole}
     />

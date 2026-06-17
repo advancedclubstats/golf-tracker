@@ -7,7 +7,6 @@ import { getShotsByRound } from "@/lib/db/shots";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, enrichRoundHole } from "@/lib/analytics/core";
 import { isOwner } from "@/lib/auth/owner";
-import { StatsNav } from "@/components/nav/StatsNav";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 
@@ -54,16 +53,9 @@ export default async function RoundDetailPage({ params }: Props) {
             >
               Add shots →
             </Link>
-            <Link
-              href="/rounds/new"
-              className={cn(buttonVariants({ size: "sm" }))}
-            >
-              New Round →
-            </Link>
           </div>
         )}
       </header>
-      <StatsNav current="rounds" owner={owner} />
 
       {round.notes && (
         <p className="mb-4 rounded-lg bg-muted/50 p-3 text-sm text-muted-foreground">

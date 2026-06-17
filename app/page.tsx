@@ -42,7 +42,7 @@ export default async function Home() {
     // Calm Brief is a single editorial column, designed mobile-first at 390px
     // (outer padding 24 / 22 / 30) — kept narrow on desktop too.
     <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
-      <PageHeader title="Dashboard" current="dashboard" />
+      <PageHeader title="Dashboard" />
       <Dashboard data={data} sg={sg} leaks={leaks} momentum={momentum} />
     </main>
   );

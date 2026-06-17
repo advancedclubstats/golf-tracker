@@ -1,6 +1,7 @@
 import { getStrokesGained } from "@/lib/sg-server";
 import { fmtSg, sgColorClass as sgColor } from "@/lib/format";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { StatsChips } from "@/components/nav/StatsChips";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DecisionSplit } from "@/components/stats/DecisionSplit";
 import { cn } from "@/lib/utils";
@@ -13,7 +14,8 @@ export default async function StrokesGainedPage() {
   if (sg.coveredShots === 0) {
     return (
       <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-        <PageHeader title="Strokes Gained" current="sg" />
+        <PageHeader title="Strokes Gained" />
+        <StatsChips current="sg" />
         <p className="py-8 text-center text-sm text-muted-foreground">
           No strokes-gained data yet. SG needs a start lie and distance on each
           shot — log a round with the new entry flow to see it.
@@ -31,7 +33,8 @@ export default async function StrokesGainedPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Strokes Gained" current="sg" />
+      <PageHeader title="Strokes Gained" />
+      <StatsChips current="sg" />
 
       {/* Headline: total per round vs the scratch baseline */}
       <Card size="sm" className="mb-4">

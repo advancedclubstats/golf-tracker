@@ -3,6 +3,7 @@ import { getAllRounds } from "@/lib/db/rounds";
 import { computeClubSummary, type ClubSummaryRow } from "@/lib/analytics/clubSummary";
 import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { StatsChips } from "@/components/nav/StatsChips";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,8 @@ export default async function ClubSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Club Summary" current="clubs" />
+      <PageHeader title="Club Summary" />
+      <StatsChips current="clubs" />
       <DataTable
         columns={columns}
         rows={rows}

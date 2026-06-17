@@ -15,7 +15,7 @@ export default async function SetupPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Setup" current="courses" />
+      <PageHeader title="Setup" />
 
       <section className="mb-8">
         <h2 className="eyebrow mb-3">Your bag</h2>

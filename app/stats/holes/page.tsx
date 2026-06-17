@@ -6,6 +6,7 @@ import { DataTable, type ColumnConfig } from "@/components/stats/DataTable";
 import { HoleAttributionList } from "@/components/stats/HoleAttribution";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { StatsChips } from "@/components/nav/StatsChips";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,8 @@ export default async function HoleSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Hole Summary" current="holes" />
+      <PageHeader title="Hole Summary" />
+      <StatsChips current="holes" />
 
       {/* The killer screen (spec Part 3): per-hole SG attribution — which hole
           costs what, and which part of the game causes it. */}

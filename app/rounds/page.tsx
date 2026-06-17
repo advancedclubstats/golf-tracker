@@ -42,7 +42,7 @@ export default async function RoundsPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Rounds" current="rounds" />
+      <PageHeader title="Rounds" />
 
       {list.length === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">

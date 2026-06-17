@@ -29,7 +29,7 @@ export default async function CourseEditPage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title={course.name} current="courses" />
+      <PageHeader title={course.name} />
       <CourseEditor
         courseId={id}
         initialName={course.name}

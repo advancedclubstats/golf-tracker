@@ -3,6 +3,7 @@ import { getAllRounds } from "@/lib/db/rounds";
 import { computeDistanceSummary } from "@/lib/analytics/distanceSummary";
 import { DistanceTables } from "@/components/stats/DistanceTables";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { StatsChips } from "@/components/nav/StatsChips";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,8 @@ export default async function DistanceSummaryPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
-      <PageHeader title="Distance Summary" current="distance" />
+      <PageHeader title="Distance Summary" />
+      <StatsChips current="distance" />
       <DistanceTables all={all} recent={recent} recentRounds={RECENT_ROUNDS} />
     </main>
   );

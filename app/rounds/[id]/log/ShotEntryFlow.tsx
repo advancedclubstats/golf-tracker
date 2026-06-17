@@ -66,6 +66,8 @@ interface ShotEntryFlowProps {
   yardageByHole: Record<number, number>;
   /** Selectable holes, ascending. */
   holeNumbers: number[];
+  /** Hole the player teed off on — seeds the opening hole (D-13). */
+  startingHole: number;
   initialLogged: Record<number, HoleLog>;
   /** Last logged shot per hole, to seed the start-lie carry-forward on resume. */
   lastShotByHole: Record<number, PrevFinish | null>;
@@ -192,6 +194,7 @@ export function ShotEntryFlow({
   yardageByHole,
   shotsByHole,
   holeNumbers,
+  startingHole,
   initialLogged,
   lastShotByHole,
 }: ShotEntryFlowProps) {
@@ -206,8 +209,13 @@ export function ShotEntryFlow({
     shotsByHole ?? {},
   );
   const [recapOpen, setRecapOpen] = useState(false);
+  // Open on the first unfinished hole at/after the declared starting hole, then
+  // fall back to the first unfinished hole overall, then the starting hole (D-13).
   const [hole, setHole] = useState<number>(
-    holeNumbers.find((h) => !holeDone(initialLogged, h)) ?? holeNumbers[0],
+    holeNumbers.find((h) => h >= startingHole && !holeDone(initialLogged, h)) ??
+      holeNumbers.find((h) => !holeDone(initialLogged, h)) ??
+      startingHole ??
+      holeNumbers[0],
   );
 
   // Draft (the shot being entered) ------------------------------------------

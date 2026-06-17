@@ -20,8 +20,14 @@ export const RoundInsertSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be in YYYY-MM-DD format"),
 
-  /** One of the four session types defined in D-03. */
+  /** One of the four session types defined in D-03. Retained at the data layer
+   *  (written silently as "Full18"); removed from the entry UI per D-13. */
   session_type: z.enum(SESSION_TYPES),
+
+  /** Hole the player tees off on — seeds the opening hole in the log (D-13).
+   *  Round length stays derived from logged shots (D-01); this is just a start
+   *  position, not a hole count. */
+  starting_hole: z.coerce.number().int().min(1).max(18).default(1),
 
   /** Optional free-text notes about the round. */
   notes: z.string().max(1000).nullish(),
@@ -34,6 +40,11 @@ export const RoundInsertSchema = z.object({
 });
 
 export type RoundInsert = z.infer<typeof RoundInsertSchema>;
+
+/** Pre-validation form shape (before Zod coercion/defaults apply). Use this as
+ *  the form-state type so react-hook-form sees the raw inputs, while submit
+ *  handlers receive the parsed {@link RoundInsert}. */
+export type RoundInsertInput = z.input<typeof RoundInsertSchema>;
 
 // ─── Row (returned from DB) ───────────────────────────────────────────────────
 

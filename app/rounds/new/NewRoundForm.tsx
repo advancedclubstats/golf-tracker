@@ -1,16 +1,19 @@
 "use client";
 
+import { useState } from "react";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { RoundInsertSchema, type RoundInsert } from "@/lib/schemas/round";
+import { Popover } from "@base-ui/react/popover";
+import { CalendarIcon, ChevronDownIcon, FlagIcon, MapPinIcon } from "lucide-react";
 import {
-  SESSION_TYPES,
-  SESSION_TYPE_LABELS,
-  type SessionType,
-} from "@/lib/constants";
+  RoundInsertSchema,
+  type RoundInsert,
+  type RoundInsertInput,
+} from "@/lib/schemas/round";
 import { createRound } from "@/actions/rounds";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,12 +35,99 @@ export interface CourseOption {
 
 const NO_COURSE = "none";
 
+/** Shared field-card style — full-width 56px white card with a hairline border,
+ *  matching the New Round mockup. Date / Course / Tee / Starting hole all use it
+ *  so every control reads as the same on-brand surface. */
+const FIELD =
+  "flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300";
+
 function todayString() {
   const d = new Date();
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+/** Starting-hole control (D-13): a field that opens a popover with a 1–18 grid.
+ *  Matches the New Round mockup — collapsed "Hole N" trigger, tap-to-pick grid. */
+function StartingHolePicker({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (hole: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        render={
+          <button
+            type="button"
+            id="starting_hole"
+            className={cn(
+              FIELD,
+              "justify-between data-[popup-open]:border-ring data-[popup-open]:ring-4 data-[popup-open]:ring-ring/15",
+            )}
+          />
+        }
+      >
+        <span className="flex items-center gap-3">
+          <MapPinIcon className="size-5 text-muted-foreground" />
+          <span>Hole {value}</span>
+        </span>
+        <ChevronDownIcon
+          className={cn(
+            "size-5 text-muted-foreground transition-transform",
+            open && "rotate-180 text-primary",
+          )}
+        />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner
+          sideOffset={8}
+          align="center"
+          className="z-50 w-[var(--anchor-width)]"
+        >
+          <Popover.Popup className="rounded-xl border-[1.5px] border-input bg-popover p-2 shadow-lg outline-none">
+            <div
+              role="radiogroup"
+              aria-label="Starting hole"
+              className="grid grid-cols-6 gap-1.5 p-1"
+            >
+              {Array.from({ length: 18 }, (_, i) => i + 1).map((h) => {
+                const selected = value === h;
+                return (
+                  <button
+                    key={h}
+                    type="button"
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => {
+                      onChange(h);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "flex aspect-square items-center justify-center rounded-lg border-[1.5px] font-mono text-base font-semibold tabular-nums transition-transform active:scale-95",
+                      selected
+                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                        : "border-input bg-card text-ink-700 hover:border-ink-300",
+                    )}
+                  >
+                    {h}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="px-2 pb-1 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-300">
+              Tap the hole you tee off on
+            </p>
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
 }
 
 export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
@@ -49,15 +139,22 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
     setValue,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RoundInsert>({
+  } = useForm<RoundInsertInput, unknown, RoundInsert>({
     resolver: zodResolver(RoundInsertSchema),
     defaultValues: {
       date: todayString(),
+      // D-13/Option A: session_type is no longer asked. Write it silently so the
+      // column and every existing reader (rounds list, log fallback) keep working.
       session_type: "Full18",
+      starting_hole: 1,
       notes: "",
       // Default to the only/first course so new rounds are course-aware.
       course_id: courses[0]?.id ?? null,
-      tee_id: null,
+      // Default the tee to "Blue" (falling back to the first tee, then none).
+      tee_id:
+        courses[0]?.tees.find((t) => t.name === "Blue")?.id ??
+        courses[0]?.tees[0]?.id ??
+        null,
     },
   });
 
@@ -85,11 +182,19 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
+    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
       {/* Date */}
       <div className="flex flex-col gap-2">
         <Label htmlFor="date">Date</Label>
-        <Input id="date" type="date" className="h-12 text-base" {...register("date")} />
+        <div className="relative">
+          <CalendarIcon className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            id="date"
+            type="date"
+            className={cn(FIELD, "pl-11")}
+            {...register("date")}
+          />
+        </div>
         {errors.date && (
           <p className="text-sm text-destructive">{errors.date.message}</p>
         )}
@@ -111,10 +216,13 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
                   setValue("tee_id", null); // reset tee when course changes
                 }}
               >
-                <SelectTrigger id="course_id" className="h-12 text-base">
-                  <SelectValue />
+                <SelectTrigger id="course_id" className={cn(FIELD, "justify-between")}>
+                  <span className="flex items-center gap-3">
+                    <FlagIcon className="size-5 text-muted-foreground" />
+                    <SelectValue />
+                  </span>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="start" alignItemWithTrigger={false}>
                   {courses.map((c) => (
                     <SelectItem key={c.id} value={c.id} className="text-base">
                       {c.name}
@@ -143,10 +251,10 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
                 value={field.value ?? NO_COURSE}
                 onValueChange={(v) => field.onChange(v === NO_COURSE ? null : v)}
               >
-                <SelectTrigger id="tee_id" className="h-12 text-base">
+                <SelectTrigger id="tee_id" className={cn(FIELD, "justify-between")}>
                   <SelectValue placeholder="Select a tee" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent align="start" alignItemWithTrigger={false}>
                   {tees.map((t) => (
                     <SelectItem key={t.id} value={t.id} className="text-base">
                       {t.name}
@@ -168,34 +276,24 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
         )
       )}
 
-      {/* Session type */}
+      {/* Starting hole — popover with a 1–18 grid (D-13). Seeds the opening hole
+          in the log so shotgun / mid-course starts open on the right hole. */}
       <div className="flex flex-col gap-2">
-        <Label htmlFor="session_type">Session</Label>
-        {/* shadcn Select doesn't fire native change events, so use Controller */}
+        <Label htmlFor="starting_hole">Starting hole</Label>
         <Controller
-          name="session_type"
+          name="starting_hole"
           control={control}
           render={({ field }) => (
-            <Select
-              items={SESSION_TYPE_LABELS}
-              value={field.value}
-              onValueChange={(v) => field.onChange(v as SessionType)}
-            >
-              <SelectTrigger id="session_type" className="h-12 text-base">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SESSION_TYPES.map((type) => (
-                  <SelectItem key={type} value={type} className="text-base">
-                    {SESSION_TYPE_LABELS[type]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <StartingHolePicker
+              value={typeof field.value === "number" ? field.value : 1}
+              onChange={field.onChange}
+            />
           )}
         />
-        {errors.session_type && (
-          <p className="text-sm text-destructive">{errors.session_type.message}</p>
+        {errors.starting_hole && (
+          <p className="text-sm text-destructive">
+            {errors.starting_hole.message}
+          </p>
         )}
       </div>
 
@@ -209,7 +307,7 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
           id="notes"
           placeholder="Weather, course conditions, anything notable…"
           rows={3}
-          className="resize-none text-base"
+          className="min-h-28 resize-none rounded-xl border-[1.5px] border-input bg-card px-4 py-3 text-base shadow-sm"
           {...register("notes")}
         />
         {errors.notes && (

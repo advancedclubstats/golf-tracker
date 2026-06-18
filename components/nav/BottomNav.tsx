@@ -127,24 +127,23 @@ function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
       aria-label={tab.label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative z-[2] flex flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2.5 transition-colors duration-200",
+        "relative z-[2] flex flex-1 items-center justify-center px-1 py-1.5 transition-colors duration-200",
         active ? "text-highlight" : "text-[#7E978A]",
       )}
     >
-      <Icon
-        className={cn(
-          "h-[25px] w-[25px] transition-transform duration-200 active:scale-90 motion-reduce:transition-none",
-          active && "scale-110",
-        )}
-        strokeWidth={2}
-      />
-      {/* Centered selector dot — part of the tab, so it can't misalign. */}
+      {/* Selector "thumb": a lighter rounded container behind the active icon,
+          inset from the cell edges. Rendered inside the tab (not floating), so
+          it stays aligned; opacity-toggled for a soft fade between tabs. */}
       <span
         aria-hidden
         className={cn(
-          "h-1 w-1 rounded-full bg-highlight transition-opacity duration-200",
+          "absolute inset-y-1 inset-x-1.5 rounded-2xl bg-white/[0.12] transition-opacity duration-200",
           active ? "opacity-100" : "opacity-0",
         )}
+      />
+      <Icon
+        className="relative z-[1] h-[25px] w-[25px] transition-transform duration-200 active:scale-90 motion-reduce:transition-none"
+        strokeWidth={2}
       />
     </Link>
   );

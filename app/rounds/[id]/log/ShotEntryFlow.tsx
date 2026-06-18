@@ -21,6 +21,7 @@ import {
   OBSTRUCTION,
   OBSTRUCTION_COPY,
   THROUGH_GREEN_RESULTS,
+  SHOT_SHAPES,
   type Result,
   type MissDirection,
   type PuttSide,
@@ -28,6 +29,8 @@ import {
   type StartLie,
   type DecisionQuality,
   type Obstruction,
+  type ShotShape,
+  type ShotContact,
 } from "@/lib/constants";
 import { nextStartLie, nextStartObstruction, type PrevFinish } from "@/lib/shots/lie";
 import { cn } from "@/lib/utils";
@@ -100,7 +103,7 @@ const puttYardsFromFeet = (feet: string): number | undefined =>
 
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
-type Step = "club" | "yards" | "strike" | "result" | "miss" | "putt";
+type Step = "club" | "yards" | "strike" | "shape" | "result" | "miss" | "putt";
 
 function formatDiff(diff: number): string {
   if (diff === 0) return "E";
@@ -138,6 +141,8 @@ const QSUB = "text-[14px] leading-[1.4] text-muted-foreground";
 const TAP =
   "w-full rounded-[18px] border-[1.5px] border-input bg-card text-[17px] font-bold text-foreground transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
 const TAP_SEL = "border-primary bg-primary text-white";
+// Contact faults (Thin/Chunk) select in clay so the two shape-step axes read apart.
+const CONTACT_SEL = "border-clay bg-clay text-white";
 const TAP_SOFT = "border-transparent bg-muted text-muted-foreground";
 const CTA =
   "flex w-full items-center justify-center gap-2 rounded-[18px] bg-primary text-[17px] font-bold text-white shadow-[0_8px_22px_rgba(21,120,74,0.26)] transition-transform active:scale-[0.97] disabled:pointer-events-none disabled:opacity-40";
@@ -224,6 +229,10 @@ export function ShotEntryFlow({
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
   const [missDirection, setMissDirection] = useState<MissDirection | null>(null);
+  // Ball-flight shape + contact (migration 016). Two orthogonal, optional axes
+  // tagged on the dedicated shape step after strike. Null = not recalled / skipped.
+  const [shotShape, setShotShape] = useState<ShotShape | null>(null);
+  const [shotContact, setShotContact] = useState<ShotContact | null>(null);
   // Decision quality (spec 1A): default Good; the player taps Bad on the result
   // step only for a genuine process error before choosing the result chip.
   const [decisionQuality, setDecisionQuality] = useState<DecisionQuality>("Good");
@@ -300,6 +309,8 @@ export function ShotEntryFlow({
     setExecution(null);
     setResult(null);
     setMissDirection(null);
+    setShotShape(null);
+    setShotContact(null);
     setDecisionQuality("Good");
     setLieOverride(null);
     setLieOpen(false);
@@ -333,6 +344,10 @@ export function ShotEntryFlow({
     execution?: number;
     result?: Result;
     missDirection?: MissDirection;
+    /** Ball-flight shape. Omitted (putts / skipped) → stays null. */
+    shotShape?: ShotShape;
+    /** Strike fault. Omitted (putts / skipped) → stays null. */
+    shotContact?: ShotContact;
     puttSide?: PuttSide;
     puttLength?: PuttLength;
     penalty?: number;
@@ -371,6 +386,8 @@ export function ShotEntryFlow({
         execution: d.execution,
         result: d.result,
         miss_direction: d.missDirection,
+        shot_shape: d.shotShape,
+        shot_contact: d.shotContact,
         putt_side: d.puttSide,
         putt_length: d.puttLength,
         penalty: d.penalty ?? 0,
@@ -481,7 +498,7 @@ export function ShotEntryFlow({
 
   function chooseExecution(e: number) {
     setExecution(e);
-    setStep("result");
+    setStep("shape");
   }
 
   async function chooseResult(r: Result) {
@@ -494,6 +511,8 @@ export function ShotEntryFlow({
         yardage: yards === "" ? undefined : Number(yards),
         execution: execution ?? undefined,
         result: r,
+        shotShape: shotShape ?? undefined,
+        shotContact: shotContact ?? undefined,
         decisionQuality,
         obstruction,
       });
@@ -528,6 +547,8 @@ export function ShotEntryFlow({
       execution: execution ?? undefined,
       result: r,
       missDirection: missDir ?? missDirection ?? undefined,
+      shotShape: shotShape ?? undefined,
+      shotContact: shotContact ?? undefined,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
       decisionQuality,
       obstruction,
@@ -651,7 +672,8 @@ export function ShotEntryFlow({
     // Sub-steps of the shot being entered.
     if (step === "yards" || (step === "strike" && skipYards)) return setStep("club");
     if (step === "strike") return setStep("yards");
-    if (step === "result") return setStep("strike");
+    if (step === "shape") return setStep("strike");
+    if (step === "result") return setStep("shape");
     if (step === "miss") return setStep("result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
@@ -731,7 +753,7 @@ export function ShotEntryFlow({
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  const STEP_ORDER: Step[] = ["club", "yards", "strike", "result"];
+  const STEP_ORDER: Step[] = ["club", "yards", "strike", "shape", "result"];
   const stepperIdx = STEP_ORDER.indexOf(
     step === "miss" ? "result" : step,
   );
@@ -1168,11 +1190,76 @@ export function ShotEntryFlow({
             disabled={busy}
             onClick={() => {
               setExecution(null);
-              setStep("result");
+              setStep("shape");
             }}
             className="mt-4 block w-full text-[14px] font-semibold text-muted-foreground underline underline-offset-[3px]"
           >
             Skip — don&apos;t rate this one
+          </button>
+        </div>
+      )}
+
+      {step === "shape" && (
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-1")}>How&apos;d it fly?</h3>
+          <p className={cn(QSUB, "mb-6")}>Shape and contact — both optional.</p>
+
+          {/* Thin / Chunk are full-width bars bracketing the 5-wide shape row.
+              Shape is a single-select row; contact is its own single-select axis
+              (a shot can be a fat pull), so the two never clear each other. */}
+          <div className="flex flex-col gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setShotContact((c) => (c === "Thin" ? null : "Thin"))}
+              className={cn(
+                TAP,
+                "h-[52px] w-full text-[14px]",
+                shotContact === "Thin" && CONTACT_SEL,
+              )}
+            >
+              Thin
+            </button>
+
+            <div className="grid grid-cols-5 gap-2">
+              {SHOT_SHAPES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => setShotShape((cur) => (cur === s ? null : s))}
+                  className={cn(
+                    TAP,
+                    "h-[68px] px-0.5 text-[13px]",
+                    shotShape === s && TAP_SEL,
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => setShotContact((c) => (c === "Chunk" ? null : "Chunk"))}
+              className={cn(
+                TAP,
+                "h-[52px] w-full text-[14px]",
+                shotContact === "Chunk" && CONTACT_SEL,
+              )}
+            >
+              Chunk
+            </button>
+          </div>
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setStep("result")}
+            className={cn(CTA, "mt-7 h-[54px]")}
+          >
+            Continue
           </button>
         </div>
       )}

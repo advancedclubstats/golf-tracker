@@ -23,6 +23,8 @@ Entered via a wizard, one shot at a time. Fields collected:
 | **Distance to hole** | yards (putts entered in **feet**, stored as yards = ft/3) | Always, **except skipped** for a tee shot with D/3W/5W on a par 4/5. The entry header shows the hole's tee yardage (from the round's tee) as reference, e.g. "Par 4 · 354 yd". |
 | **Strike quality** | 1 Bad / 2 Okay / 3 Good / 4 Great | Every full shot; optional on putts |
 | **Result** | Fairway, Green, Fringe, Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable, Make | Always (full shots) |
+| **Shot shape** | Slice / Fade / Straight / Draw / Hook | Optional, full shots only. Dedicated **shape step** after strike quality. |
+| **Shot contact** | Thin / Chunk | Optional, full shots only. Same step as shape; orthogonal axis (a shot can be a fat pull). |
 | **Miss direction** | Left / Right / Long / Short | Only if result ∈ {Rough, Bunker, Recovery, OB, Hazard, Lost, Unplayable} |
 | **Decision quality** | Good / Bad (default Good) | One-tap toggle on the result step (full shots); putts default Good. Flag Bad only for a process error (risk / club / line / commitment) — spec 1A |
 | **Penalty** | integer (auto +1 for OB/Hazard/Lost/Unplayable) | Automatic |
@@ -105,6 +107,8 @@ date, session type, shots logged, complete holes, strokes, vs par (or "In progre
 ## 5. Stored shot fields (DB columns, for reference)
 `round_id, hole, par, shot_no, club, yardage (yards; putts = ft/3),
 distance_unit (yd|ft), start_lie, start_lie_manual, decision_quality (Good|Bad,
-default Good), execution (1–4), result, miss_direction, putt_side, putt_length,
-penalty (int), notes, conceded (bool, pickups), id, user_id, created_at`.
+default Good), execution (1–4), result, miss_direction, shot_shape
+(Slice|Fade|Straight|Draw|Hook, nullable), shot_contact (Thin|Chunk, nullable),
+putt_side, putt_length, penalty (int), notes, conceded (bool, pickups), id,
+user_id, created_at`.
 *(Legacy, retained but unused: `situation_created`, `short_sided` — spec 1C/1D.)*

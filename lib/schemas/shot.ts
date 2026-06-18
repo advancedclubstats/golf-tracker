@@ -19,6 +19,8 @@ import {
   DECISION_QUALITIES,
   DISTANCE_UNITS,
   OBSTRUCTION,
+  SHOT_SHAPES,
+  SHOT_CONTACTS,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
 import { ClubNameSchema } from "@/lib/schemas/club";
@@ -123,6 +125,18 @@ export const ShotInsertSchema = z.object({
   miss_direction: z.enum(MISS_DIRECTIONS).nullish(),
 
   /**
+   * Ball-flight shape (Slice…Hook). Optional, full shots only — tagged on the
+   * dedicated shape step after strike quality. Orthogonal to `shot_contact`.
+   */
+  shot_shape: z.enum(SHOT_SHAPES).nullish(),
+
+  /**
+   * Strike fault (Thin/Chunk). Optional and independent of `shot_shape` — a
+   * shot can be a fat pull. Full shots only; putts stay null.
+   */
+  shot_contact: z.enum(SHOT_CONTACTS).nullish(),
+
+  /**
    * Putt side miss. Only for Putter shots; only when miss is material
    * (outside ~3-foot gimme circle).
    */
@@ -165,6 +179,8 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   decision_quality: z.enum(DECISION_QUALITIES),
   result: z.enum(RESULTS).nullable(),
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),
+  shot_shape: z.enum(SHOT_SHAPES).nullable(),
+  shot_contact: z.enum(SHOT_CONTACTS).nullable(),
   putt_side: z.enum(PUTT_SIDES).nullable(),
   putt_length: z.enum(PUTT_LENGTHS).nullable(),
   notes: z.string().nullable(),
@@ -191,6 +207,8 @@ export const ShotUpdateSchema = ShotInsertSchema.pick({
   execution: true,
   result: true,
   miss_direction: true,
+  shot_shape: true,
+  shot_contact: true,
   putt_side: true,
   putt_length: true,
   penalty: true,

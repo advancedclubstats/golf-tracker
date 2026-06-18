@@ -43,6 +43,8 @@ function shot(p: Partial<ShotRow>): ShotRow {
     execution: 3,
     result: null,
     miss_direction: null,
+    shot_shape: null,
+    shot_contact: null,
     putt_side: null,
     putt_length: null,
     penalty: 0,

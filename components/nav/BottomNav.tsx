@@ -127,9 +127,10 @@ function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
       aria-label={tab.label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        // self-stretch: fill the bar's full height (set by the FAB) so the thumb
-        // can inset evenly and read as a proper segmented-control toggle.
-        "relative z-[2] flex flex-1 items-center justify-center self-stretch px-1 transition-colors duration-200",
+        // min-h-14 matches the FAB height so the bar keeps the same height when
+        // the FAB is hidden (signed-out view, /rounds/new); self-stretch then
+        // fills it so the thumb insets evenly as a segmented-control toggle.
+        "relative z-[2] flex min-h-14 flex-1 items-center justify-center self-stretch px-1 transition-colors duration-200",
         active ? "text-highlight" : "text-[#7E978A]",
       )}
     >

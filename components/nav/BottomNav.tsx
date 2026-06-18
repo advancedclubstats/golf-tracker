@@ -64,6 +64,9 @@ export function BottomNav({ owner }: { owner: boolean }) {
   // Visitors (read-only demo) don't get write actions: hide Setup + the FAB.
   const tabs = owner ? TABS : TABS.filter((t) => t.key !== "setup");
 
+  // On the New Round page the FAB would just reload the same route — drop it.
+  const showFab = owner && pathname !== "/rounds/new";
+
   if (isFocusedFlow(pathname)) return null;
 
   return (
@@ -89,8 +92,8 @@ export function BottomNav({ owner }: { owner: boolean }) {
               <NavTab key={t.key} tab={t} active={active === t.key} />
             ))}
 
-          {/* Center FAB — start a round (owner only) */}
-          {owner && (
+          {/* Center FAB — start a round (owner only; hidden on /rounds/new) */}
+          {showFab && (
             <Link
               href="/rounds/new"
               aria-label="Log a round"

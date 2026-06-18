@@ -91,8 +91,6 @@ const MISS_RESULTS = new Set<Result>([
 /** Start lies that are around the green (drive the short-sided prompt). */
 /** Lies offered in the override picker (Tee is auto for shot 1; Green = putt). */
 const OVERRIDE_LIES = START_LIES.filter((l) => l !== "Green");
-/** Clubs that, off the tee on a par 4/5, skip the yardage step. */
-const TEE_NO_YARDAGE = new Set<string>(["D", "3W", "5W"]);
 
 /** Putts are entered in feet (stored canonically as yards = feet / 3). Feet
  *  gives 1-ft resolution where the expected-strokes curve is steepest — the
@@ -470,11 +468,13 @@ export function ShotEntryFlow({
       setStep("putt");
       return;
     }
-    // A tee shot with a long club on a par 4/5 skips yardage — including a
-    // re-tee after an OB/Lost penalty (effectiveLie carries "Tee" forward),
-    // which is the same shot played again.
+    // A par 4/5 tee shot skips yardage regardless of club: "yards to the hole"
+    // is the hole length, known from course geometry (fillTeeDistances backfills
+    // it for SG). Includes a re-tee after an OB/Lost penalty (effectiveLie
+    // carries "Tee" forward). If the hole's tee yardage is unknown, fall through
+    // to the yards step so the distance isn't silently lost.
     const teeNoYardage =
-      effectiveLie === "Tee" && (par ?? 0) >= 4 && TEE_NO_YARDAGE.has(c);
+      effectiveLie === "Tee" && (par ?? 0) >= 4 && yardageByHole[hole] != null;
     setSkipYards(teeNoYardage);
     setStep(teeNoYardage ? "strike" : "yards");
   }

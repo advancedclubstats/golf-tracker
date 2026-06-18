@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 const CHIPS = [
   { key: "holes", href: "/stats/holes", label: "Holes" },
   { key: "clubs", href: "/stats/clubs", label: "Clubs" },
+  { key: "shape", href: "/stats/shape", label: "Shape" },
   { key: "distance", href: "/stats/distance", label: "Distance" },
   { key: "sg", href: "/stats/sg", label: "SG" },
 ] as const;

@@ -80,6 +80,9 @@ Top-to-bottom **answer order** (spec Part 3), then reference cards:
 ### Clubs (`/stats/clubs`) — every shot, Putter excluded
 shots, avg quality, avg yards, FW% (par4/5 tee shots), green% (approaches), miss L/R/Long/Short %, bunker%.
 
+### Shape & Contact (`/stats/shape`) — tendencies by club category
+Clubs roll up into **Driver / Woods / Long iron / Short iron / Wedge** (`clubCategory`, pattern-based so it survives bag edits). Per category: a left→right dispersion bar (Hook · Draw · Straight · Fade · Slice) over **tagged** shots, the **one-way vs two-way miss** read (with an aim-away suggestion), Thin/Chunk contact rates, and the tagged `n`. Rates are over tagged shots only (blank ≠ flush); sample-gated as "early read" below 15 (`lib/analytics/shotShape.ts`).
+
 ### Distance (`/stats/distance`) — five tables
 1. **Putt make rate** by distance bucket.
 2. **First-putt performance** by bucket (complete holes): faced, avg putts, 1-putt%, 3-putt%.

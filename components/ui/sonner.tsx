@@ -10,6 +10,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
       theme={theme as ToasterProps["theme"]}
+      // Top-center by default so toasts never collide with the bottom nav / FAB.
+      position="top-center"
       className="toaster group"
       icons={{
         success: (

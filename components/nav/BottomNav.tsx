@@ -77,7 +77,7 @@ export function BottomNav({ owner }: { owner: boolean }) {
       <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center pb-[calc(18px+env(safe-area-inset-bottom))]">
         <nav
           aria-label="Primary"
-          className="pointer-events-auto relative mx-4 flex w-[calc(100%-32px)] max-w-[420px] items-center justify-around overflow-visible rounded-full px-3 py-2"
+          className="pointer-events-auto relative mx-4 flex w-[calc(100%-32px)] max-w-[420px] items-center justify-around overflow-visible rounded-full px-3 py-1"
           style={{
             background: "#0B2E1E",
             border: "1px solid rgba(255,255,255,.08)",
@@ -127,7 +127,9 @@ function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
       aria-label={tab.label}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "relative z-[2] flex flex-1 items-center justify-center px-1 py-1.5 transition-colors duration-200",
+        // self-stretch: fill the bar's full height (set by the FAB) so the thumb
+        // can inset evenly and read as a proper segmented-control toggle.
+        "relative z-[2] flex flex-1 items-center justify-center self-stretch px-1 transition-colors duration-200",
         active ? "text-highlight" : "text-[#7E978A]",
       )}
     >

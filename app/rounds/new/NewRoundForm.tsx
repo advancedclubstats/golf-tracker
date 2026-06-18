@@ -196,7 +196,7 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
           <Input
             id="date"
             type="date"
-            className={cn(FIELD_INPUT, "block max-w-[16rem] pl-11")}
+            className={cn(FIELD_INPUT, "block pl-11")}
             {...register("date")}
           />
         </div>

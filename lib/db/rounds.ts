@@ -8,7 +8,7 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { RoundRowSchema, type RoundRow } from "@/lib/schemas/round";
-import { V1_USER_ID } from "@/lib/constants";
+import { getDataScopeUserId } from "@/lib/auth/scope";
 
 const RoundRowsSchema = z.array(RoundRowSchema);
 
@@ -18,9 +18,12 @@ const RoundRowsSchema = z.array(RoundRowSchema);
  */
 export async function getRound(id: string): Promise<RoundRow | null> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
 
+  // Scope by user_id too: a round only resolves within the caller's scope, so a
+  // visitor can't load the owner's round by id (and vice-versa).
   const { data, error } = await withRetry(() =>
-    supabase.from("rounds").select("*").eq("id", id).single(),
+    supabase.from("rounds").select("*").eq("id", id).eq("user_id", userId).single(),
   );
 
   if (error) {
@@ -40,12 +43,13 @@ export async function getRound(id: string): Promise<RoundRow | null> {
  */
 export async function getAllRounds(): Promise<RoundRow[]> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
 
   const { data, error } = await withRetry(() =>
     supabase
       .from("rounds")
       .select("*")
-      .eq("user_id", V1_USER_ID)
+      .eq("user_id", userId)
       .order("date", { ascending: false }),
   );
 

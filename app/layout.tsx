@@ -7,6 +7,7 @@ import {
 import { Analytics } from "@vercel/analytics/next";
 import { Toaster } from "@/components/ui/sonner";
 import { BottomNav } from "@/components/nav/BottomNav";
+import { SandboxBootstrap } from "@/components/SandboxBootstrap";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { isOwner } from "@/lib/auth/owner";
 import "./globals.css";
@@ -77,6 +78,7 @@ export default async function RootLayout({
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
         <BottomNav owner={owner} />
+        {!owner && <SandboxBootstrap />}
         <WelcomeOverlay owner={owner} />
         <Toaster />
         <Analytics />

@@ -7,6 +7,7 @@ import { getShotsByRound } from "@/lib/db/shots";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, enrichRoundHole } from "@/lib/analytics/core";
 import { isOwner } from "@/lib/auth/owner";
+import { isSandbox } from "@/lib/auth/scope";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 
@@ -19,11 +20,15 @@ export default async function RoundDetailPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, clubs, owner] = await Promise.all([
+  const [shots, clubs, owner, sandbox] = await Promise.all([
     getShotsByRound(id),
     getClubNames(),
     isOwner(),
+    isSandbox(),
   ]);
+  // Reads are scoped to the caller, so a round we could load is always ours to
+  // edit — the owner on real data, a visitor on their sandbox copy.
+  const canWrite = owner || sandbox;
   // aggregateByRoundHole sorts each hole's shots; sort holes ascending for display.
   const holes: HoleView[] = aggregateByRoundHole(shots)
     .sort((a, b) => a.hole - b.hole)
@@ -45,7 +50,7 @@ export default async function RoundDetailPage({ params }: Props) {
             {SESSION_TYPE_LABELS[round.session_type]}
           </p>
         </div>
-        {owner && (
+        {canWrite && (
           <div className="flex shrink-0 items-center gap-2">
             <Link
               href={`/rounds/${id}/log`}
@@ -66,7 +71,7 @@ export default async function RoundDetailPage({ params }: Props) {
       {holes.length === 0 ? (
         <p className="py-4 text-sm text-muted-foreground">
           No shots logged yet.
-          {owner && (
+          {canWrite && (
             <>
               {" "}
               <Link href={`/rounds/${id}/log`} className="text-primary underline-offset-4 hover:underline">
@@ -78,10 +83,10 @@ export default async function RoundDetailPage({ params }: Props) {
         </p>
       ) : (
         <>
-          {owner && (
+          {canWrite && (
             <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
           )}
-          <EditableHoleList roundId={id} clubs={clubs} holes={holes} owner={owner} />
+          <EditableHoleList roundId={id} clubs={clubs} holes={holes} owner={canWrite} />
         </>
       )}
     </main>

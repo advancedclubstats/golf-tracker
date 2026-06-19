@@ -4,6 +4,7 @@ import { computeRoundList } from "@/lib/analytics/rounds";
 import { computeRoundBreakdowns } from "@/lib/analytics/roundCard";
 import { getEnrichedShots } from "@/lib/sg-server";
 import { isOwner } from "@/lib/auth/owner";
+import { isSandbox } from "@/lib/auth/scope";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { RoundsList, type RoundListRow } from "@/components/rounds/RoundsList";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
@@ -11,11 +12,14 @@ import { SESSION_TYPE_LABELS } from "@/lib/constants";
 export const dynamic = "force-dynamic";
 
 export default async function RoundsPage() {
-  const [rawShots, rounds, owner] = await Promise.all([
+  const [rawShots, rounds, owner, sandbox] = await Promise.all([
     getAllShots(),
     getAllRounds(),
     isOwner(),
+    isSandbox(),
   ]);
+  // Visitors manage their own sandbox rounds (delete), same as the owner.
+  const canWrite = owner || sandbox;
   // Tee-distance-filled shots so round-level SG is computable (shared seam).
   const { shots } = await getEnrichedShots({ shots: rawShots, rounds });
   const list = computeRoundList(shots, rounds);
@@ -49,7 +53,7 @@ export default async function RoundsPage() {
           No rounds yet. Start one with “New Round”.
         </p>
       ) : (
-        <RoundsList rounds={items} owner={owner} />
+        <RoundsList rounds={items} owner={canWrite} />
       )}
     </main>
   );

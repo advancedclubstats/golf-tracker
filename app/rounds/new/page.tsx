@@ -1,12 +1,10 @@
-import { redirect } from "next/navigation";
 import { getCourses, getCourseTees } from "@/lib/db/courses";
-import { isOwner } from "@/lib/auth/owner";
 import { NewRoundForm, type CourseOption } from "./NewRoundForm";
 
 export const dynamic = "force-dynamic";
 
 export default async function NewRoundPage() {
-  if (!(await isOwner())) redirect("/rounds"); // owner-only (read-only demo)
+  // Open to everyone: the owner logs real rounds, visitors log into their sandbox.
   const courses = await getCourses();
   const options: CourseOption[] = await Promise.all(
     courses.map(async (c) => ({

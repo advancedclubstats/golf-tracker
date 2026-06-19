@@ -10,7 +10,7 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { ShotRowSchema, type ShotRow } from "@/lib/schemas/shot";
-import { V1_USER_ID } from "@/lib/constants";
+import { getDataScopeUserId } from "@/lib/auth/scope";
 
 const ShotRowsSchema = z.array(ShotRowSchema);
 
@@ -23,12 +23,13 @@ const ShotRowsSchema = z.array(ShotRowSchema);
  */
 export async function getAllShots(): Promise<ShotRow[]> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
 
   const { data, error } = await withRetry(() =>
     supabase
       .from("shots")
       .select("*")
-      .eq("user_id", V1_USER_ID)
+      .eq("user_id", userId)
       .order("round_id", { ascending: true })
       .order("hole", { ascending: true })
       .order("shot_no", { ascending: true }),
@@ -47,12 +48,14 @@ export async function getAllShots(): Promise<ShotRow[]> {
  */
 export async function getShotsByRound(roundId: string): Promise<ShotRow[]> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
 
   const { data, error } = await withRetry(() =>
     supabase
       .from("shots")
       .select("*")
       .eq("round_id", roundId)
+      .eq("user_id", userId)
       .order("hole", { ascending: true })
       .order("shot_no", { ascending: true }),
   );

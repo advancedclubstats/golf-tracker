@@ -1,6 +1,5 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { getRound } from "@/lib/db/rounds";
-import { isOwner } from "@/lib/auth/owner";
 import { getShotsByRound } from "@/lib/db/shots";
 import { getCourseHoles, getTeeYardages } from "@/lib/db/courses";
 import { getClubNames } from "@/lib/db/clubs";
@@ -17,10 +16,10 @@ export const dynamic = "force-dynamic";
 
 export default async function LogPage({ params }: Props) {
   const { id } = await params;
+  // getRound is scoped to the caller, so a visitor only resolves their own
+  // sandbox round (owner rounds → notFound for them, and vice-versa).
   const round = await getRound(id);
   if (!round) notFound();
-  // Logging/editing is owner-only — visitors get the read-only round view.
-  if (!(await isOwner())) redirect(`/rounds/${id}`);
 
   const [shots, courseHoles, teeYardages, clubs] = await Promise.all([
     getShotsByRound(id),

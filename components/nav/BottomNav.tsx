@@ -61,11 +61,13 @@ export function BottomNav({ owner }: { owner: boolean }) {
   const pathname = usePathname() ?? "/";
   const active = activeKey(pathname);
 
-  // Visitors (read-only demo) don't get write actions: hide Setup + the FAB.
+  // Setup (courses/clubs editing) stays owner-only; visitors use it read-only as
+  // reference, so they don't get the Setup tab.
   const tabs = owner ? TABS : TABS.filter((t) => t.key !== "setup");
 
-  // On the New Round page the FAB would just reload the same route — drop it.
-  const showFab = owner && pathname !== "/rounds/new";
+  // Everyone can log a round — owner into real data, visitors into their sandbox.
+  // On the New Round page the FAB would just reload the same route, so drop it.
+  const showFab = pathname !== "/rounds/new";
 
   if (isFocusedFlow(pathname)) return null;
 

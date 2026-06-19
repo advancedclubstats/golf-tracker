@@ -7,10 +7,9 @@ import {
   type ShotInsert,
   type ShotUpdate,
 } from "@/lib/schemas/shot";
-import { V1_USER_ID } from "@/lib/constants";
 import { createServerClient } from "@/lib/supabase/server";
 import { renumberContiguous } from "@/lib/shots/sequence";
-import { requireOwner } from "@/lib/auth/owner";
+import { getDataScopeUserId } from "@/lib/auth/scope";
 
 /** Revalidate the views that depend on shot data (cache hard rule). */
 function revalidateShotViews(roundId: string) {
@@ -42,7 +41,8 @@ async function recomputeHoleStartLie(
  * Cache: revalidates both '/' (dashboard) and '/rounds/[id]' (round detail).
  */
 export async function createShot(data: ShotInsert): Promise<{ id: string }> {
-  await requireOwner();
+  // Scope to the caller (owner → real data; visitor → their sandbox).
+  const userId = await getDataScopeUserId();
   const validated = ShotInsertSchema.parse(data);
 
   const supabase = createServerClient();
@@ -56,7 +56,7 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
   const { data: shot, error } = await supabase
     .from("shots")
     .upsert(
-      { ...validated, user_id: V1_USER_ID },
+      { ...validated, user_id: userId },
       { onConflict: "round_id,hole,shot_no" },
     )
     .select("id")
@@ -80,7 +80,7 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
-  await requireOwner();
+  const userId = await getDataScopeUserId();
   const validated = ShotInsertSchema.parse(data);
   const supabase = createServerClient();
 
@@ -91,6 +91,7 @@ export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
     .select("id, shot_no")
     .eq("round_id", validated.round_id)
     .eq("hole", validated.hole)
+    .eq("user_id", userId)
     .gte("shot_no", validated.shot_no)
     .order("shot_no", { ascending: false });
   if (listErr) {
@@ -101,7 +102,8 @@ export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
     const { error: bumpErr } = await supabase
       .from("shots")
       .update({ shot_no: s.shot_no + 1 })
-      .eq("id", s.id);
+      .eq("id", s.id)
+      .eq("user_id", userId);
     if (bumpErr) {
       throw new Error(`Failed to renumber shot: ${bumpErr.message}`);
     }
@@ -109,7 +111,7 @@ export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
 
   const { data: shot, error } = await supabase
     .from("shots")
-    .insert({ ...validated, user_id: V1_USER_ID })
+    .insert({ ...validated, user_id: userId })
     .select("id")
     .single();
   if (error) {
@@ -135,7 +137,7 @@ export async function updateShot(
   roundId: string,
   data: ShotUpdate,
 ): Promise<void> {
-  await requireOwner();
+  const userId = await getDataScopeUserId();
   const validated = ShotUpdateSchema.parse(data);
 
   const supabase = createServerClient();
@@ -145,12 +147,17 @@ export async function updateShot(
     .from("shots")
     .select("hole")
     .eq("id", id)
+    .eq("user_id", userId)
     .single();
   if (findErr) {
     throw new Error(`Failed to load shot: ${findErr.message}`);
   }
 
-  const { error } = await supabase.from("shots").update(validated).eq("id", id);
+  const { error } = await supabase
+    .from("shots")
+    .update(validated)
+    .eq("id", id)
+    .eq("user_id", userId);
 
   if (error) {
     throw new Error(`Failed to update shot: ${error.message}`);
@@ -171,7 +178,7 @@ export async function updateShot(
  * Throws on DB error. Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function deleteShot(id: string, roundId: string): Promise<void> {
-  await requireOwner();
+  const userId = await getDataScopeUserId();
   const supabase = createServerClient();
 
   // Need the hole to find siblings to renumber.
@@ -179,12 +186,17 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
     .from("shots")
     .select("hole")
     .eq("id", id)
+    .eq("user_id", userId)
     .single();
   if (findErr) {
     throw new Error(`Failed to load shot: ${findErr.message}`);
   }
 
-  const { error: delErr } = await supabase.from("shots").delete().eq("id", id);
+  const { error: delErr } = await supabase
+    .from("shots")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
   if (delErr) {
     throw new Error(`Failed to delete shot: ${delErr.message}`);
   }
@@ -194,6 +206,7 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
     .select("id, shot_no")
     .eq("round_id", roundId)
     .eq("hole", shot.hole)
+    .eq("user_id", userId)
     .order("shot_no", { ascending: true });
   if (listErr) {
     throw new Error(`Failed to load hole shots: ${listErr.message}`);
@@ -204,7 +217,8 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
     const { error: renumErr } = await supabase
       .from("shots")
       .update({ shot_no: update.shot_no })
-      .eq("id", update.id);
+      .eq("id", update.id)
+      .eq("user_id", userId);
     if (renumErr) {
       throw new Error(`Failed to renumber shot: ${renumErr.message}`);
     }
@@ -224,14 +238,15 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function clearHole(roundId: string, hole: number): Promise<void> {
-  await requireOwner();
+  const userId = await getDataScopeUserId();
   const supabase = createServerClient();
 
   const { error } = await supabase
     .from("shots")
     .delete()
     .eq("round_id", roundId)
-    .eq("hole", hole);
+    .eq("hole", hole)
+    .eq("user_id", userId);
   if (error) {
     throw new Error(`Failed to clear hole: ${error.message}`);
   }
@@ -246,7 +261,7 @@ export async function clearHole(roundId: string, hole: number): Promise<void> {
  * Cache: revalidates '/' and '/rounds/[id]'.
  */
 export async function concedeHole(roundId: string, hole: number): Promise<void> {
-  await requireOwner();
+  const userId = await getDataScopeUserId();
   const supabase = createServerClient();
 
   const { data: last, error: findErr } = await supabase
@@ -254,6 +269,7 @@ export async function concedeHole(roundId: string, hole: number): Promise<void> 
     .select("id")
     .eq("round_id", roundId)
     .eq("hole", hole)
+    .eq("user_id", userId)
     .order("shot_no", { ascending: false })
     .limit(1);
   if (findErr) {
@@ -266,7 +282,8 @@ export async function concedeHole(roundId: string, hole: number): Promise<void> 
   const { error: updErr } = await supabase
     .from("shots")
     .update({ conceded: true })
-    .eq("id", last[0].id);
+    .eq("id", last[0].id)
+    .eq("user_id", userId);
   if (updErr) {
     throw new Error(`Failed to pick up hole: ${updErr.message}`);
   }

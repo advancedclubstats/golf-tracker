@@ -123,19 +123,6 @@ export const OBSTRUCTION_COPY: Record<Obstruction, { label: string; hint: string
   Blocked: { label: "Chip out", hint: "Couldn't advance to the target" },
 };
 
-/**
- * Through-the-green resting surfaces: the only finishes where an obstruction is
- * meaningful (the ball came to rest in play). When obstruction is non-Clear, the
- * other finishes (Green, the penalties, Holed it) are suppressed — you can't rest
- * obstructed *and* be on the green / in the hole / taking a drop.
- */
-export const THROUGH_GREEN_RESULTS = new Set<Result>([
-  "Fairway",
-  "Rough",
-  "Bunker",
-  "Fringe",
-]);
-
 export const MISS_DIRECTIONS = ["Left", "Right", "Long", "Short"] as const;
 export type MissDirection = (typeof MISS_DIRECTIONS)[number];
 

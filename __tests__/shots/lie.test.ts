@@ -1,18 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { nextStartLie, nextStartObstruction } from "@/lib/shots/lie";
-
-describe("nextStartObstruction (obstruction carry-forward)", () => {
-  it("propagates the tagged finish obstruction as the next shot's start", () => {
-    expect(nextStartObstruction("Blocked")).toBe("Blocked");
-    expect(nextStartObstruction("Partial")).toBe("Partial");
-    expect(nextStartObstruction("Clear")).toBe("Clear");
-  });
-
-  it("defaults to Clear when nothing carries (null / undefined)", () => {
-    expect(nextStartObstruction(null)).toBe("Clear");
-    expect(nextStartObstruction(undefined)).toBe("Clear");
-  });
-});
+import { nextStartLie } from "@/lib/shots/lie";
 
 describe("nextStartLie (carry-forward default)", () => {
   it("shot 1 starts on the tee", () => {

@@ -5,7 +5,7 @@
  * override. The DB stays the source of truth for stored/recomputed lies.
  */
 
-import type { Result, StartLie, Obstruction } from "@/lib/constants";
+import type { Result, StartLie } from "@/lib/constants";
 
 export interface PrevFinish {
   result: Result | null;
@@ -53,22 +53,4 @@ export function nextStartLie(prev: PrevFinish | null): StartLie | null {
     default:
       return null;
   }
-}
-
-/**
- * Obstruction carry-forward (orthogonal to the surface carry above). The
- * obstruction tagged on a shot's *finish* (the resting position) becomes the
- * *start* obstruction of the next shot on the hole — this propagation is the
- * whole mechanism and must never be discarded on commit.
- *
- * The next shot's own obstruction *control* then defaults back to Clear (you've
- * usually extricated): "reset to Clear" refers to that control default, NOT to
- * this propagation. So drive into rough behind a tree → tag the finish Blocked →
- * the next shot starts `obstruction: "Blocked"`, and its control shows Clear
- * until you tag it again.
- */
-export function nextStartObstruction(
-  finishObstruction: Obstruction | null | undefined,
-): Obstruction {
-  return finishObstruction ?? "Clear";
 }

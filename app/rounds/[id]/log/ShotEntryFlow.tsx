@@ -20,7 +20,6 @@ import {
   DECISION_QUALITIES,
   OBSTRUCTION,
   OBSTRUCTION_COPY,
-  THROUGH_GREEN_RESULTS,
   SHOT_SHAPES,
   type Result,
   type MissDirection,
@@ -32,7 +31,7 @@ import {
   type ShotShape,
   type ShotContact,
 } from "@/lib/constants";
-import { nextStartLie, nextStartObstruction, type PrevFinish } from "@/lib/shots/lie";
+import { nextStartLie, type PrevFinish } from "@/lib/shots/lie";
 import { cn } from "@/lib/utils";
 
 /** Per-hole progress, seeded from already-logged shots so entry can resume. */
@@ -240,12 +239,12 @@ export function ShotEntryFlow({
   // carry-forward default is used). Domino fields default to no-trouble.
   const [lieOverride, setLieOverride] = useState<StartLie | null>(null);
   const [lieOpen, setLieOpen] = useState(false);
-  // Obstruction (orthogonal start-state attribute). `obstruction` is THIS shot's
-  // start obstruction — carried in from the prior shot's tagged finish, shown as
-  // a read-only chip. `finishObx` is the obstruction tagged on the result step:
-  // it describes the resting position and propagates as the next shot's start.
+  // Obstruction (orthogonal start-state attribute of THIS shot — what was between
+  // ball and target on the shot just played). Set on the result step, default
+  // Clear (the ~80% case → zero taps). It prices the shot off the Recovery
+  // baseline but never constrains the result: a flighted/punched shot can still
+  // find the green, go OB, anything. See docs/design/obstruction_capture_brief.md.
   const [obstruction, setObstruction] = useState<Obstruction>("Clear");
-  const [finishObx, setFinishObx] = useState<Obstruction>("Clear");
   const [obxOpen, setObxOpen] = useState(false);
   // Putt mode
   const [puttNo, setPuttNo] = useState(1);
@@ -298,11 +297,10 @@ export function ShotEntryFlow({
   const effectiveLie: StartLie | null = lieOverride ?? defaultLie;
 
   /**
-   * Reset the draft for the next shot. `nextObx` is the obstruction that carries
-   * forward as the next shot's START state (the finish tagged on the shot just
-   * committed); its own control still defaults to Clear — see nextStartObstruction.
+   * Reset the draft for the next shot. Obstruction resets to Clear — it's tagged
+   * per-shot on the result step when something was in the way, not carried over.
    */
-  function resetDraft(nextObx: Obstruction = "Clear") {
+  function resetDraft() {
     setClub(null);
     setYards("");
     setSkipYards(false);
@@ -314,8 +312,7 @@ export function ShotEntryFlow({
     setDecisionQuality("Good");
     setLieOverride(null);
     setLieOpen(false);
-    setObstruction(nextObx);
-    setFinishObx("Clear");
+    setObstruction("Clear");
     setObxOpen(false);
     setPuttPhase("main");
     setPuttFeet("");
@@ -554,9 +551,7 @@ export function ShotEntryFlow({
       obstruction,
     });
     if (!res.ok) return;
-    // Carry the tagged finish obstruction forward as the next shot's start state
-    // (its own control resets to Clear — see nextStartObstruction).
-    resetDraft(nextStartObstruction(finishObx));
+    resetDraft();
   }
 
   function enterPutt() {
@@ -860,25 +855,6 @@ export function ShotEntryFlow({
               )}
               <span className="text-[11px] text-muted-foreground">▾</span>
             </button>
-            {/* Read-only chip: obstruction carried in from the last shot's finish
-                as THIS shot's start state. Tagged on the prior result step, not
-                edited here (the next finish is what propagates). */}
-            {obstruction !== "Clear" && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full border-[1.5px] px-[12px] py-[7px]",
-                  OBSTRUCTION_TINT[obstruction],
-                )}
-              >
-                <span className={cn("h-2 w-2 rounded-full", OBSTRUCTION_DOT[obstruction])} />
-                <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em] opacity-70">
-                  Start
-                </span>
-                <span className="text-[13px] font-semibold">
-                  {OBSTRUCTION_COPY[obstruction].label}
-                </span>
-              </span>
-            )}
           </div>
           {lieOpen && (
             <div className="mt-[10px] grid grid-cols-3 gap-2">
@@ -1300,17 +1276,17 @@ export function ShotEntryFlow({
             </div>
           </div>
 
-          {/* Obstruction (Placement A): a peer of Decision. Tags the obstruction
-              of the resting position, which propagates as the next shot's start
-              state. Progressive disclosure — zero taps when Clear (the ~80%
-              case), one deliberate tap otherwise. Setting a non-Clear level
-              suppresses every finish that can't rest obstructed (below). */}
+          {/* Obstruction (a peer of Decision): the start-state of the shot just
+              played — what was between ball and target. Prices the shot off the
+              Recovery baseline, but never constrains the result below (a flighted
+              shot can still find the green or go OB). Progressive disclosure —
+              zero taps when Clear (the ~80% case), one deliberate tap otherwise. */}
           <div className="mb-4">
             <div className="flex items-center justify-between gap-3 px-0.5">
               <div className="flex flex-col gap-0.5">
                 <span className="text-[14px] font-bold">Obstruction</span>
                 <span className="text-[11.5px] text-muted-foreground">
-                  Only if something blocked the shot.
+                  Only if something forced an abnormal shot.
                 </span>
               </div>
               <button
@@ -1320,15 +1296,15 @@ export function ShotEntryFlow({
                 aria-expanded={obxOpen}
                 className={cn(
                   "inline-flex h-[34px] items-center gap-2 rounded-full border-[1.5px] px-[14px] text-[13px] font-bold transition-colors",
-                  finishObx === "Clear"
+                  obstruction === "Clear"
                     ? "border-input bg-card text-muted-foreground"
-                    : OBSTRUCTION_TINT[finishObx],
+                    : OBSTRUCTION_TINT[obstruction],
                 )}
               >
-                {finishObx !== "Clear" && (
-                  <span className={cn("h-2 w-2 rounded-full", OBSTRUCTION_DOT[finishObx])} />
+                {obstruction !== "Clear" && (
+                  <span className={cn("h-2 w-2 rounded-full", OBSTRUCTION_DOT[obstruction])} />
                 )}
-                {OBSTRUCTION_COPY[finishObx].label}
+                {OBSTRUCTION_COPY[obstruction].label}
                 <span className="text-[10px] opacity-70">▾</span>
               </button>
             </div>
@@ -1340,12 +1316,12 @@ export function ShotEntryFlow({
                     type="button"
                     disabled={busy}
                     onClick={() => {
-                      setFinishObx(o);
+                      setObstruction(o);
                       setObxOpen(false);
                     }}
                     className={cn(
                       "flex items-center gap-3 rounded-[13px] border-[1.5px] px-3.5 py-3 text-left transition-transform active:scale-[0.98]",
-                      finishObx === o ? OBSTRUCTION_SELECTED[o] : "border-input bg-card",
+                      obstruction === o ? OBSTRUCTION_SELECTED[o] : "border-input bg-card",
                     )}
                   >
                     <span
@@ -1359,7 +1335,7 @@ export function ShotEntryFlow({
                         {OBSTRUCTION_COPY[o].hint}
                       </span>
                     </span>
-                    {finishObx === o && (
+                    {obstruction === o && (
                       <span className="ml-auto shrink-0 text-[14px] font-bold">✓</span>
                     )}
                   </button>
@@ -1370,16 +1346,15 @@ export function ShotEntryFlow({
 
           <div className="grid grid-cols-2 gap-2.5">
             {RESULT_GRID.map((r) => {
-              // An obstructed finish must be a ball that came to rest in play, so
-              // a non-Clear obstruction suppresses every non-through-the-green
-              // finish. Unplayable is the odd one out (9 items) → full width.
-              const suppressed = finishObx !== "Clear" && !THROUGH_GREEN_RESULTS.has(r);
+              // Obstruction describes the shot's start, not its finish, so every
+              // result stays available — a flighted/punched shot can end anywhere.
+              // Unplayable is the odd one out (9 items) → full width.
               const orphan = r === "Unplayable";
               return (
                 <button
                   key={r}
                   type="button"
-                  disabled={busy || suppressed}
+                  disabled={busy}
                   onClick={() => chooseResult(r)}
                   className={cn(TAP, "relative h-[58px] text-[16px]", orphan && "col-span-2")}
                 >
@@ -1394,7 +1369,7 @@ export function ShotEntryFlow({
             })}
             <button
               type="button"
-              disabled={busy || finishObx !== "Clear"}
+              disabled={busy}
               onClick={() => chooseResult("Make")}
               className={cn(CTA, "col-span-2 h-[58px] text-[16px]")}
             >

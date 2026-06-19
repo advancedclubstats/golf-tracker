@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { getCourses } from "@/lib/db/courses";
 import { getClubs } from "@/lib/db/clubs";
-import { isOwner } from "@/lib/auth/owner";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { NewCourseForm } from "@/components/courses/NewCourseForm";
 import { ClubsEditor } from "@/components/clubs/ClubsEditor";
@@ -10,7 +8,8 @@ import { ClubsEditor } from "@/components/clubs/ClubsEditor";
 export const dynamic = "force-dynamic";
 
 export default async function SetupPage() {
-  if (!(await isOwner())) redirect("/"); // setup is all editing — owner-only
+  // Open to everyone: the owner edits real setup, visitors their sandbox copy
+  // (all reads/writes are scoped to the caller).
   const [courses, clubs] = await Promise.all([getCourses(), getClubs()]);
 
   return (

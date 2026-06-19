@@ -7,18 +7,20 @@ import { z } from "zod";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { ClubRowSchema, type ClubRow } from "@/lib/schemas/club";
-import { CLUBS, V1_USER_ID } from "@/lib/constants";
+import { CLUBS } from "@/lib/constants";
+import { getDataScopeUserId } from "@/lib/auth/scope";
 
 const ClubRowsSchema = z.array(ClubRowSchema);
 
 /** The user's club bag, in bag order. */
 export async function getClubs(): Promise<ClubRow[]> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
   const { data, error } = await withRetry(() =>
     supabase
       .from("clubs")
       .select("*")
-      .eq("user_id", V1_USER_ID)
+      .eq("user_id", userId)
       .order("sort_order", { ascending: true }),
   );
   if (error) throw new Error(`Failed to fetch clubs: ${error.message}`);

@@ -57,15 +57,14 @@ function isFocusedFlow(pathname: string): boolean {
   return /^\/rounds\/[^/]+\/log\/?$/.test(pathname);
 }
 
-export function BottomNav({ owner }: { owner: boolean }) {
+export function BottomNav() {
   const pathname = usePathname() ?? "/";
   const active = activeKey(pathname);
 
-  // Setup (courses/clubs editing) stays owner-only; visitors use it read-only as
-  // reference, so they don't get the Setup tab.
-  const tabs = owner ? TABS : TABS.filter((t) => t.key !== "setup");
+  // Everyone gets the full bar: the owner on real data, visitors on their
+  // sandbox (Setup included — it's a per-visitor staging copy).
+  const tabs = TABS;
 
-  // Everyone can log a round — owner into real data, visitors into their sandbox.
   // On the New Round page the FAB would just reload the same route, so drop it.
   const showFab = pathname !== "/rounds/new";
 
@@ -94,7 +93,7 @@ export function BottomNav({ owner }: { owner: boolean }) {
               <NavTab key={t.key} tab={t} active={active === t.key} />
             ))}
 
-          {/* Center FAB — start a round (owner only; hidden on /rounds/new) */}
+          {/* Center FAB — start a round (hidden on /rounds/new) */}
           {showFab && (
             <Link
               href="/rounds/new"

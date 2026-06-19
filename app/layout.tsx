@@ -77,7 +77,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         {children}
-        <BottomNav owner={owner} />
+        <BottomNav />
         {!owner && <SandboxBootstrap />}
         <WelcomeOverlay owner={owner} />
         <Toaster />

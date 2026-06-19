@@ -16,7 +16,7 @@ import {
   type CourseTeeRow,
   type TeeYardageRow,
 } from "@/lib/schemas/course";
-import { V1_USER_ID } from "@/lib/constants";
+import { getDataScopeUserId } from "@/lib/auth/scope";
 
 const CourseRowsSchema = z.array(CourseRowSchema);
 const CourseHoleRowsSchema = z.array(CourseHoleRowSchema);
@@ -26,22 +26,24 @@ const TeeYardageRowsSchema = z.array(TeeYardageRowSchema);
 /** All courses for the v1 user, by name. */
 export async function getCourses(): Promise<CourseRow[]> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
   const { data, error } = await withRetry(() =>
     supabase
       .from("courses")
       .select("*")
-      .eq("user_id", V1_USER_ID)
+      .eq("user_id", userId)
       .order("name", { ascending: true }),
   );
   if (error) throw new Error(`Failed to fetch courses: ${error.message}`);
   return CourseRowsSchema.parse(data);
 }
 
-/** A single course by id, or null if not found. */
+/** A single course by id (scoped to the caller), or null if not found. */
 export async function getCourse(id: string): Promise<CourseRow | null> {
   const supabase = createServerClient();
+  const userId = await getDataScopeUserId();
   const { data, error } = await withRetry(() =>
-    supabase.from("courses").select("*").eq("id", id).single(),
+    supabase.from("courses").select("*").eq("id", id).eq("user_id", userId).single(),
   );
   if (error) {
     if (error.code === "PGRST116") return null;

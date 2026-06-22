@@ -391,20 +391,20 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Tech debt / data integrity
 
-- **Intermittent "load failed" while entering a shot — investigate & harden.**
-  Reproduced occasionally mid shot-entry: a shot save throws "load failed";
-  waiting a second or refreshing lets you continue. Symptom of a transient fetch
-  failure against `/api/shots` (the wizard's `saveShot`/`editShot`/`deleteShot`
-  in `lib/shots/client.ts` surface any non-2xx or network error as a toast). The
-  route-handler indirection already exists to avoid the RSC-re-render failure
-  mode (see the comment block in `app/api/shots/route.ts`), so this is a
-  *different* flakiness — likely a cold serverless invocation, a dropped
-  connection, or a Supabase hiccup. Goal: make commits resilient so the player
-  never loses a shot or gets stuck. Options to weigh: a bounded retry/backoff in
-  `postJson`, an offline/optimistic queue that replays on reconnect, clearer
-  "tap to retry" UX instead of a dead-end toast, and capturing the actual error
-  (status/message) so we know whether it's network vs server. Investigate first;
-  the fix shape depends on what's actually failing.
+- **Intermittent "Load failed" while entering a shot** — ✅ done (2026-06-22).
+  Diagnosed: "Load failed" is WebKit's message for a `fetch()` that rejects at
+  the network layer (a TypeError — no HTTP response), distinct from a server
+  error (those came through `postJson` as "Request failed (NNN)"). Supabase API
+  logs showed every shot write that *reached* the DB succeeding (POST 201 / PATCH
+  204 / DELETE 204), so the failing hop is browser→Vercel — the classic mobile
+  Safari stale-keepalive blip (a fresh attempt/refresh succeeds). The server was
+  already idempotent (createShot upsert) and reads already retried
+  (`lib/supabase/retry.ts`); the gap was that the client `fetch` in
+  `lib/shots/client.ts` had no retry. Fix: bounded network-error-only retry
+  (3 tries, 200/400ms backoff) in `postJson`, surfacing a clear message instead
+  of the raw "Load failed" if it still gives up. HTTP error statuses are NOT
+  retried (deterministic). Tests in `__tests__/shots/client.test.ts`. *Possible
+  follow-up if it ever recurs: optimistic/offline queue + tap-to-retry UX.*
 - **EditShotSheet still writes via server actions (re-render on edit).** The
   wizard now writes through fetch route handlers; `EditShotSheet` still calls the
   server actions directly. It's a cold path and a re-render is wanted there, so

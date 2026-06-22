@@ -101,9 +101,7 @@ function tableFor(lie: StartLie | null): TableKey | null {
     case "Native":
     case "Recovery":
       return "Recovery";
-    case "Fairway bunker":
-    case "Greenside bunker":
-    case "Sand":
+    case "Bunker":
       return "Sand";
     case "Green":
       return "Green";

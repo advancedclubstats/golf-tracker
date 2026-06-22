@@ -14,8 +14,8 @@ describe("nextStartLie (carry-forward default)", () => {
     expect(nextStartLie({ result: "Recovery", club: "PW", yardage: 90 })).toBe("Recovery");
   });
 
-  it("a bunker finish defaults to greenside (override for fairway bunkers)", () => {
-    expect(nextStartLie({ result: "Bunker", club: "SW", yardage: 40 })).toBe("Greenside bunker");
+  it("a bunker finish carries forward as a single Bunker lie", () => {
+    expect(nextStartLie({ result: "Bunker", club: "SW", yardage: 40 })).toBe("Bunker");
   });
 
   it("a previous putt means we're still on the green", () => {

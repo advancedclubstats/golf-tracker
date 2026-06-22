@@ -98,6 +98,40 @@ unlocks the next). Decisions already made this session are inlined.
 - **In-flow edit covers only the last shot.** The wizard's "Edit shot N" handles
   the just-committed shot; earlier shots still go through round detail. Fine for
   now; revisit if it's a pain.
+- **Bunker lie collapsed to a single "Bunker"** — ✅ done (2026-06-22). The three
+  sand-family start lies (`Fairway bunker`/`Greenside bunker`/`Sand`) are now one
+  `"Bunker"` value, so a tee shot into a fairway bunker no longer mislabels itself
+  "Greenside bunker". Was safe because SG never distinguished them (all routed to
+  the one Sand baseline table + same category logic). Migration `019_collapse_
+  bunker_lie.sql` backfilled the 22 existing rows and updated the
+  `recompute_hole_start_lie` carry-forward (dropped the >60yd split). Code:
+  `START_LIES` (`constants.ts`), `nextStartLie` (`lib/shots/lie.ts`), `tableFor`
+  (`sg-baseline.ts`), `SAND_LIES` (`sg.ts`); tests updated.
+
+## QUEUED — Target-direction miss (where you missed *relative to the pin/target*)
+
+Player concept to work through. Today we capture impact + ball flight + a
+direction only when you miss the green/fairway — but not *where you ended up
+relative to the target* on shots that find the surface. The proposed model:
+
+1. **Impact** = chunk / thin / null (clean). *(exists — `shot_contact`.)*
+2. **Flight** = slice / fade / straight / draw / hook. *(exists — `shot_shape`,
+   `SHOT_SHAPES`.)* **Add pull / push** here — a start-direction axis that
+   interacts with curve (a pull-hook vs push-fade are different misses). Decide
+   whether pull/push is a separate axis from slice…hook or folded into one
+   expanded set.
+3. **Miss the green/fairway → ask which way.** *(exists — `miss` step,
+   `MISS_DIRECTIONS`.)*
+4. **New: directional miss vs the *target*** on non-putts even when you find the
+   surface — e.g. hit the green but long/short/left/right of the pin. Rationale:
+   when you're going at the pin you're almost always directionally off it in
+   *some* way; capturing that (vs only flight shape) is the missing dimension.
+   Likely green-bound shots mostly; rarely meaningful in the fairway. Open
+   questions to resolve before building: is this a 4th capture step or folded
+   into the existing miss step (which today only fires on a *missed* surface)?
+   how does it relate to `miss_direction` (rename/relationship)? what does it buy
+   the SG/leak model vs. entry cost (extra tap on every approach)? Start as a
+   design exploration, not a build.
 
 ## ACTIVE — Shot-entry reskin + 5 optimizations
 
@@ -357,6 +391,20 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Tech debt / data integrity
 
+- **Intermittent "load failed" while entering a shot — investigate & harden.**
+  Reproduced occasionally mid shot-entry: a shot save throws "load failed";
+  waiting a second or refreshing lets you continue. Symptom of a transient fetch
+  failure against `/api/shots` (the wizard's `saveShot`/`editShot`/`deleteShot`
+  in `lib/shots/client.ts` surface any non-2xx or network error as a toast). The
+  route-handler indirection already exists to avoid the RSC-re-render failure
+  mode (see the comment block in `app/api/shots/route.ts`), so this is a
+  *different* flakiness — likely a cold serverless invocation, a dropped
+  connection, or a Supabase hiccup. Goal: make commits resilient so the player
+  never loses a shot or gets stuck. Options to weigh: a bounded retry/backoff in
+  `postJson`, an offline/optimistic queue that replays on reconnect, clearer
+  "tap to retry" UX instead of a dead-end toast, and capturing the actual error
+  (status/message) so we know whether it's network vs server. Investigate first;
+  the fix shape depends on what's actually failing.
 - **EditShotSheet still writes via server actions (re-render on edit).** The
   wizard now writes through fetch route handlers; `EditShotSheet` still calls the
   server actions directly. It's a cold path and a re-render is wanted there, so

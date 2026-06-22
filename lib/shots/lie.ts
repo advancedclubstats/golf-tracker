@@ -22,9 +22,7 @@ export interface PrevFinish {
  * finish) — the caller should fall back to a safe default and let the player
  * set it.
  *
- * Bunker defaults to greenside (the common case); a long fairway bunker is one
- * tap to override. (The backfill SQL refines this by distance, but distance
- * isn't known yet when the chip is shown.)
+ * Bunker is a single lie (no greenside/fairway split — SG prices them the same).
  */
 export function nextStartLie(prev: PrevFinish | null): StartLie | null {
   if (!prev) return "Tee"; // shot 1
@@ -40,7 +38,7 @@ export function nextStartLie(prev: PrevFinish | null): StartLie | null {
     case "Rough":
       return "Rough";
     case "Bunker":
-      return "Greenside bunker";
+      return "Bunker";
     case "Recovery":
       return "Recovery";
     // Stroke-and-distance: you replay from where you just hit, so the next

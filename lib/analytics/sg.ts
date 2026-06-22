@@ -26,7 +26,7 @@ export const SG_CATEGORIES = [
 ] as const;
 export type SgCategory = (typeof SG_CATEGORIES)[number];
 
-const SAND_LIES = new Set<StartLie>(["Greenside bunker", "Sand", "Fairway bunker"]);
+const SAND_LIES = new Set<StartLie>(["Bunker"]);
 
 /** Which SG bucket a shot belongs to, from its start lie + distance + par. */
 export function categoryOf(

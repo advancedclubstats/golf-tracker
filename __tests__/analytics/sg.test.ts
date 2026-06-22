@@ -47,8 +47,8 @@ describe("categoryOf", () => {
     expect(categoryOf("Green", 2, 4)).toBe("Putting");
     expect(categoryOf("Rough", 150, 4)).toBe("Approach");
     expect(categoryOf("Fairway", 20, 4)).toBe("Short game");
-    expect(categoryOf("Greenside bunker", 15, 4)).toBe("Short game");
-    expect(categoryOf("Fairway bunker", 120, 5)).toBe("Approach");
+    expect(categoryOf("Bunker", 15, 4)).toBe("Short game");
+    expect(categoryOf("Bunker", 120, 5)).toBe("Approach");
   });
 
   it("treats a non-Clear obstruction as a recovery (Approach), not Short game", () => {

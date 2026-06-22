@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createShot, updateShot } from "@/actions/shots";
+import { createShot, updateShot, deleteShot } from "@/actions/shots";
 
 /**
  * Route handlers for shot writes from the entry wizard.
@@ -39,6 +39,19 @@ export async function PATCH(req: Request) {
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Failed to update shot." },
+      { status: 400 },
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { id, roundId } = await req.json();
+    await deleteShot(id, roundId);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed to delete shot." },
       { status: 400 },
     );
   }

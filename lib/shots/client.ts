@@ -37,6 +37,10 @@ export function editShot(
   return postJson("/api/shots", "PATCH", { id, roundId, data });
 }
 
+export function deleteShot(id: string, roundId: string): Promise<{ ok: true }> {
+  return postJson("/api/shots", "DELETE", { id, roundId });
+}
+
 export function pickUpHole(roundId: string, hole: number): Promise<{ ok: true }> {
   return postJson("/api/rounds/concede", "POST", { roundId, hole });
 }

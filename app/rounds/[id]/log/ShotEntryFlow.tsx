@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { saveShot, editShot, pickUpHole, clearHole } from "@/lib/shots/client";
+import { saveShot, editShot, deleteShot, pickUpHole, clearHole } from "@/lib/shots/client";
 import {
   Sheet,
   SheetContent,
@@ -103,6 +103,45 @@ const puttYardsFromFeet = (feet: string): number | undefined =>
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
 type Step = "club" | "yards" | "strike" | "shape" | "result" | "miss" | "putt";
+
+/**
+ * A shot committed this session, kept so the back arrow can step back into it.
+ * Stepping back deletes the DB row and restores this snapshot into the draft, so
+ * re-advancing re-inserts the shot cleanly (shot numbers stay contiguous and the
+ * lie chain recomputes). Only shots logged this session are rewindable.
+ */
+interface HistoryEntry {
+  id: string;
+  hole: number;
+  shotNo: number;
+  isPutt: boolean;
+  /** Draft field values as they were when the shot committed. */
+  draft: {
+    club: string | null;
+    yards: string;
+    skipYards: boolean;
+    execution: number | null;
+    result: Result | null;
+    missDirection: MissDirection | null;
+    shotShape: ShotShape | null;
+    shotContact: ShotContact | null;
+    decisionQuality: DecisionQuality;
+    lieOverride: StartLie | null;
+    obstruction: Obstruction;
+    puttNo: number;
+    puttFeet: string;
+    puttExec: number | null;
+    puttSide: PuttSide | null;
+    puttLength: PuttLength | null;
+  };
+  /** The screen this shot committed from — where back returns you. */
+  landStep: Step;
+  landPuttPhase: "main" | "miss";
+  /** The hole's carry-forward finish before this shot, to restore on rewind. */
+  prevLastShot: PrevFinish | null;
+  /** Penalty this shot added, to subtract from the hole total on rewind. */
+  penalty: number;
+}
 
 function formatDiff(diff: number): string {
   if (diff === 0) return "E";
@@ -268,6 +307,10 @@ export function ShotEntryFlow({
   } | null>(null);
   const [editingLast, setEditingLast] = useState(false);
 
+  // Shots committed this session, newest last — the back arrow steps back
+  // through these (see HistoryEntry / rewind).
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+
   // Keep the active hole chip visible in the horizontal strip.
   const currentChipRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -289,6 +332,12 @@ export function ShotEntryFlow({
     lastCommitted != null &&
     lastCommitted.hole === hole &&
     lastCommitted.shotNo === shotNo - 1;
+  // The back arrow walks shot sub-steps, then steps back through the session's
+  // logged shots. It only exits to the round when sitting at the start of a shot
+  // with nothing left to undo (then it reads as a home button).
+  const atFlowStart =
+    history.length === 0 &&
+    (step === "club" || (step === "putt" && puttPhase === "main"));
 
   // Start-lie default carries forward from the prior shot's finish; the player
   // can override (one tap). Null default = penalty drop / unknown → set it.
@@ -363,6 +412,8 @@ export function ShotEntryFlow({
     submitting.current = true;
     setBusy(true);
     const sn = (logged[hole]?.count ?? 0) + 1;
+    // Carry-forward finish before this shot — restored if the shot is rewound.
+    const prevLastShot = lastShot[hole] ?? null;
     // Start lie: putts are always on the green; otherwise the effective lie
     // (override or carry-forward default). distance_unit: feet for putts.
     const isPutt = d.club === "Putter";
@@ -443,6 +494,38 @@ export function ShotEntryFlow({
           decisionQuality: d.decisionQuality ?? "Good",
         },
       });
+      // Record the shot so the back arrow can step back into it.
+      setHistory((h) => [
+        ...h,
+        {
+          id,
+          hole,
+          shotNo: sn,
+          isPutt,
+          draft: {
+            club: d.club,
+            yards,
+            skipYards,
+            execution: d.execution ?? null,
+            result: d.result ?? null,
+            missDirection: d.missDirection ?? null,
+            shotShape: d.shotShape ?? null,
+            shotContact: d.shotContact ?? null,
+            decisionQuality: d.decisionQuality ?? "Good",
+            lieOverride,
+            obstruction: d.obstruction ?? "Clear",
+            puttNo,
+            puttFeet,
+            puttExec,
+            puttSide: d.puttSide ?? null,
+            puttLength: d.puttLength ?? null,
+          },
+          landStep: isPutt ? "putt" : d.missDirection ? "miss" : "result",
+          landPuttPhase: isPutt ? puttPhase : "main",
+          prevLastShot,
+          penalty: d.penalty ?? 0,
+        },
+      ]);
       return { ok: true, made, map, strokes: sn + penalties };
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save shot.");
@@ -648,6 +731,8 @@ export function ShotEntryFlow({
       setLastShot((m) => ({ ...m, [hole]: null }));
       setHoleShots((m) => ({ ...m, [hole]: [] }));
       setLastCommitted(null);
+      // Those rows are gone — drop their (now unrewindable) history entries.
+      setHistory((h) => h.filter((e) => e.hole !== hole));
       resetDraft();
       toast.success(`Hole ${hole} cleared — start from the tee.`);
     } catch (err) {
@@ -660,8 +745,9 @@ export function ShotEntryFlow({
 
   /**
    * Always-available back. Within a shot it walks the sub-steps back; at the
-   * start of a shot (club picker / first putt) it reopens the just-logged shot
-   * for editing, and on the very first shot of a hole it exits to the round.
+   * start of a shot (club picker / first putt) it steps into the previously
+   * logged shot (rewind), and once there's nothing left to undo it exits to the
+   * round.
    */
   function back() {
     // Sub-steps of the shot being entered.
@@ -672,9 +758,81 @@ export function ShotEntryFlow({
     if (step === "miss") return setStep("result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
-    // Start of a shot: reopen the previous shot to edit, else leave the flow.
-    if (editLastEligible && lastCommitted) return setEditingLast(true);
-    router.push(`/rounds/${roundId}`);
+    // Start of a shot: step back into the previously logged shot, else exit.
+    void rewind();
+  }
+
+  /**
+   * Step back into the most recently logged shot: delete its row, restore its
+   * values into the draft, and land on the screen it was committed from. The
+   * delete keeps the round consistent (no orphan row, shot numbers stay
+   * contiguous) and re-advancing re-inserts the shot. With nothing left in the
+   * session's history, the back arrow exits to the round.
+   */
+  async function rewind() {
+    const entry = history[history.length - 1];
+    if (!entry) {
+      router.push(`/rounds/${roundId}`);
+      return;
+    }
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusy(true);
+    try {
+      await deleteShot(entry.id, roundId);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to step back.");
+      submitting.current = false;
+      setBusy(false);
+      return;
+    }
+    // Un-commit locally: drop the shot from the hole's count, recap and history,
+    // and restore the carry-forward finish it had overwritten.
+    setLogged((m) => {
+      const cur = m[entry.hole];
+      if (!cur) return m;
+      return {
+        ...m,
+        [entry.hole]: {
+          count: Math.max(0, cur.count - 1),
+          complete: false,
+          conceded: cur.conceded,
+          penalties: Math.max(0, cur.penalties - entry.penalty),
+        },
+      };
+    });
+    setHoleShots((m) => {
+      const arr = m[entry.hole];
+      if (!arr?.length) return m;
+      return { ...m, [entry.hole]: arr.slice(0, -1) };
+    });
+    setLastShot((m) => ({ ...m, [entry.hole]: entry.prevLastShot }));
+    setHistory((h) => h.slice(0, -1));
+    setLastCommitted(null);
+    // Restore the draft and land on the screen the shot was committed from.
+    setHole(entry.hole);
+    setClub(entry.draft.club);
+    setYards(entry.draft.yards);
+    setSkipYards(entry.draft.skipYards);
+    setExecution(entry.draft.execution);
+    setResult(entry.draft.result);
+    setMissDirection(entry.draft.missDirection);
+    setShotShape(entry.draft.shotShape);
+    setShotContact(entry.draft.shotContact);
+    setDecisionQuality(entry.draft.decisionQuality);
+    setLieOverride(entry.draft.lieOverride);
+    setLieOpen(false);
+    setObstruction(entry.draft.obstruction);
+    setObxOpen(false);
+    setPuttNo(entry.draft.puttNo);
+    setPuttFeet(entry.draft.puttFeet);
+    setPuttExec(entry.draft.puttExec);
+    setPuttSide(entry.draft.puttSide);
+    setPuttLength(entry.draft.puttLength);
+    setPuttPhase(entry.landPuttPhase);
+    setStep(entry.landStep);
+    submitting.current = false;
+    setBusy(false);
   }
 
   /** Save edits to the just-committed shot (reopened from the club step). */
@@ -760,10 +918,10 @@ export function ShotEntryFlow({
         <button
           type="button"
           onClick={back}
-          aria-label={step === "club" && !editLastEligible ? "Exit to round" : "Back"}
+          aria-label={atFlowStart ? "Exit to round" : "Back"}
           className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-[13px] bg-muted text-[20px] text-ink-700 transition-transform active:scale-[0.94]"
         >
-          {step === "club" && !editLastEligible ? "⌂" : "←"}
+          {atFlowStart ? "⌂" : "←"}
         </button>
         <div className="min-w-0 flex-1">
           <h2 className="font-heading text-[23px] font-extrabold leading-none tracking-[-0.02em]">

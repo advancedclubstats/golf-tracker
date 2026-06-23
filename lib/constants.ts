@@ -134,9 +134,40 @@ export type MissDirection = (typeof MISS_DIRECTIONS)[number];
 export const SHOT_SHAPES = ["Slice", "Fade", "Straight", "Draw", "Hook"] as const;
 export type ShotShape = (typeof SHOT_SHAPES)[number];
 
-/** Strike fault — independent of shape (you can hit a fat pull). */
+/**
+ * Ball start-line — where the shot launched relative to the target line. The
+ * "cause" axis that pairs with curve (a pull-cut vs a push-draw). Captured on the
+ * dedicated start step. Orthogonal to `shot_shape` (curve) and `shot_contact`.
+ */
+export const SHOT_STARTS = ["Pull", "Straight", "Push"] as const;
+export type ShotStart = (typeof SHOT_STARTS)[number];
+
+/** Strike fault — independent of shape (you can hit a fat pull). In the entry UI
+ *  "Clean" is the third option and is stored as a null `shot_contact` (no fault),
+ *  so this enum stays the two faults. */
 export const SHOT_CONTACTS = ["Thin", "Chunk"] as const;
 export type ShotContact = (typeof SHOT_CONTACTS)[number];
+
+/**
+ * Where a shot finished relative to the pin/target — the "outcome" direction axis
+ * (generalizes `miss_direction`, which only fired on a missed surface). A 3×3
+ * pin-relative grid; `Center` = at the target ("at pin" on an approach, "middle"
+ * off the tee). Off-the-tee drives only use the lateral subset {Left, Center,
+ * Right}. Diagnostic only — does not feed Strokes Gained (magnitude already comes
+ * from the next shot's distance). See docs/design/flight_and_target_offset_brief.md.
+ */
+export const TARGET_OFFSETS = [
+  "LongLeft",
+  "Long",
+  "LongRight",
+  "Left",
+  "Center",
+  "Right",
+  "ShortLeft",
+  "Short",
+  "ShortRight",
+] as const;
+export type TargetOffset = (typeof TARGET_OFFSETS)[number];
 
 export const PUTT_SIDES = ["High", "Low"] as const;
 export type PuttSide = (typeof PUTT_SIDES)[number];

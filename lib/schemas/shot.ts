@@ -21,6 +21,8 @@ import {
   OBSTRUCTION,
   SHOT_SHAPES,
   SHOT_CONTACTS,
+  SHOT_STARTS,
+  TARGET_OFFSETS,
 } from "@/lib/constants";
 import { uuidString } from "@/lib/schemas/common";
 import { ClubNameSchema } from "@/lib/schemas/club";
@@ -132,9 +134,23 @@ export const ShotInsertSchema = z.object({
 
   /**
    * Strike fault (Thin/Chunk). Optional and independent of `shot_shape` — a
-   * shot can be a fat pull. Full shots only; putts stay null.
+   * shot can be a fat pull. Full shots only; putts stay null. A clean strike is
+   * stored as null (no fault).
    */
   shot_contact: z.enum(SHOT_CONTACTS).nullish(),
+
+  /**
+   * Ball start-line (Pull/Straight/Push) — the "cause" axis paired with
+   * `shot_shape` (curve). Full shots only; putts stay null.
+   */
+  shot_start: z.enum(SHOT_STARTS).nullish(),
+
+  /**
+   * Where the shot finished relative to the pin/target (3×3 pin-relative grid;
+   * generalizes `miss_direction`). Diagnostic only — not an SG input. Full shots
+   * only; putts stay null.
+   */
+  target_offset: z.enum(TARGET_OFFSETS).nullish(),
 
   /**
    * Putt side miss. Only for Putter shots; only when miss is material
@@ -181,6 +197,8 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),
   shot_shape: z.enum(SHOT_SHAPES).nullable(),
   shot_contact: z.enum(SHOT_CONTACTS).nullable(),
+  shot_start: z.enum(SHOT_STARTS).nullable(),
+  target_offset: z.enum(TARGET_OFFSETS).nullable(),
   putt_side: z.enum(PUTT_SIDES).nullable(),
   putt_length: z.enum(PUTT_LENGTHS).nullable(),
   notes: z.string().nullable(),

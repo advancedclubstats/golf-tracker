@@ -108,30 +108,35 @@ unlocks the next). Decisions already made this session are inlined.
   `START_LIES` (`constants.ts`), `nextStartLie` (`lib/shots/lie.ts`), `tableFor`
   (`sg-baseline.ts`), `SAND_LIES` (`sg.ts`); tests updated.
 
-## QUEUED — Flight model + target-direction offset — DESIGNED, ready to build
+## ACTIVE — Flight model + target-direction offset
 
-Design resolved with the owner (2026-06-23). Full spec:
-`docs/design/flight_and_target_offset_brief.md`. The concept grew from "capture
-where you missed vs the pin" into a two-cluster model of the shot.
+Design: `docs/design/flight_and_target_offset_brief.md`.
 
-**Resolved design (locked):**
-- **Flight (cause)** — three sequential, auto-advancing, single-tap axes replacing
-  today's shape step: **Strike** (thin/clean/fat) → **Start** (pull/straight/push,
-  NEW) → **Curve** (existing slice…hook). No express chip (straight is rare).
-  Back-arrow rewind already covers mis-taps.
-- **Outcome** — surface (`result`, unchanged) + a **required `target_offset`** that
-  generalizes `miss_direction`: **8-way** pin-relative grid on approaches/greens
-  (center = "At pin", selectable), **side-only** (Left/Middle/Right) off the tee.
-  The `categoryOf()` bucket picks which control shows.
-- **SG-neutral** — offset is *diagnostic, not an SG input* (SG already prices the
-  leave via the next putt's distance). Only magnitude-free *direction* is captured.
+**Capture — ✅ done (2026-06-23).** Entry flow reworked: the shape step became
+three sequential, auto-advancing single taps — **Contact** (Thin/Clean/Fat;
+Clean stored as null `shot_contact`) → **Start** (Pull/Straight/Push, new
+`shot_start`) → **Curve** (existing). After the result, a **required
+`target_offset`** step generalizes the old miss step: **8-way** pin-relative grid
+(center "At pin") on approaches, **side-only** (Left/Middle/Right) off the tee
+(`offsetIsSideOnly` = Tee && par≥4). `miss_direction` is still derived/written for
+miss results (`legacyMiss`) so existing analytics are byte-for-byte unchanged.
+Migration `020_flight_and_offset.sql` (new columns + backfill from
+`miss_direction`). The subjective 1–4 strike rating was KEPT (it feeds
+clubSummary/core/holeSummary). Back-arrow rewind extended to the new sub-steps.
+Live-verified end-to-end; SG-neutral (no baseline/category changes).
 
-**Build sequencing / open items** (detail in the brief): `shot_contact` → 3-state
-with explicit `Clean`; NEW `shot_start` enum; NEW `target_offset` enum + migrate &
-deprecate `miss_direction`; decide whether to drop the subjective 1–4 strike rating
-(overlaps Thin/Clean/Fat); then the payoff — a NEW dispersion analytic
-(offset distribution per club-category/distance, gated, with flight×offset
-cross-reference), scoped as its own step after capture lands.
+**Remaining — the payoff (not built):**
+- NEW **dispersion analytic + display**: `target_offset` distribution per
+  club-category / distance bucket, gated by `gates.ts`, with the **flight×offset
+  cross-reference** (does the long-right miss track the push-slice?). This is the
+  actual insight the capture unlocks — sibling of `shotShape.ts`.
+- Then **deprecate `miss_direction`**: move clubSummary/distanceSummary/leaks to
+  read `target_offset` (incrementing both lateral + distance for diagonals), then
+  drop the column once nothing reads it.
+- Optional: revisit dropping the 1–4 strike rating once the contact axis has data.
+- Edit forms (`ShotForm`/`EditShotSheet`) don't yet expose `shot_start`/
+  `target_offset` — edits preserve them (not sent = unchanged) but can't change
+  them. Add if it becomes a pain.
 
 ## ACTIVE — Shot-entry reskin + 5 optimizations
 

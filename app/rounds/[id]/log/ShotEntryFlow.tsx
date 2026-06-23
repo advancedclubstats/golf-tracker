@@ -13,7 +13,6 @@ import {
 import { ShotForm, type ShotFormValues } from "@/components/shot-entry/ShotForm";
 import {
   RESULT_GRID,
-  MISS_DIRECTIONS,
   PUTT_SIDES,
   PUTT_LENGTHS,
   START_LIES,
@@ -21,6 +20,7 @@ import {
   OBSTRUCTION,
   OBSTRUCTION_COPY,
   SHOT_SHAPES,
+  SHOT_STARTS,
   type Result,
   type MissDirection,
   type PuttSide,
@@ -30,6 +30,8 @@ import {
   type Obstruction,
   type ShotShape,
   type ShotContact,
+  type ShotStart,
+  type TargetOffset,
 } from "@/lib/constants";
 import { nextStartLie, type PrevFinish } from "@/lib/shots/lie";
 import { cn } from "@/lib/utils";
@@ -102,7 +104,65 @@ const puttYardsFromFeet = (feet: string): number | undefined =>
 
 const EXEC_LABELS = ["Bad", "Okay", "Good", "Great"];
 
-type Step = "club" | "yards" | "strike" | "shape" | "result" | "miss" | "putt";
+type Step =
+  | "club"
+  | "yards"
+  | "strike"
+  | "contact"
+  | "start"
+  | "curve"
+  | "result"
+  | "offset"
+  | "putt";
+
+/** Off-the-tee drives capture side only; everything else gets the pin-relative
+ *  grid (long/short is meaningless without a pin). Mirrors `categoryOf`'s tee
+ *  branch (a par-3 tee shot is an approach → grid). */
+function offsetIsSideOnly(lie: StartLie | null, par: number | null): boolean {
+  return lie === "Tee" && (par ?? 0) >= 4;
+}
+
+/** Collapse a 3×3 target offset to the legacy single-axis miss_direction, so the
+ *  existing dispersion analytics (which read miss_direction) stay unchanged.
+ *  Lateral wins for diagonals; Center has no legacy equivalent. */
+function legacyMiss(o: TargetOffset): MissDirection | undefined {
+  switch (o) {
+    case "Long":
+      return "Long";
+    case "Short":
+      return "Short";
+    case "Left":
+    case "LongLeft":
+    case "ShortLeft":
+      return "Left";
+    case "Right":
+    case "LongRight":
+    case "ShortRight":
+      return "Right";
+    case "Center":
+      return undefined;
+  }
+}
+
+/** Pin-relative grid cells in row-major order, with display labels. */
+const OFFSET_GRID: { value: TargetOffset; label: string }[] = [
+  { value: "LongLeft", label: "Long left" },
+  { value: "Long", label: "Long" },
+  { value: "LongRight", label: "Long right" },
+  { value: "Left", label: "Left" },
+  { value: "Center", label: "At pin" },
+  { value: "Right", label: "Right" },
+  { value: "ShortLeft", label: "Short left" },
+  { value: "Short", label: "Short" },
+  { value: "ShortRight", label: "Short right" },
+];
+
+/** Side-only row for tee shots (no long/short). */
+const OFFSET_SIDE: { value: TargetOffset; label: string }[] = [
+  { value: "Left", label: "Left" },
+  { value: "Center", label: "Middle" },
+  { value: "Right", label: "Right" },
+];
 
 /**
  * A shot committed this session, kept so the back arrow can step back into it.
@@ -125,6 +185,8 @@ interface HistoryEntry {
     missDirection: MissDirection | null;
     shotShape: ShotShape | null;
     shotContact: ShotContact | null;
+    shotStart: ShotStart | null;
+    targetOffset: TargetOffset | null;
     decisionQuality: DecisionQuality;
     lieOverride: StartLie | null;
     obstruction: Obstruction;
@@ -266,11 +328,16 @@ export function ShotEntryFlow({
   const [skipYards, setSkipYards] = useState(false);
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  const [missDirection, setMissDirection] = useState<MissDirection | null>(null);
   // Ball-flight shape + contact (migration 016). Two orthogonal, optional axes
   // tagged on the dedicated shape step after strike. Null = not recalled / skipped.
   const [shotShape, setShotShape] = useState<ShotShape | null>(null);
   const [shotContact, setShotContact] = useState<ShotContact | null>(null);
+  // Flight cause axes (migration 020): start-line + the curve above. Captured on
+  // the sequential Contact → Start → Curve steps that replaced the shape step.
+  const [shotStart, setShotStart] = useState<ShotStart | null>(null);
+  // Outcome direction vs the pin/target — captured on the required offset step
+  // that generalized the old miss step (fires on greens too, not only misses).
+  const [targetOffset, setTargetOffset] = useState<TargetOffset | null>(null);
   // Decision quality (spec 1A): default Good; the player taps Bad on the result
   // step only for a genuine process error before choosing the result chip.
   const [decisionQuality, setDecisionQuality] = useState<DecisionQuality>("Good");
@@ -355,9 +422,10 @@ export function ShotEntryFlow({
     setSkipYards(false);
     setExecution(null);
     setResult(null);
-    setMissDirection(null);
     setShotShape(null);
     setShotContact(null);
+    setShotStart(null);
+    setTargetOffset(null);
     setDecisionQuality("Good");
     setLieOverride(null);
     setLieOpen(false);
@@ -390,10 +458,14 @@ export function ShotEntryFlow({
     execution?: number;
     result?: Result;
     missDirection?: MissDirection;
-    /** Ball-flight shape. Omitted (putts / skipped) → stays null. */
+    /** Ball-flight shape (curve). Omitted (putts / skipped) → stays null. */
     shotShape?: ShotShape;
-    /** Strike fault. Omitted (putts / skipped) → stays null. */
+    /** Strike fault. Omitted (putts / clean) → stays null. */
     shotContact?: ShotContact;
+    /** Ball start-line. Omitted (putts) → stays null. */
+    shotStart?: ShotStart;
+    /** Where it finished vs the pin/target. Omitted (putts / Make) → null. */
+    targetOffset?: TargetOffset;
     puttSide?: PuttSide;
     puttLength?: PuttLength;
     penalty?: number;
@@ -436,6 +508,8 @@ export function ShotEntryFlow({
         miss_direction: d.missDirection,
         shot_shape: d.shotShape,
         shot_contact: d.shotContact,
+        shot_start: d.shotStart,
+        target_offset: d.targetOffset,
         putt_side: d.puttSide,
         putt_length: d.puttLength,
         penalty: d.penalty ?? 0,
@@ -511,6 +585,8 @@ export function ShotEntryFlow({
             missDirection: d.missDirection ?? null,
             shotShape: d.shotShape ?? null,
             shotContact: d.shotContact ?? null,
+            shotStart: d.shotStart ?? null,
+            targetOffset: d.targetOffset ?? null,
             decisionQuality: d.decisionQuality ?? "Good",
             lieOverride,
             obstruction: d.obstruction ?? "Clear",
@@ -520,7 +596,9 @@ export function ShotEntryFlow({
             puttSide: d.puttSide ?? null,
             puttLength: d.puttLength ?? null,
           },
-          landStep: isPutt ? "putt" : d.missDirection ? "miss" : "result",
+          // A Make commits from the result step; every other full shot commits
+          // from the offset step; putts from the putt screen.
+          landStep: isPutt ? "putt" : d.result === "Make" ? "result" : "offset",
           landPuttPhase: isPutt ? puttPhase : "main",
           prevLastShot,
           penalty: d.penalty ?? 0,
@@ -578,14 +656,32 @@ export function ShotEntryFlow({
 
   function chooseExecution(e: number) {
     setExecution(e);
-    setStep("shape");
+    setStep("contact");
+  }
+
+  // ── Flight cluster: Contact → Start → Curve, each one tap, auto-advancing ──
+
+  /** Strike contact. "Clean" is the no-fault case → stored as null. */
+  function chooseContact(c: ShotContact | null) {
+    setShotContact(c);
+    setStep("start");
+  }
+
+  function chooseStart(s: ShotStart) {
+    setShotStart(s);
+    setStep("curve");
+  }
+
+  function chooseCurve(s: ShotShape) {
+    setShotShape(s);
+    setStep("result");
   }
 
   async function chooseResult(r: Result) {
     setResult(r);
-    // Terminal results commit immediately; a miss gathers a miss-direction
-    // first; every other non-terminal result commits straight away.
-    if (r === "Make" || r === "Green") {
+    // A holed shot is terminal — no target offset (it's in the hole). Everything
+    // else gathers a required target offset next, then commits.
+    if (r === "Make") {
       const res = await commitShot({
         club: club!,
         yardage: yards === "" ? undefined : Number(yards),
@@ -593,48 +689,40 @@ export function ShotEntryFlow({
         result: r,
         shotShape: shotShape ?? undefined,
         shotContact: shotContact ?? undefined,
+        shotStart: shotStart ?? undefined,
         decisionQuality,
         obstruction,
       });
       if (!res.ok) return;
-      if (r === "Make") completeHole(res.map, res.strokes);
-      else enterPutt();
+      completeHole(res.map, res.strokes);
       return;
     }
-    // A miss gathers its direction first; anything else commits now.
-    if (MISS_RESULTS.has(r)) {
-      setStep("miss");
-      return;
-    }
-    await commitNonTerminal();
+    setStep("offset");
   }
 
-  async function chooseMiss(dir: MissDirection) {
-    setMissDirection(dir);
-    // Commit after tagging the miss. (Pass `dir` explicitly; the setState above
-    // hasn't applied yet this tick.)
-    await commitNonTerminal(dir);
-  }
-
-  /** Save a non-terminal shot, then advance to the next shot. `missDir`
-   *  overrides the `missDirection` state for callers that commit in the same
-   *  tick they set it. */
-  async function commitNonTerminal(missDir?: MissDirection) {
+  /** Required target offset → commit, then advance (Green → putt, else next).
+   *  Pass `o` explicitly; the setState above hasn't applied yet this tick. */
+  async function chooseOffset(o: TargetOffset) {
+    setTargetOffset(o);
     const r = result!;
     const res = await commitShot({
       club: club!,
       yardage: yards === "" ? undefined : Number(yards),
       execution: execution ?? undefined,
       result: r,
-      missDirection: missDir ?? missDirection ?? undefined,
+      // Keep the legacy single-axis field populated for existing analytics.
+      missDirection: MISS_RESULTS.has(r) ? legacyMiss(o) : undefined,
       shotShape: shotShape ?? undefined,
       shotContact: shotContact ?? undefined,
+      shotStart: shotStart ?? undefined,
+      targetOffset: o,
       penalty: PENALTY_RESULTS.has(r) ? 1 : 0,
       decisionQuality,
       obstruction,
     });
     if (!res.ok) return;
-    resetDraft();
+    if (r === "Green") enterPutt();
+    else resetDraft();
   }
 
   function enterPutt() {
@@ -753,9 +841,11 @@ export function ShotEntryFlow({
     // Sub-steps of the shot being entered.
     if (step === "yards" || (step === "strike" && skipYards)) return setStep("club");
     if (step === "strike") return setStep("yards");
-    if (step === "shape") return setStep("strike");
-    if (step === "result") return setStep("shape");
-    if (step === "miss") return setStep("result");
+    if (step === "contact") return setStep("strike");
+    if (step === "start") return setStep("contact");
+    if (step === "curve") return setStep("start");
+    if (step === "result") return setStep("curve");
+    if (step === "offset") return setStep("result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
     // Start of a shot: step back into the previously logged shot, else exit.
@@ -816,9 +906,10 @@ export function ShotEntryFlow({
     setSkipYards(entry.draft.skipYards);
     setExecution(entry.draft.execution);
     setResult(entry.draft.result);
-    setMissDirection(entry.draft.missDirection);
     setShotShape(entry.draft.shotShape);
     setShotContact(entry.draft.shotContact);
+    setShotStart(entry.draft.shotStart);
+    setTargetOffset(entry.draft.targetOffset);
     setDecisionQuality(entry.draft.decisionQuality);
     setLieOverride(entry.draft.lieOverride);
     setLieOpen(false);
@@ -906,10 +997,14 @@ export function ShotEntryFlow({
 
   // ── Rendering ──────────────────────────────────────────────────────────────
 
-  const STEP_ORDER: Step[] = ["club", "yards", "strike", "shape", "result"];
-  const stepperIdx = STEP_ORDER.indexOf(
-    step === "miss" ? "result" : step,
-  );
+  // The three flight sub-steps collapse to one "flight" dot; the offset step
+  // sits under "result" so the bar stays at five legible milestones.
+  const STEP_ORDER = ["club", "yards", "strike", "flight", "result"] as const;
+  const stepperIdx = (() => {
+    if (step === "contact" || step === "start" || step === "curve") return 3;
+    if (step === "offset") return 4;
+    return STEP_ORDER.indexOf(step as (typeof STEP_ORDER)[number]);
+  })();
 
   return (
     <div className="mx-auto flex w-full max-w-md flex-col px-5 pb-[30px] pt-5">
@@ -1324,7 +1419,7 @@ export function ShotEntryFlow({
             disabled={busy}
             onClick={() => {
               setExecution(null);
-              setStep("shape");
+              setStep("contact");
             }}
             className="mt-4 block w-full text-[14px] font-semibold text-muted-foreground underline underline-offset-[3px]"
           >
@@ -1333,68 +1428,74 @@ export function ShotEntryFlow({
         </div>
       )}
 
-      {step === "shape" && (
+      {step === "contact" && (
         <div className="step flex flex-col">
-          <h3 className={cn(Q, "mb-1")}>How&apos;d it fly?</h3>
-          <p className={cn(QSUB, "mb-6")}>Shape and contact — both optional.</p>
-
-          {/* Thin / Chunk are full-width bars bracketing the 5-wide shape row.
-              Shape is a single-select row; contact is its own single-select axis
-              (a shot can be a fat pull), so the two never clear each other. */}
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setShotContact((c) => (c === "Thin" ? null : "Thin"))}
-              className={cn(
-                TAP,
-                "h-[52px] w-full text-[14px]",
-                shotContact === "Thin" && CONTACT_SEL,
-              )}
-            >
-              Thin
-            </button>
-
-            <div className="grid grid-cols-5 gap-2">
-              {SHOT_SHAPES.map((s) => (
+          <h3 className={cn(Q, "mb-1")}>How&apos;d you catch it?</h3>
+          <p className={cn(QSUB, "mb-6")}>Thin, clean, or fat.</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {([
+              { label: "Thin", value: "Thin" as ShotContact | null },
+              { label: "Clean", value: null },
+              { label: "Fat", value: "Chunk" as ShotContact | null },
+            ]).map((c) => {
+              const selected = shotContact === c.value;
+              return (
                 <button
-                  key={s}
+                  key={c.label}
                   type="button"
                   disabled={busy}
-                  onClick={() => setShotShape((cur) => (cur === s ? null : s))}
+                  onClick={() => chooseContact(c.value)}
                   className={cn(
                     TAP,
-                    "h-[68px] px-0.5 text-[13px]",
-                    shotShape === s && TAP_SEL,
+                    "h-[84px] text-[16px]",
+                    selected && (c.value === null ? TAP_SEL : CONTACT_SEL),
                   )}
                 >
-                  {s}
+                  {c.label}
                 </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => setShotContact((c) => (c === "Chunk" ? null : "Chunk"))}
-              className={cn(
-                TAP,
-                "h-[52px] w-full text-[14px]",
-                shotContact === "Chunk" && CONTACT_SEL,
-              )}
-            >
-              Chunk
-            </button>
+              );
+            })}
           </div>
+        </div>
+      )}
 
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => setStep("result")}
-            className={cn(CTA, "mt-7 h-[54px]")}
-          >
-            Continue
-          </button>
+      {step === "start" && (
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-1")}>Where&apos;d it start?</h3>
+          <p className={cn(QSUB, "mb-6")}>Its line off the club face.</p>
+          <div className="grid grid-cols-3 gap-2.5">
+            {SHOT_STARTS.map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={busy}
+                onClick={() => chooseStart(s)}
+                className={cn(TAP, "h-[84px] text-[16px]", shotStart === s && TAP_SEL)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === "curve" && (
+        <div className="step flex flex-col">
+          <h3 className={cn(Q, "mb-1")}>How&apos;d it curve?</h3>
+          <p className={cn(QSUB, "mb-6")}>The shape in the air.</p>
+          <div className="grid grid-cols-5 gap-2">
+            {SHOT_SHAPES.map((s) => (
+              <button
+                key={s}
+                type="button"
+                disabled={busy}
+                onClick={() => chooseCurve(s)}
+                className={cn(TAP, "h-[88px] px-0.5 text-[13px]", shotShape === s && TAP_SEL)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -1538,34 +1639,57 @@ export function ShotEntryFlow({
         </div>
       )}
 
-      {step === "miss" && (
-        <div className="step flex flex-col">
-          <h3 className={cn(Q, "mb-1")}>Which way?</h3>
-          <p className={cn(QSUB, "mb-4")}>Tag the miss so dispersion stays honest.</p>
-          <div className="grid grid-cols-3 grid-rows-[repeat(3,74px)] gap-2.5">
-            {MISS_DIRECTIONS.map((d) => (
-              <button
-                key={d}
-                type="button"
-                disabled={busy}
-                onClick={() => chooseMiss(d)}
-                className={cn(
-                  TAP,
-                  "flex h-[74px] items-center justify-center text-[16px]",
-                  d === "Long" && "col-start-2 row-start-1",
-                  d === "Left" && "col-start-1 row-start-2",
-                  d === "Right" && "col-start-3 row-start-2",
-                  d === "Short" && "col-start-2 row-start-3",
-                )}
-              >
-                {d}
-              </button>
-            ))}
-            <span className="col-start-2 row-start-2 flex items-center justify-center font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-300">
-              Pin
-            </span>
+      {step === "offset" && (
+        offsetIsSideOnly(effectiveLie, par) ? (
+          <div className="step flex flex-col">
+            <h3 className={cn(Q, "mb-1")}>Which side?</h3>
+            <p className={cn(QSUB, "mb-4")}>Where it finished off the tee.</p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {OFFSET_SIDE.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  disabled={busy}
+                  onClick={() => chooseOffset(o.value)}
+                  className={cn(
+                    TAP,
+                    "h-[84px] text-[16px]",
+                    o.value === "Center" && "text-muted-foreground",
+                    targetOffset === o.value && TAP_SEL,
+                  )}
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="step flex flex-col">
+            <h3 className={cn(Q, "mb-1")}>Where vs the pin?</h3>
+            <p className={cn(QSUB, "mb-4")}>Tap where it finished. Center = at it.</p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {OFFSET_GRID.map((o) => {
+                const isCenter = o.value === "Center";
+                return (
+                  <button
+                    key={o.value}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => chooseOffset(o.value)}
+                    className={cn(
+                      TAP,
+                      "flex h-[80px] items-center justify-center px-0.5 text-center text-[13px] leading-tight",
+                      isCenter && "border-dashed text-muted-foreground",
+                      targetOffset === o.value && TAP_SEL,
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )
       )}
 
       {step === "putt" && (

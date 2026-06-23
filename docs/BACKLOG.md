@@ -108,30 +108,30 @@ unlocks the next). Decisions already made this session are inlined.
   `START_LIES` (`constants.ts`), `nextStartLie` (`lib/shots/lie.ts`), `tableFor`
   (`sg-baseline.ts`), `SAND_LIES` (`sg.ts`); tests updated.
 
-## QUEUED — Target-direction miss (where you missed *relative to the pin/target*)
+## QUEUED — Flight model + target-direction offset — DESIGNED, ready to build
 
-Player concept to work through. Today we capture impact + ball flight + a
-direction only when you miss the green/fairway — but not *where you ended up
-relative to the target* on shots that find the surface. The proposed model:
+Design resolved with the owner (2026-06-23). Full spec:
+`docs/design/flight_and_target_offset_brief.md`. The concept grew from "capture
+where you missed vs the pin" into a two-cluster model of the shot.
 
-1. **Impact** = chunk / thin / null (clean). *(exists — `shot_contact`.)*
-2. **Flight** = slice / fade / straight / draw / hook. *(exists — `shot_shape`,
-   `SHOT_SHAPES`.)* **Add pull / push** here — a start-direction axis that
-   interacts with curve (a pull-hook vs push-fade are different misses). Decide
-   whether pull/push is a separate axis from slice…hook or folded into one
-   expanded set.
-3. **Miss the green/fairway → ask which way.** *(exists — `miss` step,
-   `MISS_DIRECTIONS`.)*
-4. **New: directional miss vs the *target*** on non-putts even when you find the
-   surface — e.g. hit the green but long/short/left/right of the pin. Rationale:
-   when you're going at the pin you're almost always directionally off it in
-   *some* way; capturing that (vs only flight shape) is the missing dimension.
-   Likely green-bound shots mostly; rarely meaningful in the fairway. Open
-   questions to resolve before building: is this a 4th capture step or folded
-   into the existing miss step (which today only fires on a *missed* surface)?
-   how does it relate to `miss_direction` (rename/relationship)? what does it buy
-   the SG/leak model vs. entry cost (extra tap on every approach)? Start as a
-   design exploration, not a build.
+**Resolved design (locked):**
+- **Flight (cause)** — three sequential, auto-advancing, single-tap axes replacing
+  today's shape step: **Strike** (thin/clean/fat) → **Start** (pull/straight/push,
+  NEW) → **Curve** (existing slice…hook). No express chip (straight is rare).
+  Back-arrow rewind already covers mis-taps.
+- **Outcome** — surface (`result`, unchanged) + a **required `target_offset`** that
+  generalizes `miss_direction`: **8-way** pin-relative grid on approaches/greens
+  (center = "At pin", selectable), **side-only** (Left/Middle/Right) off the tee.
+  The `categoryOf()` bucket picks which control shows.
+- **SG-neutral** — offset is *diagnostic, not an SG input* (SG already prices the
+  leave via the next putt's distance). Only magnitude-free *direction* is captured.
+
+**Build sequencing / open items** (detail in the brief): `shot_contact` → 3-state
+with explicit `Clean`; NEW `shot_start` enum; NEW `target_offset` enum + migrate &
+deprecate `miss_direction`; decide whether to drop the subjective 1–4 strike rating
+(overlaps Thin/Clean/Fat); then the payoff — a NEW dispersion analytic
+(offset distribution per club-category/distance, gated, with flight×offset
+cross-reference), scoped as its own step after capture lands.
 
 ## ACTIVE — Shot-entry reskin + 5 optimizations
 

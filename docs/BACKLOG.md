@@ -125,11 +125,22 @@ Migration `020_flight_and_offset.sql` (new columns + backfill from
 clubSummary/core/holeSummary). Back-arrow rewind extended to the new sub-steps.
 Live-verified end-to-end; SG-neutral (no baseline/category changes).
 
-**Remaining — the payoff (not built):**
-- NEW **dispersion analytic + display**: `target_offset` distribution per
-  club-category / distance bucket, gated by `gates.ts`, with the **flight×offset
-  cross-reference** (does the long-right miss track the push-slice?). This is the
-  actual insight the capture unlocks — sibling of `shotShape.ts`.
+**Dispersion read — ✅ done (2026-06-23).** `lib/analytics/targetDispersion.ts`
+(sibling of `shotShape.ts`): per club-category, decomposes `target_offset` into a
+**distance-control** axis (short↔long — the headline, the signal nothing else
+captures) and a **lateral** axis (left↔right), plus at-pin rate and one-way-style
+biases, gated by `gates.ts`. Rendered by `components/stats/DispersionMatrix.tsx`
+as a new "Where it finished" section on `/stats/shape` (now "Shape & dispersion").
+Off-the-tee drives are excluded from the distance axis (`sideOnly` — they capture
+side-only, so they'd otherwise read as perfect distance control); they still count
+laterally. SG-neutral. Tests in `targetDispersion.test.ts`.
+
+**Remaining:**
+- **Flight×offset cross-reference** — the unique insight: per category, which
+  flight cause (push/pull/slice…) tracks the worst offset miss. Deferred: needs
+  forward data (today's `target_offset` is backfilled from `miss_direction`, so
+  there are no diagonals / on-green / paired-flight rows yet). Build once a few
+  rounds of real capture exist.
 - Then **deprecate `miss_direction`**: move clubSummary/distanceSummary/leaks to
   read `target_offset` (incrementing both lateral + distance for diagonals), then
   drop the column once nothing reads it.

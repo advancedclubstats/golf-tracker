@@ -84,12 +84,11 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
             <h2 className="mt-1 font-heading text-3xl font-bold">Round Recall</h2>
 
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              I&apos;m <span className="font-medium text-foreground">Matt</span>, a
-              product manager. I built this because I wanted to know which parts of
-              my golf game to work on — without strapping on a GPS or buying
-              expensive sensors. Everything in here is my own rounds at Hayden Lake
-              Country Club, tracked from memory and entered after I play. It all runs
-              on one engine,{" "}
+              I&apos;m <span className="font-medium text-foreground">Matt</span>, a PM
+              and PMM. I built this because I wanted tour-level data for my golf game
+              without using a GPS on the course or buying expensive sensors.
+              Everything in here is my own rounds at Hayden Lake Country Club, tracked
+              from memory and entered after I play. It all runs on{" "}
               <span className="text-foreground">Strokes Gained</span>, and every
               number drills down to the exact shots behind it.
             </p>
@@ -97,7 +96,7 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
               Go ahead and poke around — you&apos;re in your own sandbox seeded with a
               copy of my rounds. Add your own data, edit mine, break whatever you
-              want; it&apos;s fully isolated and{" "}
+              want, it&apos;s isolated and{" "}
               <span className="text-foreground">never touches my real numbers</span>.
               It clears itself when you close the browser, so don&apos;t worry about
               leaving a mess.

@@ -94,7 +94,7 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
             </p>
 
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Go ahead and poke around — you&apos;re in your own sandbox seeded with a
+              Go ahead and poke around. You&apos;re in your own sandbox seeded with a
               copy of my rounds. Add your own data, edit mine, break whatever you
               want, it&apos;s isolated and{" "}
               <span className="text-foreground">never touches my real numbers</span>.

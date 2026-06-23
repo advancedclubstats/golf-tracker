@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 
 const SEEN_KEY = "gt_intro_seen";
 
+const LINKEDIN_URL = "https://www.linkedin.com/in/matthewmartin3/";
+
 export function WelcomeOverlay({ owner }: { owner: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -83,21 +85,23 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
 
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
               I&apos;m <span className="font-medium text-foreground">Matt</span>, a
-              product manager. I built this to answer a question the golf apps I
-              tried couldn&apos;t: where do my strokes actually go? Everything here
-              is my own rounds at Hayden Lake CC, tracked from memory, no GPS or
-              sensors.{" "}
-              <span className="text-foreground">
-                One engine, Strokes Gained, and every number drills down to the
-                exact shots behind it.
-              </span>
+              product manager. I built this because I wanted to know which parts of
+              my golf game to work on — without strapping on a GPS or buying
+              expensive sensors. Everything in here is my own rounds at Hayden Lake
+              Country Club, tracked from memory and entered after I play. It all runs
+              on one engine,{" "}
+              <span className="text-foreground">Strokes Gained</span>, and every
+              number drills down to the exact shots behind it.
             </p>
 
-            <ul className="mt-4 space-y-1.5 text-sm text-muted-foreground">
-              <li>• <span className="text-foreground">Where strokes are lost</span>, ranked by what&apos;s actually recoverable</li>
-              <li>• <span className="text-foreground">Decision vs execution</span>: thinking mistakes or normal variance</li>
-              <li>• <span className="text-foreground">Per-hole SG</span>: which holes cost me, and why</li>
-            </ul>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              Go ahead and poke around — you&apos;re in your own sandbox seeded with a
+              copy of my rounds. Add your own data, edit mine, break whatever you
+              want; it&apos;s fully isolated and{" "}
+              <span className="text-foreground">never touches my real numbers</span>.
+              It clears itself when you close the browser, so don&apos;t worry about
+              leaving a mess.
+            </p>
 
             {!signin ? (
               <>
@@ -109,7 +113,16 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
                   Take a look →
                 </button>
                 <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Read-only for visitors, so click anything.{" "}
+                  Like what you see? Tell me on{" "}
+                  <a
+                    href={LINKEDIN_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline underline-offset-2 hover:text-foreground"
+                  >
+                    LinkedIn
+                  </a>
+                  .{" "}
                   <button
                     type="button"
                     onClick={() => setSignin(true)}

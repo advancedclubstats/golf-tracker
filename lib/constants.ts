@@ -138,8 +138,13 @@ export type ShotShape = (typeof SHOT_SHAPES)[number];
  * Ball start-line — where the shot launched relative to the target line. The
  * "cause" axis that pairs with curve (a pull-cut vs a push-draw). Captured on the
  * dedicated start step. Orthogonal to `shot_shape` (curve) and `shot_contact`.
+ *
+ * Ordered left→right by where the ball starts, matching the SHOT_SHAPES row.
+ * For the (left-handed) player a pull starts right and a push starts left, so
+ * Push sits on the left and Pull on the right — the button position mirrors the
+ * miss direction.
  */
-export const SHOT_STARTS = ["Pull", "Straight", "Push"] as const;
+export const SHOT_STARTS = ["Push", "Straight", "Pull"] as const;
 export type ShotStart = (typeof SHOT_STARTS)[number];
 
 /** Strike fault — independent of shape (you can hit a fat pull). In the entry UI

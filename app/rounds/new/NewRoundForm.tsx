@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Popover } from "@base-ui/react/popover";
-import { CalendarIcon, ChevronDownIcon, FlagIcon, MapPinIcon } from "lucide-react";
+import { CalendarIcon, ChevronDownIcon, FlagIcon, MapPinIcon, PlusIcon } from "lucide-react";
 import {
   RoundInsertSchema,
   type RoundInsert,
@@ -163,6 +163,10 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
     },
   });
 
+  // Notes is collapsed by default — it's almost never used, so it stays out of
+  // the way behind a "+ Add a note" toggle.
+  const [notesOpen, setNotesOpen] = useState(false);
+
   const selectedCourseId = useWatch({ control, name: "course_id" });
   const selectedCourse = courses.find((c) => c.id === selectedCourseId);
   const tees = selectedCourse?.tees ?? [];
@@ -302,23 +306,35 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
         )}
       </div>
 
-      {/* Notes */}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="notes">
-          Notes{" "}
-          <span className="font-normal text-muted-foreground">(optional)</span>
-        </Label>
-        <Textarea
-          id="notes"
-          placeholder="Weather, course conditions, anything notable…"
-          rows={3}
-          className={cn(FIELD_INPUT, "min-h-28 resize-none py-3")}
-          {...register("notes")}
-        />
-        {errors.notes && (
-          <p className="text-sm text-destructive">{errors.notes.message}</p>
-        )}
-      </div>
+      {/* Notes — collapsed by default (rarely used); reveal on demand. */}
+      {!notesOpen ? (
+        <button
+          type="button"
+          onClick={() => setNotesOpen(true)}
+          className="flex items-center gap-2 self-start text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <PlusIcon className="size-4" />
+          Add a note
+        </button>
+      ) : (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="notes">
+            Notes{" "}
+            <span className="font-normal text-muted-foreground">(optional)</span>
+          </Label>
+          <Textarea
+            id="notes"
+            autoFocus
+            placeholder="Weather, course conditions, anything notable…"
+            rows={3}
+            className={cn(FIELD_INPUT, "min-h-28 resize-none py-3")}
+            {...register("notes")}
+          />
+          {errors.notes && (
+            <p className="text-sm text-destructive">{errors.notes.message}</p>
+          )}
+        </div>
+      )}
 
       <Button
         type="submit"

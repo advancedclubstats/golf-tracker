@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { getRound } from "@/lib/db/rounds";
-import { getShotsByRound } from "@/lib/db/shots";
+import { getShotsByRound, getAllShots } from "@/lib/db/shots";
 import { getCourseHoles, getTeeYardages } from "@/lib/db/courses";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, totalPenalties } from "@/lib/analytics/core";
+import { computeClubYardages } from "@/lib/analytics/clubYardages";
 import { SESSION_HOLE_COUNTS } from "@/lib/constants";
 import type { PrevFinish } from "@/lib/shots/lie";
 import { ShotEntryFlow, type HoleLog, type RecapShot } from "./ShotEntryFlow";
@@ -21,12 +22,17 @@ export default async function LogPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, courseHoles, teeYardages, clubs] = await Promise.all([
+  const [shots, allShots, courseHoles, teeYardages, clubs] = await Promise.all([
     getShotsByRound(id),
+    getAllShots(),
     round.course_id ? getCourseHoles(round.course_id) : Promise.resolve([]),
     round.tee_id ? getTeeYardages([round.tee_id]) : Promise.resolve([]),
     getClubNames(),
   ]);
+
+  // Smart-yardage prefill (B3): the player's most-typical distance per club,
+  // derived from their whole logged history (this round alone is too thin).
+  const clubYardages = computeClubYardages(allShots);
 
   // Known par per hole: course pars preferred, then any already-logged shot's par.
   const parByHole: Record<number, number> = {};
@@ -83,6 +89,7 @@ export default async function LogPage({ params }: Props) {
       clubs={clubs}
       parByHole={parByHole}
       yardageByHole={yardageByHole}
+      clubYardages={clubYardages}
       shotsByHole={shotsByHole}
       holeNumbers={holeNumbers}
       startingHole={round.starting_hole}

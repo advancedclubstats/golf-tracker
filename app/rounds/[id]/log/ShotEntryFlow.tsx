@@ -68,6 +68,9 @@ interface ShotEntryFlowProps {
    *  as on-course reference — most useful on the tee shot, where the wizard
    *  skips yardage entry for driver/woods. */
   yardageByHole: Record<number, number>;
+  /** The player's most-typical distances per club (B3 smart-yardage chips),
+   *  most common first. Missing club → no chips. */
+  clubYardages: Record<string, number[]>;
   /** Selectable holes, ascending. */
   holeNumbers: number[];
   /** Hole the player teed off on — seeds the opening hole (D-13). */
@@ -295,6 +298,7 @@ export function ShotEntryFlow({
   clubs,
   parByHole,
   yardageByHole,
+  clubYardages,
   shotsByHole,
   holeNumbers,
   startingHole,
@@ -1338,6 +1342,30 @@ export function ShotEntryFlow({
               yards to the hole
             </div>
           </div>
+          {/* B3 smart yardage: one-tap chips for the player's most-typical
+              distances with this club (career history, most common first). */}
+          {club != null && (clubYardages[club]?.length ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                Typical {club}
+              </span>
+              {clubYardages[club]!.map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setYards(String(v))}
+                  className={cn(
+                    "h-[38px] rounded-full border-[1.5px] px-4 font-mono text-[15px] font-semibold tabular-nums transition-transform active:scale-[0.95]",
+                    String(v) === yards
+                      ? "border-primary bg-primary text-white"
+                      : "border-input bg-card text-ink-700",
+                  )}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="grid grid-cols-3 gap-2.5">
             {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((k) => (
               <button

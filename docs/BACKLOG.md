@@ -191,17 +191,22 @@ DOM-clicking by text is ambiguous in eval. Test round with data:
   `commitShot`, reset in `handleClearHole`, last-row re-synced in `saveLastEdit`.
   `recapLabel()` helper. Edit shows on the last row only when `editLastEligible`.
 
-### Remaining — pick up here (B3 → B1 → C → D)
+### Remaining — pick up here (B1 → C → D)
 
-- **B3 · Smart yardage** (NEXT — lower risk, read-only). Yards step: prefill chips
-  above the numpad showing the player's **typical** (not raw recent) distances for
-  the selected `club`. Decision: typical = most-common, contextual if feasible.
-  Plan: in `page.tsx`, derive `clubDistances: Record<club, number[]>` from the
-  loaded `shots` (mode/median of recent same-club full-shot yardages; cap ~3,
-  dedupe); pass as a prop; render `.ychip` chips (see FlowCSS `.ychips/.ychip`)
-  that set `yards` + advance. Prototype seeds from a hardcoded bag — replace with
-  history. Putts excluded.
-- **B1 · Undo on commit toast** (most delicate — touches commit/rollback). Routine
+- **B3 · Smart yardage** — ✅ done (2026-06-23). Yards step now shows a "Typical
+  {club}" row of one-tap chips above the numpad. `lib/analytics/clubYardages.ts`
+  (`computeClubYardages`) buckets the player's whole logged full-shot history to
+  the nearest 5 yd per club and ranks buckets by frequency (most-typical first,
+  ties toward the longer/stock distance), capped at 3; putts and putter-off-green
+  (`distance_unit==='ft'`) rows excluded. Wired through `page.tsx` (now also
+  fetches `getAllShots()` for career-wide typical distances — this round alone is
+  too thin) → `clubYardages` prop → chips in `ShotEntryFlow.tsx` (set `yards`,
+  selected-state highlight). Decision: chose career-frequency over "recent" since
+  `getAllShots` orders by `round_id` (a UUID, not chronological) so true recency
+  would need a round-date join — deferred as not worth it. Read-only / SG-neutral.
+  Tests in `__tests__/analytics/clubYardages.test.ts`; live-verified (7i → 180/190/
+  185, matching the DB frequency buckets).
+- **B1 · Undo on commit toast** (NEXT — most delicate — touches commit/rollback). Routine
   (non-terminal) commits show a toast with a 3.4s **Undo** pill (1.6s without).
   The flow currently uses `toast` from `sonner` (success strings). Plan: capture a
   full state snapshot (`logged`, `lastShot`, `holeShots`, `lastCommitted`, draft)

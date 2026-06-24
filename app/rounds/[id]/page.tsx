@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { HomeIcon } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getRound } from "@/lib/db/rounds";
@@ -45,20 +44,11 @@ export default async function RoundDetailPage({ params }: Props) {
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
       <header className="mb-4 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            aria-label="Home"
-            className="flex size-10 shrink-0 items-center justify-center rounded-xl border-[1.5px] border-input bg-card text-foreground shadow-sm transition-colors hover:border-ink-300"
-          >
-            <HomeIcon className="size-5" />
-          </Link>
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight">{round.date}</h1>
-            <p className="text-xs text-muted-foreground">
-              {SESSION_TYPE_LABELS[round.session_type]}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">{round.date}</h1>
+          <p className="text-xs text-muted-foreground">
+            {SESSION_TYPE_LABELS[round.session_type]}
+          </p>
         </div>
         {canWrite && (
           <div className="flex shrink-0 items-center gap-2">

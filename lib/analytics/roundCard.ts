@@ -170,7 +170,9 @@ export function computeRoundBreakdowns(
       const exp = looScaled(tot.sg[c], r.sg[c]);
       metrics.push({
         key: `sg:${c}`,
-        label: SG_LABELS[c],
+        // The SgCategory value is itself the display label, kept consistent
+        // app-wide ("Off the tee", not "Driving") with the dashboard / SG pages.
+        label: c,
         kind: "sg",
         value: r.sg[c],
         delta: exp == null ? null : r.sg[c] - exp,
@@ -250,10 +252,3 @@ export function computeRoundBreakdowns(
 
   return out;
 }
-
-const SG_LABELS: Record<SgCategory, string> = {
-  "Off the tee": "Driving",
-  Approach: "Approach",
-  "Short game": "Short game",
-  Putting: "Putting",
-};

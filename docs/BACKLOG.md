@@ -376,9 +376,11 @@ section first (highest value, self-contained), then the three table treatments.
   average (`computeRoundBreakdowns` in `lib/analytics/roundCard.ts`, rendered by
   `components/rounds/RoundsList.tsx` + `RoundChips.tsx`). The expressive
   full-bleed per-round screen is still open.
-  **Open decision:** the chips label "Off the tee" as "Driving" for brevity,
-  while the dashboard/SG pages say "Off the tee" — pick one and make labels
-  consistent app-wide.
+  **Label consistency** — ✅ done (2026-06-23). Standardized on **"Off the tee"**
+  (the canonical `SgCategory` term used on the dashboard / SG pages); the round
+  chips no longer relabel it "Driving". `SG_LABELS` in `roundCard.ts` had become
+  an identity map, so it was dropped — the metric `label` is now the category
+  itself. "OFF THE TEE" fits the chip on one line; live-verified.
 - **Version-control the design handoff** — partially done (2026-06-09): the
   dashboard bundle now lives in `docs/design/design_handoff_dashboard/` (spec
   README, prototype, `colors_and_type.css` token foundation). Drop future

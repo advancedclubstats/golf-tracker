@@ -117,9 +117,7 @@ type Step =
   | "club"
   | "yards"
   | "strike"
-  | "contact"
-  | "start"
-  | "curve"
+  | "flight"
   | "result"
   | "offset"
   | "putt";
@@ -195,6 +193,7 @@ interface HistoryEntry {
     missDirection: MissDirection | null;
     shotShape: ShotShape | null;
     shotContact: ShotContact | null;
+    contactClean: boolean;
     shotStart: ShotStart | null;
     targetOffset: TargetOffset | null;
     decisionQuality: DecisionQuality;
@@ -339,13 +338,15 @@ export function ShotEntryFlow({
   const [skipYards, setSkipYards] = useState(false);
   const [execution, setExecution] = useState<number | null>(null);
   const [result, setResult] = useState<Result | null>(null);
-  // Ball-flight shape + contact (migration 016). Two orthogonal, optional axes
-  // tagged on the dedicated shape step after strike. Null = not recalled / skipped.
+  // Ball-flight axes (migrations 016/020): contact, start-line, curve. All three
+  // optional, captured together on the single "flight" step (toggle rows, putt-
+  // miss style). Null = not recalled / skipped.
   const [shotShape, setShotShape] = useState<ShotShape | null>(null);
   const [shotContact, setShotContact] = useState<ShotContact | null>(null);
-  // Flight cause axes (migration 020): start-line + the curve above. Captured on
-  // the sequential Contact → Start → Curve steps that replaced the shape step.
   const [shotStart, setShotStart] = useState<ShotStart | null>(null);
+  // "Clean" contact stores as null shot_contact (no fault), same as skipped — so
+  // it needs its own flag to render the Clean button as actively selected.
+  const [contactClean, setContactClean] = useState(false);
   // Outcome direction vs the pin/target — captured on the required offset step
   // that generalized the old miss step (fires on greens too, not only misses).
   const [targetOffset, setTargetOffset] = useState<TargetOffset | null>(null);
@@ -438,6 +439,7 @@ export function ShotEntryFlow({
     setShotShape(null);
     setShotContact(null);
     setShotStart(null);
+    setContactClean(false);
     setTargetOffset(null);
     setDecisionQuality("Good");
     setLieOverride(null);
@@ -598,6 +600,7 @@ export function ShotEntryFlow({
             missDirection: d.missDirection ?? null,
             shotShape: d.shotShape ?? null,
             shotContact: d.shotContact ?? null,
+            contactClean,
             shotStart: d.shotStart ?? null,
             targetOffset: d.targetOffset ?? null,
             decisionQuality: d.decisionQuality ?? "Good",
@@ -669,31 +672,30 @@ export function ShotEntryFlow({
 
   function chooseExecution(e: number) {
     setExecution(e);
-    setStep("contact");
+    setStep("flight");
   }
 
-  // ── Flight cluster: Contact → Start → Curve, each one tap, auto-advancing ──
+  // ── Flight step: contact + start + curve on one screen, all optional toggles
+  //    (putt-miss style). Each row is single-select; tapping the active option
+  //    clears it. "Next" advances to the result. ───────────────────────────────
 
-  /** Strike contact. "Clean" is the no-fault case → stored as null. */
-  function chooseContact(c: ShotContact | null) {
-    setShotContact(c);
-    setStep("start");
-  }
-
-  function chooseStart(s: ShotStart) {
-    setShotStart(s);
-    // Skip the curve question on short shots (chips) — no shape to read there.
-    if (skipsCurve) {
-      setShotShape(null);
-      setStep("result");
-    } else {
-      setStep("curve");
+  /** Contact toggle. "Clean" = no fault → null shot_contact + the clean flag. */
+  function toggleContact(value: ShotContact | null, clean: boolean) {
+    if (clean) {
+      setContactClean((on) => !on);
+      setShotContact(null);
+      return;
     }
+    setContactClean(false);
+    setShotContact((cur) => (cur === value ? null : value));
   }
 
-  function chooseCurve(s: ShotShape) {
-    setShotShape(s);
-    setStep("result");
+  function toggleStart(s: ShotStart) {
+    setShotStart((cur) => (cur === s ? null : s));
+  }
+
+  function toggleCurve(s: ShotShape) {
+    setShotShape((cur) => (cur === s ? null : s));
   }
 
   async function chooseResult(r: Result) {
@@ -706,7 +708,7 @@ export function ShotEntryFlow({
         yardage: yards === "" ? undefined : Number(yards),
         execution: execution ?? undefined,
         result: r,
-        shotShape: shotShape ?? undefined,
+        shotShape: skipsCurve ? undefined : (shotShape ?? undefined),
         shotContact: shotContact ?? undefined,
         shotStart: shotStart ?? undefined,
         decisionQuality,
@@ -860,10 +862,8 @@ export function ShotEntryFlow({
     // Sub-steps of the shot being entered.
     if (step === "yards" || (step === "strike" && skipYards)) return setStep("club");
     if (step === "strike") return setStep("yards");
-    if (step === "contact") return setStep("strike");
-    if (step === "start") return setStep("contact");
-    if (step === "curve") return setStep("start");
-    if (step === "result") return setStep(skipsCurve ? "start" : "curve");
+    if (step === "flight") return setStep("strike");
+    if (step === "result") return setStep("flight");
     if (step === "offset") return setStep("result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");
@@ -927,6 +927,7 @@ export function ShotEntryFlow({
     setResult(entry.draft.result);
     setShotShape(entry.draft.shotShape);
     setShotContact(entry.draft.shotContact);
+    setContactClean(entry.draft.contactClean);
     setShotStart(entry.draft.shotStart);
     setTargetOffset(entry.draft.targetOffset);
     setDecisionQuality(entry.draft.decisionQuality);
@@ -1020,7 +1021,7 @@ export function ShotEntryFlow({
   // sits under "result" so the bar stays at five legible milestones.
   const STEP_ORDER = ["club", "yards", "strike", "flight", "result"] as const;
   const stepperIdx = (() => {
-    if (step === "contact" || step === "start" || step === "curve") return 3;
+    if (step === "flight") return 3;
     if (step === "offset") return 4;
     return STEP_ORDER.indexOf(step as (typeof STEP_ORDER)[number]);
   })();
@@ -1526,7 +1527,7 @@ export function ShotEntryFlow({
             disabled={busy}
             onClick={() => {
               setExecution(null);
-              setStep("contact");
+              setStep("flight");
             }}
             className="mt-4 block w-full text-[14px] font-semibold text-muted-foreground underline underline-offset-[3px]"
           >
@@ -1535,27 +1536,32 @@ export function ShotEntryFlow({
         </div>
       )}
 
-      {step === "contact" && (
+      {step === "flight" && (
         <div className="step flex flex-col">
-          <h3 className={cn(Q, "mb-1")}>How&apos;d you catch it?</h3>
-          <p className={cn(QSUB, "mb-6")}>Thin, clean, or fat.</p>
-          <div className="grid grid-cols-3 gap-2.5">
+          <h3 className={cn(Q, "mb-1")}>How&apos;d it fly?</h3>
+          <p className={cn(QSUB, "mb-5")}>Tap what you noticed. Skip the rest.</p>
+
+          {/* Contact — Thin/Fat are faults (clay); Clean is the quiet no-fault
+              option (stored as null, tracked by contactClean for the highlight). */}
+          <span className="eyebrow mb-2">Contact</span>
+          <div className="mb-5 grid grid-cols-3 gap-2.5">
             {([
-              { label: "Thin", value: "Thin" as ShotContact | null },
-              { label: "Clean", value: null },
-              { label: "Fat", value: "Chunk" as ShotContact | null },
+              { label: "Thin", value: "Thin" as ShotContact, clean: false },
+              { label: "Clean", value: null, clean: true },
+              { label: "Fat", value: "Chunk" as ShotContact, clean: false },
             ]).map((c) => {
-              const selected = shotContact === c.value;
+              const selected = c.clean ? contactClean : shotContact === c.value;
               return (
                 <button
                   key={c.label}
                   type="button"
                   disabled={busy}
-                  onClick={() => chooseContact(c.value)}
+                  onClick={() => toggleContact(c.value, c.clean)}
                   className={cn(
                     TAP,
-                    "h-[84px] text-[16px]",
-                    selected && (c.value === null ? TAP_SEL : CONTACT_SEL),
+                    "h-[64px] text-[16px]",
+                    c.clean && !selected && "text-muted-foreground",
+                    selected && (c.clean ? TAP_SEL : CONTACT_SEL),
                   )}
                 >
                   {c.label}
@@ -1563,46 +1569,61 @@ export function ShotEntryFlow({
               );
             })}
           </div>
-        </div>
-      )}
 
-      {step === "start" && (
-        <div className="step flex flex-col">
-          <h3 className={cn(Q, "mb-1")}>Where&apos;d it start?</h3>
-          <p className={cn(QSUB, "mb-6")}>Its line off the club face.</p>
-          <div className="grid grid-cols-3 gap-2.5">
+          {/* Start line — Straight is the quiet neutral. */}
+          <span className="eyebrow mb-2">Start line</span>
+          <div className="mb-5 grid grid-cols-3 gap-2.5">
             {SHOT_STARTS.map((s) => (
               <button
                 key={s}
                 type="button"
                 disabled={busy}
-                onClick={() => chooseStart(s)}
-                className={cn(TAP, "h-[84px] text-[16px]", shotStart === s && TAP_SEL)}
+                onClick={() => toggleStart(s)}
+                className={cn(
+                  TAP,
+                  "h-[64px] text-[16px]",
+                  s === "Straight" && shotStart !== s && "text-muted-foreground",
+                  shotStart === s && TAP_SEL,
+                )}
               >
                 {s}
               </button>
             ))}
           </div>
-        </div>
-      )}
 
-      {step === "curve" && (
-        <div className="step flex flex-col">
-          <h3 className={cn(Q, "mb-1")}>How&apos;d it curve?</h3>
-          <p className={cn(QSUB, "mb-6")}>The shape in the air.</p>
-          <div className="grid grid-cols-5 gap-2">
-            {SHOT_SHAPES.map((s) => (
-              <button
-                key={s}
-                type="button"
-                disabled={busy}
-                onClick={() => chooseCurve(s)}
-                className={cn(TAP, "h-[88px] px-0.5 text-[13px]", shotShape === s && TAP_SEL)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          {/* Curve — hidden on short shots (chips: no shape to read). */}
+          {!skipsCurve && (
+            <>
+              <span className="eyebrow mb-2">Curve</span>
+              <div className="mb-6 grid grid-cols-5 gap-2">
+                {SHOT_SHAPES.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => toggleCurve(s)}
+                    className={cn(
+                      TAP,
+                      "h-[60px] px-0.5 text-[12px]",
+                      s === "Straight" && shotShape !== s && "text-muted-foreground",
+                      shotShape === s && TAP_SEL,
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => setStep("result")}
+            className={cn(CTA, "h-[56px] text-[16px]")}
+          >
+            Next →
+          </button>
         </div>
       )}
 

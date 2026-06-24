@@ -160,10 +160,11 @@ const OFFSET_GRID: { value: TargetOffset; label: string }[] = [
   { value: "ShortRight", label: "Short right" },
 ];
 
-/** Side-only row for tee shots (no long/short). */
+/** Side-only row for tee shots (no long/short). Direction relative to the
+ *  target line — "Straight" = on line (which can still miss the fairway long). */
 const OFFSET_SIDE: { value: TargetOffset; label: string }[] = [
   { value: "Left", label: "Left" },
-  { value: "Center", label: "Middle" },
+  { value: "Center", label: "Straight" },
   { value: "Right", label: "Right" },
 ];
 
@@ -1666,8 +1667,10 @@ export function ShotEntryFlow({
       {step === "offset" && (
         offsetIsSideOnly(effectiveLie, par) ? (
           <div className="step flex flex-col">
-            <h3 className={cn(Q, "mb-1")}>Which side?</h3>
-            <p className={cn(QSUB, "mb-4")}>Where it finished off the tee.</p>
+            <h3 className={cn(Q, "mb-1")}>Which way off the tee?</h3>
+            <p className={cn(QSUB, "mb-4")}>
+              Direction vs your target line. The lie&apos;s already logged.
+            </p>
             <div className="grid grid-cols-3 gap-2.5">
               {OFFSET_SIDE.map((o) => (
                 <button

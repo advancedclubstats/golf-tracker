@@ -1094,13 +1094,20 @@ export function ShotEntryFlow({
         </div>
       )}
 
-      {/* Start lie — carries forward; one tap to override */}
+      {/* Start lie + obstruction — the shot's start-state, set while you're
+          standing over it picking a club. Both carry one tap to set; default
+          Clear costs nothing. Obstruction prices the shot off the Recovery
+          baseline but never constrains the result (a flighted shot can finish
+          anywhere). Only one disclosure is open at a time. */}
       {step !== "putt" && effectiveLie !== "Green" && (
         <div className="mb-[14px]">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => setLieOpen((o) => !o)}
+              onClick={() => {
+                setLieOpen((o) => !o);
+                setObxOpen(false);
+              }}
               className="inline-flex items-center gap-2 rounded-full bg-muted px-[14px] py-2 transition-colors"
             >
               <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
@@ -1110,6 +1117,31 @@ export function ShotEntryFlow({
               {lieOverride && (
                 <span className="font-mono text-[9px] uppercase tracking-[0.04em] text-clay">edited</span>
               )}
+              <span className="text-[11px] text-muted-foreground">▾</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setObxOpen((o) => !o);
+                setLieOpen(false);
+              }}
+              aria-expanded={obxOpen}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-full px-[14px] py-2 transition-colors",
+                obstruction === "Clear"
+                  ? "bg-muted"
+                  : cn("border-[1.5px]", OBSTRUCTION_TINT[obstruction]),
+              )}
+            >
+              <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.07em] text-muted-foreground">
+                Path
+              </span>
+              {obstruction !== "Clear" && (
+                <span className={cn("h-2 w-2 rounded-full", OBSTRUCTION_DOT[obstruction])} />
+              )}
+              <span className="text-[14px] font-semibold">
+                {OBSTRUCTION_COPY[obstruction].label}
+              </span>
               <span className="text-[11px] text-muted-foreground">▾</span>
             </button>
           </div>
@@ -1131,6 +1163,37 @@ export function ShotEntryFlow({
                   )}
                 >
                   {l}
+                </button>
+              ))}
+            </div>
+          )}
+          {obxOpen && (
+            <div className="mt-[10px] flex flex-col gap-2">
+              {OBSTRUCTION.map((o) => (
+                <button
+                  key={o}
+                  type="button"
+                  onClick={() => {
+                    setObstruction(o);
+                    setObxOpen(false);
+                  }}
+                  className={cn(
+                    "flex items-center gap-3 rounded-[13px] border-[1.5px] px-3.5 py-3 text-left transition-transform active:scale-[0.98]",
+                    obstruction === o ? OBSTRUCTION_SELECTED[o] : "border-input bg-card",
+                  )}
+                >
+                  <span className={cn("h-2.5 w-2.5 shrink-0 rounded-full", OBSTRUCTION_DOT[o])} />
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="text-[14.5px] font-bold">
+                      {OBSTRUCTION_COPY[o].label}
+                    </span>
+                    <span className="text-[11.5px] text-muted-foreground">
+                      {OBSTRUCTION_COPY[o].hint}
+                    </span>
+                  </span>
+                  {obstruction === o && (
+                    <span className="ml-auto shrink-0 text-[14px] font-bold">✓</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -1562,74 +1625,6 @@ export function ShotEntryFlow({
                 </button>
               ))}
             </div>
-          </div>
-
-          {/* Obstruction (a peer of Decision): the start-state of the shot just
-              played — what was between ball and target. Prices the shot off the
-              Recovery baseline, but never constrains the result below (a flighted
-              shot can still find the green or go OB). Progressive disclosure —
-              zero taps when Clear (the ~80% case), one deliberate tap otherwise. */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between gap-3 px-0.5">
-              <div className="flex flex-col gap-0.5">
-                <span className="text-[14px] font-bold">Obstruction</span>
-                <span className="text-[11.5px] text-muted-foreground">
-                  Only if something forced an abnormal shot.
-                </span>
-              </div>
-              <button
-                type="button"
-                disabled={busy}
-                onClick={() => setObxOpen((o) => !o)}
-                aria-expanded={obxOpen}
-                className={cn(
-                  "inline-flex h-[34px] items-center gap-2 rounded-full border-[1.5px] px-[14px] text-[13px] font-bold transition-colors",
-                  obstruction === "Clear"
-                    ? "border-input bg-card text-muted-foreground"
-                    : OBSTRUCTION_TINT[obstruction],
-                )}
-              >
-                {obstruction !== "Clear" && (
-                  <span className={cn("h-2 w-2 rounded-full", OBSTRUCTION_DOT[obstruction])} />
-                )}
-                {OBSTRUCTION_COPY[obstruction].label}
-                <span className="text-[10px] opacity-70">▾</span>
-              </button>
-            </div>
-            {obxOpen && (
-              <div className="mt-3 flex flex-col gap-2">
-                {OBSTRUCTION.map((o) => (
-                  <button
-                    key={o}
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setObstruction(o);
-                      setObxOpen(false);
-                    }}
-                    className={cn(
-                      "flex items-center gap-3 rounded-[13px] border-[1.5px] px-3.5 py-3 text-left transition-transform active:scale-[0.98]",
-                      obstruction === o ? OBSTRUCTION_SELECTED[o] : "border-input bg-card",
-                    )}
-                  >
-                    <span
-                      className={cn("h-2.5 w-2.5 shrink-0 rounded-full", OBSTRUCTION_DOT[o])}
-                    />
-                    <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="text-[14.5px] font-bold">
-                        {OBSTRUCTION_COPY[o].label}
-                      </span>
-                      <span className="text-[11.5px] text-muted-foreground">
-                        {OBSTRUCTION_COPY[o].hint}
-                      </span>
-                    </span>
-                    {obstruction === o && (
-                      <span className="ml-auto shrink-0 text-[14px] font-bold">✓</span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="grid grid-cols-2 gap-2.5">

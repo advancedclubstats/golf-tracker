@@ -72,7 +72,7 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
       <button
         type="button"
         onClick={owner ? signOut : () => { setOpen(true); setSignin(true); }}
-        className="fixed bottom-3 right-3 z-40 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
+        className="fixed bottom-3 left-3 z-40 rounded-full border border-border bg-card/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground"
       >
         {owner ? "Owner mode · Sign out" : "Owner sign-in"}
       </button>

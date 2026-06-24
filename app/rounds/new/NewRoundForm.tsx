@@ -15,7 +15,6 @@ import {
 import { createRound } from "@/actions/rounds";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -41,8 +40,7 @@ const NO_COURSE = "none";
 const FIELD =
   "flex min-h-14 w-full items-center gap-3 rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300";
 
-/** Same card surface for native <input>/<textarea> controls — no `flex`, which
- *  breaks the sizing of a native date input on mobile WebKit (it overflows). */
+/** Card surface for the multi-line notes <textarea> (non-flex block control). */
 const FIELD_INPUT =
   "min-h-14 w-full rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300";
 
@@ -192,15 +190,25 @@ export function NewRoundForm({ courses }: { courses: CourseOption[] }) {
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
-      {/* Date */}
+      {/* Date — a bare native date input inside the shared flex card (same
+          pattern as Course/Tee). The input carries no border/background/padding
+          and `min-w-0`, so it flexes to fit the card and can't overflow on iOS
+          WebKit. (The old full-width input + left padding overflowed there: the
+          native control doesn't honor box-sizing, and a flex child without
+          min-w-0 won't shrink below its intrinsic width.) */}
       <div className="flex flex-col gap-2">
         <Label htmlFor="date">Date</Label>
-        <div className="relative">
-          <CalendarIcon className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
-          <Input
+        <div
+          className={cn(
+            FIELD,
+            "focus-within:border-ring focus-within:ring-4 focus-within:ring-ring/15",
+          )}
+        >
+          <CalendarIcon className="size-5 shrink-0 text-muted-foreground" />
+          <input
             id="date"
             type="date"
-            className={cn(FIELD_INPUT, "block pl-11")}
+            className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none"
             {...register("date")}
           />
         </div>

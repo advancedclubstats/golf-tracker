@@ -10,9 +10,10 @@
  * or misalign — no JS measurement). Lime stays the single accent moment: the
  * FAB is fairway-green with a lime ring.
  *
- * The bar hides during the focused shot-entry flow (`/rounds/[id]/log`) so
- * logging stays distraction-free. An in-flow spacer reserves scroll clearance
- * so page content is never tucked behind the bar.
+ * The bar hides during focused flows — the shot-entry flow (`/rounds/[id]/log`)
+ * and the New Round create form (`/rounds/new`) — which carry their own top
+ * escape instead, so those stay distraction-free. An in-flow spacer reserves
+ * scroll clearance so page content is never tucked behind the bar.
  */
 
 import Link from "next/link";
@@ -45,16 +46,16 @@ const TABS: Tab[] = [
 
 function activeKey(pathname: string): TabKey | null {
   if (pathname === "/") return "home";
-  // /rounds/new is the FAB's create flow, not the Rounds tab.
-  if (pathname.startsWith("/rounds") && pathname !== "/rounds/new") return "rounds";
+  if (pathname.startsWith("/rounds")) return "rounds";
   if (pathname.startsWith("/stats")) return "stats";
   if (pathname.startsWith("/courses")) return "setup";
   return null;
 }
 
-// The shot-entry flow is `/rounds/<id>/log` — hide the bar there.
+// Focused flows hide the bar (they carry their own top escape, no tab rail):
+// the shot-entry flow `/rounds/<id>/log` and the New Round create form.
 function isFocusedFlow(pathname: string): boolean {
-  return /^\/rounds\/[^/]+\/log\/?$/.test(pathname);
+  return /^\/rounds\/[^/]+\/log\/?$/.test(pathname) || pathname === "/rounds/new";
 }
 
 export function BottomNav() {
@@ -64,9 +65,6 @@ export function BottomNav() {
   // Everyone gets the full bar: the owner on real data, visitors on their
   // sandbox (Setup included — it's a per-visitor staging copy).
   const tabs = TABS;
-
-  // On the New Round page the FAB would just reload the same route, so drop it.
-  const showFab = pathname !== "/rounds/new";
 
   if (isFocusedFlow(pathname)) return null;
 
@@ -93,20 +91,18 @@ export function BottomNav() {
               <NavTab key={t.key} tab={t} active={active === t.key} />
             ))}
 
-          {/* Center FAB — start a round (hidden on /rounds/new) */}
-          {showFab && (
-            <Link
-              href="/rounds/new"
-              aria-label="Log a round"
-              className="relative z-[3] mx-1.5 flex h-14 w-14 shrink-0 -translate-y-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-150 active:translate-y-[-14px] active:scale-95 motion-reduce:transition-none"
-              style={{
-                boxShadow:
-                  "0 12px 26px -6px rgba(11,46,30,.55), 0 0 0 5px rgba(205,242,62,.28), inset 0 1px 1px rgba(255,255,255,.35)",
-              }}
-            >
-              <Plus className="h-[26px] w-[26px]" strokeWidth={2.25} />
-            </Link>
-          )}
+          {/* Center FAB — start a round */}
+          <Link
+            href="/rounds/new"
+            aria-label="Log a round"
+            className="relative z-[3] mx-1.5 flex h-14 w-14 shrink-0 -translate-y-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-150 active:translate-y-[-14px] active:scale-95 motion-reduce:transition-none"
+            style={{
+              boxShadow:
+                "0 12px 26px -6px rgba(11,46,30,.55), 0 0 0 5px rgba(205,242,62,.28), inset 0 1px 1px rgba(255,255,255,.35)",
+            }}
+          >
+            <Plus className="h-[26px] w-[26px]" strokeWidth={2.25} />
+          </Link>
 
           {/* Right half: Stats, Setup */}
           {tabs

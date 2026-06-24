@@ -224,3 +224,15 @@
     }
   }
 }
+
+/* iOS Safari doesn't honor box-sizing on native date inputs, so width:100% plus
+   our left padding (room for the overlaid calendar icon) overflows the field —
+   the right edge runs off-screen. Stripping the native appearance makes it a
+   normal border-box control; tap-to-open-picker still works. Scoped to iOS
+   (the @supports hack) so desktop browsers keep their native picker indicator. */
+@supports (-webkit-touch-callout: none) {
+  input[type="date"] {
+    -webkit-appearance: none;
+    appearance: none;
+  }
+}

@@ -1171,6 +1171,22 @@ export function ShotEntryFlow({
         </div>
       </div>
 
+      {/* Pick up — available after any logged shot (not just at the club step):
+          you can stop playing a hole at any point. Renders on every step. */}
+      {canPickUp && (
+        <div className="-mt-1 mb-[18px] flex justify-end">
+          <button
+            type="button"
+            onClick={handlePickUp}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-full bg-muted px-[14px] py-2 text-[13px] font-semibold text-muted-foreground transition-transform active:scale-[0.96] disabled:opacity-40"
+          >
+            <span aria-hidden>✋</span>
+            Pick up
+          </button>
+        </div>
+      )}
+
       {/* Par picker when par is unknown (no course, no prior shot) */}
       {!parLocked && step === "club" && (
         <div className="mb-[14px] flex flex-col gap-2">
@@ -1298,18 +1314,8 @@ export function ShotEntryFlow({
             </div>
           )}
 
-          {/* Pick up / Clear / Done */}
+          {/* Clear / Done (Pick up lives above the steps — available on any step) */}
           <div className="mt-2 flex flex-col gap-2">
-            {canPickUp && (
-              <button
-                type="button"
-                onClick={handlePickUp}
-                disabled={busy}
-                className={FOOT_LINK}
-              >
-                Pick up hole →
-              </button>
-            )}
             {canClear && (
               <button
                 type="button"

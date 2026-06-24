@@ -201,15 +201,6 @@ export type StartLie = (typeof START_LIES)[number];
 export const DECISION_QUALITIES = ["Good", "Bad"] as const;
 export type DecisionQuality = (typeof DECISION_QUALITIES)[number];
 
-/** The "domino" field: did this shot improve or compound the situation? */
-export const SITUATIONS = [
-  "Improved",
-  "Neutral",
-  "Constrained",
-  "Severe trouble",
-] as const;
-export type Situation = (typeof SITUATIONS)[number];
-
 /** Display/entry unit for `distance_to_hole`. `yardage` is always stored in
  *  yards; `ft` means show/enter as yardage×3 (used for putts / on the green). */
 export const DISTANCE_UNITS = ["yd", "ft"] as const;

@@ -15,7 +15,6 @@ import {
   PUTT_SIDES,
   PUTT_LENGTHS,
   START_LIES,
-  SITUATIONS,
   DECISION_QUALITIES,
   DISTANCE_UNITS,
   OBSTRUCTION,
@@ -91,18 +90,6 @@ export const ShotInsertSchema = z.object({
    * default), so non-wizard inserts and historical rows needn't set it.
    */
   obstruction: z.enum(OBSTRUCTION).optional(),
-
-  /**
-   * The "domino" field: did this shot improve or compound the position?
-   * One tap, default Neutral. Captured going forward only.
-   */
-  situation_created: z.enum(SITUATIONS).nullish(),
-
-  /**
-   * Short-sided flag for greenside / missed-approach context. Captured going
-   * forward only.
-   */
-  short_sided: z.boolean().nullish(),
 
   /**
    * Decision quality (spec 1A). The one signal SG can't compute: it separates
@@ -190,8 +177,6 @@ export const ShotRowSchema = ShotInsertSchema.extend({
   start_lie_manual: z.boolean(),
   // Concrete (not nullable): the DB column is NOT NULL DEFAULT 'Clear'.
   obstruction: z.enum(OBSTRUCTION),
-  situation_created: z.enum(SITUATIONS).nullable(),
-  short_sided: z.boolean().nullable(),
   decision_quality: z.enum(DECISION_QUALITIES),
   result: z.enum(RESULTS).nullable(),
   miss_direction: z.enum(MISS_DIRECTIONS).nullable(),
@@ -219,8 +204,6 @@ export const ShotUpdateSchema = ShotInsertSchema.pick({
   yardage: true,
   distance_unit: true,
   start_lie: true,
-  situation_created: true,
-  short_sided: true,
   decision_quality: true,
   execution: true,
   result: true,

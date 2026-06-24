@@ -356,10 +356,10 @@ section first (highest value, self-contained), then the three table treatments.
   absolute URLs. Verified: `/opengraph-image` returns a 1200×630 PNG, homepage
   view-source shows absolute `og:`/`twitter:` tags, `npm run build` clean.
   **After deploy:** run the URL through LinkedIn Post Inspector to bust its cache.
-- **Personalize the welcome copy.** `components/WelcomeOverlay.tsx` currently
-  reads "I'm Matt, a product manager" with a generic blurb. Swap in the owner's
-  sharper positioning line, a one-line *why I built it*, and a LinkedIn/portfolio
-  link (add an anchor in the overlay). Pure copy/markup — needs the words.
+- **Personalize the welcome copy** — ✅ done (2026-06-23). `WelcomeOverlay.tsx`
+  now carries Matt's PM/PMM positioning, a "why I built it" line (tour-level data
+  without GPS/sensors; own rounds at Hayden Lake CC), the sandbox framing, and a
+  LinkedIn link.
 - **Dashboard "Calm Brief" reskin (Direction D)** — ✅ done (2026-06-09). Flat
   editorial single-column dashboard per `docs/design/design_handoff_dashboard/`:
   lime stacked hero + lime New Round pill (the only two lime moments), 40px SG
@@ -443,8 +443,13 @@ section first (highest value, self-contained), then the three table treatments.
   now runs `recompute_hole_start_lie` after the edit (preserves manual overrides).
   Also backfilled the 6 already-stale lies in production via a one-off recompute
   across all holes (0 real mismatches remain; 2 manual overrides preserved).
-- **Drop `situation_created` / `short_sided` columns** once T6 has shipped and
-  nothing references them (deferred per the T6 decision).
+- **Drop `situation_created` / `short_sided` columns** — ✅ done (2026-06-23,
+  migration `021_drop_legacy_situation_short_sided.sql`, applied live). T6 had
+  stopped collecting them and nothing read them anymore (only the Zod schema
+  permitted them). Removed both columns, the schema fields (insert/row/update in
+  `lib/schemas/shot.ts`), and the now-unused `SITUATIONS`/`Situation` from
+  `constants.ts`; updated test fixtures. type-check/lint/149 tests green;
+  `/stats/sg` still reads + parses all shots cleanly.
 
 ## Open product questions (for the player to decide)
 

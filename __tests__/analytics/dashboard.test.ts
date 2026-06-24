@@ -22,8 +22,6 @@ function shot(p: Partial<ShotRow>): ShotRow {
     start_lie: null,
     start_lie_manual: false,
     obstruction: "Clear",
-    situation_created: null,
-    short_sided: null,
     decision_quality: "Good",
     execution: 3,
     result: null,

@@ -99,6 +99,12 @@ const MISS_RESULTS = new Set<Result>([
 /** Lies offered in the override picker (Tee is auto for shot 1; Green = putt). */
 const OVERRIDE_LIES = START_LIES.filter((l) => l !== "Green");
 
+/** Below this yardage the curve step is skipped: short shots are chips where
+ *  the player never shapes the ball and can't read curve anyway (contact +
+ *  start line still matter, so those steps stay). A blank yardage (re-tee drive
+ *  / "No yardage") is never treated as short — keep curve there. */
+const CURVE_MIN_YARDS = 50;
+
 /** Putts are entered in feet (stored canonically as yards = feet / 3). Feet
  *  gives 1-ft resolution where the expected-strokes curve is steepest — the
  *  3–8 ft range — which buckets threw away. */
@@ -391,6 +397,8 @@ export function ShotEntryFlow({
 
   const courseParKnown = parByHole[hole] != null;
   const par = parByHole[hole] ?? localPar[hole] ?? null;
+  // Short shots (under CURVE_MIN_YARDS) skip the curve step — see the const.
+  const skipsCurve = yards !== "" && Number(yards) < CURVE_MIN_YARDS;
   const holeLog = logged[hole];
   const shotNo = (holeLog?.count ?? 0) + 1;
   const parLocked = courseParKnown || (holeLog?.count ?? 0) > 0;
@@ -674,7 +682,13 @@ export function ShotEntryFlow({
 
   function chooseStart(s: ShotStart) {
     setShotStart(s);
-    setStep("curve");
+    // Skip the curve question on short shots (chips) — no shape to read there.
+    if (skipsCurve) {
+      setShotShape(null);
+      setStep("result");
+    } else {
+      setStep("curve");
+    }
   }
 
   function chooseCurve(s: ShotShape) {
@@ -849,7 +863,7 @@ export function ShotEntryFlow({
     if (step === "contact") return setStep("strike");
     if (step === "start") return setStep("contact");
     if (step === "curve") return setStep("start");
-    if (step === "result") return setStep("curve");
+    if (step === "result") return setStep(skipsCurve ? "start" : "curve");
     if (step === "offset") return setStep("result");
     // Putt miss detail → back to the putt's distance screen.
     if (step === "putt" && puttPhase === "miss") return setPuttPhase("main");

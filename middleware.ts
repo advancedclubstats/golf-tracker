@@ -14,6 +14,12 @@ import { NextResponse, type NextRequest } from "next/server";
 const OWNER_COOKIE = "gt_owner";
 const SANDBOX_COOKIE = "gt_sandbox";
 
+/** Legacy / index paths that should land on their canonical destination. */
+const REDIRECTS: Record<string, string> = {
+  "/stats": "/stats/holes",
+  "/setup": "/courses",
+};
+
 function isOwnerRequest(req: NextRequest): boolean {
   const key = process.env.OWNER_KEY;
   // Mirror lib/auth/owner.ts: no key configured ⇒ gate off in dev, on in prod.
@@ -22,6 +28,15 @@ function isOwnerRequest(req: NextRequest): boolean {
 }
 
 export function middleware(req: NextRequest) {
+  // Canonical-path redirects run first, before any cookie work — a bounced
+  // path never needs a sandbox minted for it.
+  const dest = REDIRECTS[req.nextUrl.pathname];
+  if (dest) {
+    const url = req.nextUrl.clone();
+    url.pathname = dest;
+    return NextResponse.redirect(url);
+  }
+
   // Owner or already-sandboxed: nothing to mint.
   if (isOwnerRequest(req) || req.cookies.get(SANDBOX_COOKIE)) {
     return NextResponse.next();

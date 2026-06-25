@@ -166,16 +166,11 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
                 ))}
               </div>
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
-              Every number drills to the exact shots behind it — and the app says so
-              when the sample’s too small to claim anything.
-            </p>
-
             {!signin ? (
               <>
                 <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
                   Poke around your own sandbox, seeded with a copy of my rounds. Edit,
-                  add, break anything — it never touches my real numbers and clears
+                  add, break anything. It never touches my real numbers and clears
                   itself when you close the tab.
                 </p>
                 <button

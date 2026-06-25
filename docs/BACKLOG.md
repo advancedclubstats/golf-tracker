@@ -371,6 +371,22 @@ section first (highest value, self-contained), then the three table treatments.
   now carries Matt's PM/PMM positioning, a "why I built it" line (tour-level data
   without GPS/sensors; own rounds at Hayden Lake CC), the sandbox framing, and a
   LinkedIn link.
+- **Elite hiring-manager splash (Direction B, full-screen)** — ✅ done
+  (2026-06-25). Rebuilt `WelcomeOverlay.tsx`'s first-visit overlay from a centered
+  text modal into a full-screen landing for non-golfers: a dark fairway hero
+  (`bg-fairway-900` + fixed `#EAF1EC`/`#CDF23E` per the DistanceGapHero
+  convention) with the lime-dot wordmark, "portfolio project by Matt · PM/PMM"
+  eyebrow, the problem framed sharp (tour-level stats, no GPS/sensors, from
+  memory) → a paper section showing the *product* (a hand-tuned static snapshot
+  of the recall view from the 2026-06-19 round: takeaway headline + two SG chips
+  + three ledger rows) + a "drills to raw shots / honest about sample size"
+  line → the sandbox copy → one-tap "Explore the live demo" (dismiss) + a
+  "Connect on LinkedIn" secondary + unobtrusive "Owner sign-in". All the
+  existing machinery is unchanged: `gt_intro_seen` first-visit gate, dismissal,
+  the password form, and the persistent corner sign-in/out pill. Live-verified
+  mobile + desktop (forced-open during local owner dev). *Follow-up option: swap
+  the static proof for a live-rendered mini recall once it's worth the data
+  plumbing — today a curated example is intentional.*
 - **Dashboard "Calm Brief" reskin (Direction D)** — ✅ done (2026-06-09). Flat
   editorial single-column dashboard per `docs/design/design_handoff_dashboard/`:
   lime stacked hero + lime New Round pill (the only two lime moments), 40px SG

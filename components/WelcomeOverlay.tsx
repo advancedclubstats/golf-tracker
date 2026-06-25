@@ -3,12 +3,20 @@
 /**
  * Welcome / owner sign-in (portfolio first impression).
  *
- * For visitors: a first-visit overlay framing the project and inviting them to
- * explore (read-only). Dismissal is remembered (localStorage), and a small
- * persistent "Owner sign-in" pill lets the owner sign in any time via a password
- * (→ unlockOwner server action, which sets the owner cookie). For the owner: a
- * small "Owner mode · Sign out" pill. The heavy lifting (write enforcement) is
- * server-side; this is just the UX over it.
+ * For visitors: a first-visit full-screen landing (Direction B) framing the
+ * project for a non-golfer — a dark fairway hero (problem + who built it), then
+ * a paper section showing the product itself (a real round, the way the recall
+ * view renders it) and the one-tap invitation into the live seeded sandbox.
+ * Dismissal is remembered (localStorage `gt_intro_seen`), and a small persistent
+ * "Owner sign-in" pill lets the owner sign in any time via a password
+ * (→ unlockOwner server action). For the owner: a "Owner mode · Sign out" pill.
+ * The heavy lifting (write enforcement) is server-side; this is just the UX.
+ *
+ * The dark hero follows the codebase's dark-card convention (DistanceGapHero):
+ * `bg-fairway-900` with fixed light `#EAF1EC` text + `#CDF23E` lime accents,
+ * which read correctly regardless of theme. The paper proof card uses the
+ * normal themeable tokens. The recall proof is a hand-tuned snapshot of a real
+ * round (2026-06-19) — a curated marketing example, no live data plumbing.
  */
 
 import { useEffect, useState } from "react";
@@ -19,6 +27,18 @@ import { cn } from "@/lib/utils";
 const SEEN_KEY = "gt_intro_seen";
 
 const LINKEDIN_URL = "https://www.linkedin.com/in/matthewmartin3/";
+
+/** Hand-tuned proof rows from a real round (2026-06-19) — see file header. */
+const PROOF_HOLES = [
+  { hole: 1, par: 4, tag: "Birdie", vsPar: -1 },
+  { hole: 8, par: 3, tag: "Approach", vsPar: 1 },
+  { hole: 15, par: 4, tag: "Birdie", vsPar: -1 },
+] as const;
+
+function fmtVsPar(n: number): string {
+  if (n === 0) return "E";
+  return n > 0 ? `+${n}` : `−${Math.abs(n)}`;
+}
 
 export function WelcomeOverlay({ owner }: { owner: boolean }) {
   const router = useRouter();
@@ -78,61 +98,111 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/30 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90dvh] w-full max-w-md flex-col overflow-y-auto rounded-2xl border border-border bg-background p-6 shadow-xl">
-            <p className="eyebrow text-muted-foreground">👋 A portfolio project</p>
-            <h2 className="mt-1 font-heading text-3xl font-bold">Round Recall</h2>
+        <div className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-background">
+          {/* Dark fairway hero: the problem, framed sharp, + who built it. */}
+          <section className="bg-fairway-900 px-6 pb-9 pt-11 text-[#EAF1EC]">
+            <div className="mx-auto w-full max-w-md">
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#CDF23E]" aria-hidden />
+                <span className="font-heading text-lg font-bold text-white">Round Recall</span>
+              </div>
+              <p className="eyebrow mt-8 text-[#CDF23E]/90">A portfolio project by Matt · PM / PMM</p>
+              <h2 className="font-heading mt-2 text-[2rem] font-bold leading-[1.1] text-white text-balance">
+                Tour-level golf stats, tracked from memory.
+              </h2>
+              <p className="mt-3.5 text-sm leading-relaxed text-[#EAF1EC]/70">
+                No GPS, no sensors. I tap through a round from memory in five minutes
+                and see, in strokes gained, exactly where it went.
+              </p>
+            </div>
+          </section>
 
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              I&apos;m <span className="font-medium text-foreground">Matt</span>, a PM
-              and PMM. I built this because I wanted tour-level data for my golf game
-              without using a GPS on the course or buying expensive sensors.
-              Everything in here is my own rounds at Hayden Lake Country Club, tracked
-              from memory and entered after I play. It all runs on{" "}
-              <span className="text-foreground">Strokes Gained</span>, and every
-              number drills down to the exact shots behind it.
-            </p>
-
-            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-              Go ahead and poke around. You&apos;re in your own sandbox seeded with a
-              copy of my rounds. Add your own data, edit mine, break whatever you
-              want, it&apos;s isolated and{" "}
-              <span className="text-foreground">never touches my real numbers</span>.
-              It clears itself when you close the browser, so don&apos;t worry about
-              leaving a mess.
+          {/* Paper section: show the product, then invite into the sandbox. */}
+          <div className="mx-auto w-full max-w-md flex-1 px-6 pb-12 pt-7">
+            <p className="eyebrow mb-2">A real round, the way you’ll see it</p>
+            <div className="rounded-xl border border-border p-3.5">
+              <p className="font-heading text-sm font-bold leading-snug">
+                Off the tee was the leak this round — −3.2 vs your average.
+              </p>
+              <div className="mt-2.5 grid grid-cols-2 gap-1.5">
+                <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
+                  <div className="eyebrow text-[10px] text-muted-foreground">Putting</div>
+                  <div className="font-mono text-sm font-semibold tabular-nums text-positive">+1.69</div>
+                </div>
+                <div className="rounded-lg bg-muted/40 px-2.5 py-1.5">
+                  <div className="eyebrow text-[10px] text-muted-foreground">Off the tee</div>
+                  <div className="font-mono text-sm font-semibold tabular-nums text-destructive">−3.23</div>
+                </div>
+              </div>
+              <div className="mt-1.5">
+                {PROOF_HOLES.map((h) => (
+                  <div
+                    key={h.hole}
+                    className="flex items-center gap-3 border-b border-border py-2 last:border-b-0"
+                  >
+                    <span className="w-5 font-mono text-sm font-semibold tabular-nums">{h.hole}</span>
+                    <span className="w-12 text-[11px] text-muted-foreground">par {h.par}</span>
+                    <span className="flex-1">
+                      <span
+                        className={cn(
+                          "eyebrow rounded px-1.5 py-0.5 text-[10px]",
+                          h.vsPar < 0
+                            ? "bg-highlight/25 text-foreground"
+                            : "bg-clay/10 text-clay",
+                        )}
+                      >
+                        {h.tag}
+                      </span>
+                    </span>
+                    <span
+                      className={cn(
+                        "font-mono text-[15px] font-bold tabular-nums",
+                        h.vsPar < 0 ? "text-positive" : "text-destructive",
+                      )}
+                    >
+                      {fmtVsPar(h.vsPar)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed text-muted-foreground">
+              Every number drills to the exact shots behind it — and the app says so
+              when the sample’s too small to claim anything.
             </p>
 
             {!signin ? (
               <>
+                <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+                  Poke around your own sandbox, seeded with a copy of my rounds. Edit,
+                  add, break anything — it never touches my real numbers and clears
+                  itself when you close the tab.
+                </p>
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="mt-5 h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground transition-transform active:scale-[0.99]"
+                  className="mt-4 h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground transition-transform active:scale-[0.99]"
                 >
-                  Take a look →
+                  Explore the live demo →
                 </button>
-                <p className="mt-3 text-center text-xs text-muted-foreground">
-                  Like what you see? Tell me on{" "}
-                  <a
-                    href={LINKEDIN_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    LinkedIn
-                  </a>
-                  .{" "}
-                  <button
-                    type="button"
-                    onClick={() => setSignin(true)}
-                    className="underline underline-offset-2 hover:text-foreground"
-                  >
-                    Owner sign-in
-                  </button>
-                </p>
+                <a
+                  href={LINKEDIN_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 flex h-12 w-full items-center justify-center rounded-xl border border-border text-sm font-medium text-foreground transition-colors hover:bg-muted"
+                >
+                  Connect on LinkedIn
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setSignin(true)}
+                  className="mt-4 w-full text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                >
+                  Owner sign-in
+                </button>
               </>
             ) : (
-              <form onSubmit={handleSignin} className="mt-5">
+              <form onSubmit={handleSignin} className="mt-6">
                 <label className="eyebrow text-muted-foreground">Owner password</label>
                 <input
                   type="password"

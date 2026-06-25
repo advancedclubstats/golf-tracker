@@ -132,6 +132,7 @@ describe("dashboard — records", () => {
     expect(dash.records.bestRound).toMatchObject({ roundId: "r2", vsPar: 1 });
     expect(dash.records.worstRound).toMatchObject({ roundId: "r1", vsPar: 2 });
     expect(dash.records.bestHole).toMatchObject({ hole: 1, vsPar: 1 });
+    expect(dash.records.worstHole).toMatchObject({ hole: 2, vsPar: 2 });
     expect(dash.records.birdies).toBe(0);
     expect(dash.records.eagles).toBe(0);
   });
@@ -144,5 +145,6 @@ describe("dashboard — empty input", () => {
     expect(empty.recentRounds).toEqual([]);
     expect(empty.records.bestRound).toBeNull();
     expect(empty.records.bestHole).toBeNull();
+    expect(empty.records.worstHole).toBeNull();
   });
 });

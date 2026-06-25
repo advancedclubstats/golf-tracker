@@ -213,6 +213,12 @@ export function Dashboard({
               value={`Hole ${records.bestHole.hole} (par ${records.bestHole.par}) · ${fmtVsPar(records.bestHole.vsPar)} across ${records.bestHole.rounds} round${records.bestHole.rounds === 1 ? "" : "s"}`}
             />
           )}
+          {records.worstHole && (
+            <Row
+              label="Worst Hole"
+              value={`Hole ${records.worstHole.hole} (par ${records.worstHole.par}) · ${fmtVsPar(records.worstHole.vsPar)} across ${records.worstHole.rounds} round${records.worstHole.rounds === 1 ? "" : "s"}`}
+            />
+          )}
           <Row label="Birdies" value={records.birdies} />
           <Row label="Eagles or better" value={records.eagles} />
         </div>

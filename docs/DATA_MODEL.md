@@ -67,7 +67,7 @@ Top-to-bottom **answer order** (spec Part 3), then reference cards:
 - **Stat line**: FW% (par 4/5 only), GIR%, Scramble%, avg putts, 3-putt%.
 - **Recent rounds**: last 5 (date, holes, strokes, vs par).
 - **Clean streaks** (`lib/analytics/streaks.ts`): the "Tiger 5" tracker, positively framed — for each classic mistake, how long since it last happened, as a **current** run + **personal best**. Counted **per opportunity** (named in the UI), not raw holes, so rare events aren't inflated: bogey-free par 5s (par 5s), double-free holes (holes), 3-putt-free holes (holes), bogey-free approaches ≤150y (qualifying approach holes), up-&-downs in a row (greenside <30y attempts). Holes ordered chronologically (round date, then hole). A live record (current = best) gets the lime accent; metrics with no opportunities yet show an em-dash.
-- **Records**: best/worst round (by vs par), best hole (lowest cumulative vs par), birdie count (=par−1), eagle+ count (≤par−2).
+- **Records**: best/worst round (by vs par), best hole (lowest cumulative vs par) / worst hole (highest cumulative vs par), birdie count (=par−1), eagle+ count (≤par−2).
 
 ### Strokes Gained (`/stats/sg`)
 - Per-shot: **SG = E[start_lie, start_dist] − E[finish] − 1 − penalty**, where E[finish]=0 if holed, else E[next shot's start]. A shot is "covered" only if both ends resolve to a baseline (missing distance drops the shot *and* its predecessor's finish term).

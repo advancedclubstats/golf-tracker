@@ -99,6 +99,7 @@ export interface DashboardRecords {
   bestRound: RoundRecord | null;
   worstRound: RoundRecord | null;
   bestHole: HolePain | null;
+  worstHole: HolePain | null;
   birdies: number;
   eagles: number;
 }
@@ -177,6 +178,7 @@ function emptyDashboard(): DashboardData {
       bestRound: null,
       worstRound: null,
       bestHole: null,
+      worstHole: null,
       birdies: 0,
       eagles: 0,
     },
@@ -279,6 +281,11 @@ export function computeDashboard(
     holesArr.length > 0
       ? holesArr.reduce((b, h) => (h.vsPar < b.vsPar ? h : b))
       : null;
+  // Worst hole = the inverse of D-07: highest CUMULATIVE (strokes - par).
+  const worstHole =
+    holesArr.length > 0
+      ? holesArr.reduce((w, h) => (h.vsPar > w.vsPar ? h : w))
+      : null;
 
   // ── Records ──
   const bestRoundAgg =
@@ -323,6 +330,7 @@ export function computeDashboard(
       bestRound: toRecord(bestRoundAgg),
       worstRound: toRecord(worstRoundAgg),
       bestHole,
+      worstHole,
       birdies,
       eagles,
     },

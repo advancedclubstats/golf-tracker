@@ -6,9 +6,13 @@ import { getRound } from "@/lib/db/rounds";
 import { getShotsByRound } from "@/lib/db/shots";
 import { getClubNames } from "@/lib/db/clubs";
 import { aggregateByRoundHole, enrichRoundHole } from "@/lib/analytics/core";
+import { computeRoundBreakdowns } from "@/lib/analytics/roundCard";
+import { roundRecall } from "@/lib/analytics/roundRecall";
+import { getEnrichedShots } from "@/lib/sg-server";
 import { isOwner } from "@/lib/auth/owner";
 import { isSandbox } from "@/lib/auth/scope";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
+import { RoundRecall } from "@/components/rounds/RoundRecall";
 import { SESSION_TYPE_LABELS } from "@/lib/constants";
 
 interface Props {
@@ -20,12 +24,19 @@ export default async function RoundDetailPage({ params }: Props) {
   const round = await getRound(id);
   if (!round) notFound();
 
-  const [shots, clubs, owner, sandbox] = await Promise.all([
+  const [shots, clubs, owner, sandbox, enriched] = await Promise.all([
     getShotsByRound(id),
     getClubNames(),
     isOwner(),
     isSandbox(),
+    // Tee-distance-filled shots across ALL rounds — the recall breakdown is a
+    // leave-one-out comparison vs your other rounds, so it needs the full set.
+    getEnrichedShots(),
   ]);
+  // The round's story: deltas vs your average (null below the floor) + the
+  // hole-by-hole ledger. Absent for an all-in-progress round (no complete hole).
+  const breakdown = computeRoundBreakdowns(enriched.shots).get(id) ?? null;
+  const recall = breakdown ? roundRecall(enriched.shots, id) : [];
   // Reads are scoped to the caller, so a round we could load is always ours to
   // edit — the owner on real data, a visitor on their sandbox copy.
   const canWrite = owner || sandbox;
@@ -83,6 +94,9 @@ export default async function RoundDetailPage({ params }: Props) {
         </p>
       ) : (
         <>
+          {breakdown && recall.length > 0 && (
+            <RoundRecall recall={recall} breakdown={breakdown} />
+          )}
           {canWrite && (
             <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
           )}

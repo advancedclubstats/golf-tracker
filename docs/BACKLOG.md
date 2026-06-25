@@ -385,8 +385,27 @@ section first (highest value, self-contained), then the three table treatments.
   round inline to a per-round SG-by-category + FW%/GIR%/putts/3-putts/vs-par
   breakdown, each shown as a leave-one-out, hole-count-fair delta vs the player's
   average (`computeRoundBreakdowns` in `lib/analytics/roundCard.ts`, rendered by
-  `components/rounds/RoundsList.tsx` + `RoundChips.tsx`). The expressive
-  full-bleed per-round screen is still open.
+  `components/rounds/RoundsList.tsx` + `RoundChips.tsx`).
+  *Per-round recall + takeaway* — ✅ done (2026-06-25). `/rounds/[id]` now leads
+  with the round's story before the editable hole list: a `roundTakeaway`
+  headline (largest eligible SG swing vs your average; a raw non-comparative line
+  below the floor), the existing `RoundChips` deltas, then an editorial hole-by-
+  hole ledger (hole · par · dominant-SG-loss tag / birdie chip · vs-par, ◆ on
+  bad-decision holes). New pure `lib/analytics/roundRecall.ts` (`roundRecall` +
+  `roundTakeaway`, tested); new `components/rounds/RoundRecall.tsx`. Degrades
+  honestly: conceded/in-progress holes show "—", a hole with an SG coverage gap
+  (`sgCovered=false`) drops its tag. In-progress rounds (no complete hole) keep
+  the prior layout. Live-verified on a full 18, a 2-hole round, and an
+  in-progress round.
+  *Deferred — tap-to-expand per hole.* The ledger rows are static. One day:
+  tapping a row expands that hole's per-category SG mini-breakdown inline (the
+  data is already there — `RoundRecallHole.sgByCategory` carries the signed SG
+  per category, and `worstCategory`). Would make `RoundRecall.tsx` a client
+  component with a `Record<hole, open>` toggle (mirror `RoundsList.tsx`'s
+  expand pattern) and render a small per-category list (reuse the `fmtSg` /
+  `sgColorClass` helpers from `lib/format.ts`); keep it gated so a hole with
+  `sgCovered=false` shows the covered shots only and a note, never a fake total.
+  The expressive full-bleed per-round screen (design handoff) is still open.
   **Label consistency** — ✅ done (2026-06-23). Standardized on **"Off the tee"**
   (the canonical `SgCategory` term used on the dashboard / SG pages); the round
   chips no longer relabel it "Driving". `SG_LABELS` in `roundCard.ts` had become

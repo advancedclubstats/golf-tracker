@@ -19,7 +19,9 @@ import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import type { Momentum } from "@/lib/analytics/momentum";
+import type { Streaks } from "@/lib/analytics/streaks";
 import { LeakList } from "@/components/dashboard/LeakList";
+import { StreaksSection } from "@/components/dashboard/StreaksSection";
 import { BiggestLeakHero } from "@/components/dashboard/BiggestLeakHero";
 import { ScoringShapeSection } from "@/components/dashboard/ScoringShapeSection";
 import { MomentumSection } from "@/components/dashboard/MomentumSection";
@@ -58,11 +60,13 @@ export function Dashboard({
   sg,
   leaks,
   momentum,
+  streaks,
 }: {
   data: DashboardData;
   sg: StrokesGained;
   leaks: Leak[];
   momentum: Momentum;
+  streaks: Streaks;
 }) {
   const { snapshot, statLine, scoringShape, recentRounds, records } = data;
   // Spec Part 3 item 2: SG categories ranked by recoverable/round (worst first).
@@ -185,6 +189,9 @@ export function Dashboard({
           <p className="py-2 text-sm text-muted-foreground">No rounds yet.</p>
         )}
       </Section>
+
+      {/* Celebratory counterweight to the SG spine — sits with the records. */}
+      <StreaksSection streaks={streaks} />
 
       <Section title="Course records">
         <div className="divide-y divide-border">

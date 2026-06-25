@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
+import { computeStreaks } from "@/lib/analytics/streaks";
 import { getStrokesGained, getLeaks, getMomentum } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { PageHeader } from "@/components/nav/PageHeader";
@@ -19,6 +20,7 @@ export default async function Home() {
   const sg = await getStrokesGained({ shots, rounds });
   const { leaks } = await getLeaks({ shots, rounds });
   const momentum = await getMomentum({ shots, rounds });
+  const streaks = computeStreaks(shots, rounds);
 
   // Empty state — no complete holes logged yet.
   if (data.snapshot.holesLogged === 0) {
@@ -43,7 +45,7 @@ export default async function Home() {
     // (outer padding 24 / 22 / 30) — kept narrow on desktop too.
     <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
       <PageHeader title="Dashboard" />
-      <Dashboard data={data} sg={sg} leaks={leaks} momentum={momentum} />
+      <Dashboard data={data} sg={sg} leaks={leaks} momentum={momentum} streaks={streaks} />
     </main>
   );
 }

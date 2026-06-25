@@ -310,6 +310,17 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Design & polish
 
+- **Dashboard "Clean streaks" (Tiger 5 tracker)** — ✅ done (2026-06-24). New
+  celebratory section above Course records: per classic mistake, how long since
+  it last happened as **current run + personal best**. Counted **per opportunity**
+  (named in the UI), not raw holes, per the project's "name the denominator" rule:
+  bogey-free par 5s, double-free holes, 3-putt-free holes, bogey-free approaches
+  ≤150y, up-&-downs in a row. `lib/analytics/streaks.ts` (pure; reuses
+  `enrichRoundHole` + the distanceSummary approach/up-&-down filters; chronological
+  hole ordering like `momentum.ts`), `components/dashboard/StreaksSection.tsx`
+  (Calm Brief hairline rows, lime accent + RECORD chip only when current = best,
+  em-dash for no-opportunity-yet). Wired via `computeStreaks` in `app/page.tsx`.
+  Tests in `__tests__/analytics/streaks.test.ts`; live-verified.
 - **Distance Summary "good → great" redesign (gap to Tour)** — ✅ done (2026-06-14).
   Design handoff `docs/design/design_handoff_distance/`. The page now has a point
   of view: a ranked **"Biggest gaps to Tour"** hero (dark fairway card) leading

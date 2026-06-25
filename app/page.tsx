@@ -8,6 +8,7 @@ import { computeStreaks } from "@/lib/analytics/streaks";
 import { getStrokesGained, getLeaks, getMomentum } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { PageHeader } from "@/components/nav/PageHeader";
+import { TAGLINE } from "@/lib/constants";
 
 // Render on every request so direct DB changes (e.g. the sheet import) and
 // app writes are always reflected. Single-user app — dynamic cost is negligible.
@@ -27,9 +28,7 @@ export default async function Home() {
     return (
       <main className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">Round Recall</h1>
-        <p className="text-sm text-muted-foreground">
-          Log your rounds, track your game.
-        </p>
+        <p className="text-sm text-muted-foreground">{TAGLINE}</p>
         <Link
           href="/rounds/new"
           className={cn(buttonVariants(), "mt-2 h-14 px-8 text-base font-semibold")}

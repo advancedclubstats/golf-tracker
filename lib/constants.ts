@@ -3,6 +3,10 @@
  * Import from here — never redefine these inline in components or schemas.
  */
 
+// ─── Brand ──────────────────────────────────────────────────────────────────
+/** Canonical one-line tagline. Single source for layout metadata + UI copy. */
+export const TAGLINE = "Strokes-gained golf analytics, tracked from memory";
+
 // ─── Clubs ────────────────────────────────────────────────────────────────────
 // The player's current bag. Adding a club = edit this array + redeploy (D-02).
 // Order matches display order in the shot-entry club selector.

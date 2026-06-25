@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/nav/BottomNav";
 import { SandboxBootstrap } from "@/components/SandboxBootstrap";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { isOwner } from "@/lib/auth/owner";
+import { TAGLINE } from "@/lib/constants";
 import "./globals.css";
 
 // Modern Clubhouse type system: Hanken (UI/body), Martian Mono (data/stats),
@@ -29,8 +30,6 @@ const heading = Bricolage_Grotesque({
   variable: "--font-heading-bricolage",
   subsets: ["latin"],
 });
-
-const TAGLINE = "Strokes-gained golf analytics, tracked from memory";
 
 export const metadata: Metadata = {
   // Absolute base so Next resolves the auto-wired opengraph-image/twitter-image

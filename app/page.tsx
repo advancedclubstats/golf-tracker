@@ -5,7 +5,7 @@ import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
 import { computeStreaks } from "@/lib/analytics/streaks";
-import { getStrokesGained, getLeaks, getMomentum } from "@/lib/sg-server";
+import { getDashboardSG } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { PageHeader } from "@/components/nav/PageHeader";
 import { TAGLINE } from "@/lib/constants";
@@ -18,9 +18,7 @@ export default async function Home() {
   // Reads go through lib/db in Server Components; analytics are pure.
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
   const data = computeDashboard(shots, rounds);
-  const sg = await getStrokesGained({ shots, rounds });
-  const { leaks } = await getLeaks({ shots, rounds });
-  const momentum = await getMomentum({ shots, rounds });
+  const { sg, leaks, momentum } = await getDashboardSG({ shots, rounds });
   const streaks = computeStreaks(shots, rounds);
 
   // Empty state — no complete holes logged yet.

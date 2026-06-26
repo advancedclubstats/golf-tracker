@@ -17,6 +17,7 @@
  */
 
 import Link from "next/link";
+import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
@@ -117,7 +118,6 @@ export function BottomNav() {
 }
 
 function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
-  const Icon = tab.icon;
   return (
     <Link
       href={tab.href}
@@ -127,10 +127,29 @@ function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
         // min-h-14 matches the FAB height so the bar keeps the same height when
         // the FAB is hidden (signed-out view, /rounds/new); self-stretch then
         // fills it so the thumb insets evenly as a segmented-control toggle.
-        "relative z-[2] flex min-h-14 flex-1 items-center justify-center self-stretch px-1 transition-colors duration-200",
-        active ? "text-highlight" : "text-[#7E978A]",
+        "relative z-[2] flex min-h-14 flex-1 items-center justify-center self-stretch px-1",
       )}
     >
+      <NavTabGlyph icon={tab.icon} active={active} />
+    </Link>
+  );
+}
+
+/**
+ * The icon + selector thumb. Lives *inside* the Link so it can read
+ * `useLinkStatus().pending` and light up the instant the tab is tapped —
+ * before the destination route commits. That optimistic acknowledgment is what
+ * kills the "did my tap register?" multi-tap: pathname-driven `active` only
+ * flips after navigation lands, but `pending` fires immediately. If the route
+ * is already prefetched the transition is instant and pending is simply
+ * skipped, so this never lingers. `aria-current` stays on the real `active` so
+ * assistive tech is never told the wrong page is current.
+ */
+function NavTabGlyph({ icon: Icon, active }: { icon: LucideIcon; active: boolean }) {
+  const { pending } = useLinkStatus();
+  const on = active || pending;
+  return (
+    <>
       {/* Selector "thumb": a lighter rounded container behind the active icon,
           inset from the cell edges. Rendered inside the tab (not floating), so
           it stays aligned; opacity-toggled for a soft fade between tabs. */}
@@ -138,13 +157,16 @@ function NavTab({ tab, active }: { tab: Tab; active: boolean }) {
         aria-hidden
         className={cn(
           "absolute inset-y-1 inset-x-1.5 rounded-2xl bg-white/[0.12] transition-opacity duration-200",
-          active ? "opacity-100" : "opacity-0",
+          on ? "opacity-100" : "opacity-0",
         )}
       />
       <Icon
-        className="relative z-[1] h-[25px] w-[25px] transition-transform duration-200 active:scale-90 motion-reduce:transition-none"
+        className={cn(
+          "relative z-[1] h-[25px] w-[25px] transition-[color,transform] duration-200 active:scale-90 motion-reduce:transition-none",
+          on ? "text-highlight" : "text-[#7E978A]",
+        )}
         strokeWidth={2}
       />
-    </Link>
+    </>
   );
 }

@@ -29,7 +29,7 @@ export default async function HoleSummaryPage() {
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
   const dateOf = Object.fromEntries(rounds.map((r) => [r.id, r.date]));
   const summary = computeHoleSummary(shots, dateOf);
-  const attribution = await getHoleAttribution();
+  const attribution = await getHoleAttribution({ shots, rounds });
 
   const pickedUp = summary.excluded.filter((e) => e.conceded).length;
   const unfinished = summary.excluded.length - pickedUp;

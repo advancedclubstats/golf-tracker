@@ -108,15 +108,28 @@ multi-tap).
   `getDashboardSG` (one enrich); holes page fetched all shots twice → pass
   prefetched to `getHoleAttribution`. Verified: tsc + 168 tests green, every tab
   streams the skeleton fallback, no console/server errors.
-- **Tier 2 — DEFERRED, the next lever (measure first).** Drop `force-dynamic`
-  and cache reads with a tagged cache keyed by data scope (owner vs sandbox),
-  invalidated on write — the `revalidatePath` calls in `actions/` already exist.
-  Cached routes also become genuinely prefetchable, so tab nav goes near-instant.
-  **Caveat to design deliberately:** `force-dynamic` partly exists so direct DB
-  edits (the sheet import) show up immediately (see comment in `app/page.tsx`);
-  that path needs an explicit revalidation hook or a short `revalidate` window.
-  Next 16 also offers `cacheComponents` + `unstable_instant` (prefetched static
-  shell) as the deeper version — bigger change, evaluate after Tier 2.
+- **Measurement (2026-06-26).** Probed the real hosted Supabase: every read has
+  a ~60–90ms floor regardless of row count (rounds=18 rows→62ms, shots=959
+  rows→87ms). It's **round-trip-bound**, not query/index/Zod/compute. So the
+  only big levers are (a) fewer round-trips (caching) and (b) lower RTT (region
+  co-location). Ruled out: a composite shots index and Zod cost — not the
+  bottleneck at this data size.
+- **Tier 2a — course-geometry cache — ✅ done (2026-06-26).** `getAllCourseTees`
+  + `getAllTeeYardages` (global, unscoped, feed the SG tee-fill on every
+  analytics page) are now `unstable_cache`d under a `course-geometry` tag (1h
+  revalidate backstop), invalidated via `revalidateTag(tag, "max")` from
+  `revalidateCourseViews` and the sandbox seed. Removes the entire second fetch
+  wave (tees+yardages) per analytics page with zero scope-keying complexity. The
+  per-course Setup readers stay uncached so Setup edits show live.
+- **Tier 2b — DEFERRED: cache the user-scoped shots/rounds.** The bigger half.
+  `getAllShots`/`getAllRounds` read cookies via `getDataScopeUserId`, so they
+  can't be wrapped directly — read the scope userId in the request, pass it as a
+  cache key (`unstable_cache(fn, [userId], …)`), tag per scope, invalidate on the
+  shot/round writes that already `revalidatePath`. Wrinkle: sandbox visitors each
+  have their own userId → many cache entries (fine at this traffic, but key it
+  deliberately). **Region co-location (#2) still pending the user's Supabase
+  region.** Deeper option after this: `cacheComponents` + `unstable_instant`
+  (prefetched static shell, truly instant nav) — bigger migration.
 - **Tier 3 — HOLD.** SPA-grade client data cache (fetch-once/hydrate or a query
   lib) for instant cross-tab nav from memory. Likely unnecessary if Tier 2 lands.
 

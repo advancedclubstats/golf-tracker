@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import {
   CourseInsertSchema,
@@ -9,12 +9,18 @@ import {
   TeeYardageInsertSchema,
 } from "@/lib/schemas/course";
 import { getDataScopeUserId } from "@/lib/auth/scope";
+import { COURSE_GEOMETRY_TAG } from "@/lib/db/courses";
 
 /** Revalidate course views (and the new-round form, which lists courses). */
 function revalidateCourseViews(id?: string) {
   revalidatePath("/courses");
   if (id) revalidatePath(`/courses/${id}`);
   revalidatePath("/rounds/new");
+  // Bust the cached global tee/yardage geometry that the SG enrich path reads,
+  // so analytics pages pick up Setup edits (tees, yardages, new courses).
+  // "max" = stale-while-revalidate, the recommended form for rarely-changing
+  // reference data like course geometry.
+  revalidateTag(COURSE_GEOMETRY_TAG, "max");
 }
 
 /** Create a course and scaffold its 18 holes at par 4 (edit pars after). */

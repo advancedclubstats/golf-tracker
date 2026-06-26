@@ -1,8 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { isSandbox, getDataScopeUserId } from "@/lib/auth/scope";
+import { COURSE_GEOMETRY_TAG } from "@/lib/db/courses";
 
 /**
  * Seed a logged-out visitor's sandbox with a copy of the owner's rounds/shots,
@@ -24,4 +25,8 @@ export async function ensureSandboxSeeded(): Promise<void> {
   // Reflect the freshly-seeded data on the views the visitor lands on.
   revalidatePath("/");
   revalidatePath("/rounds");
+  // Backstop: if seeding ever introduces geometry for this scope, make sure the
+  // cached global tee/yardage reads include it (otherwise tee-shot SG distances
+  // could be unfilled until the revalidate window elapses).
+  revalidateTag(COURSE_GEOMETRY_TAG, "max");
 }

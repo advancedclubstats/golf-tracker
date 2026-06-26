@@ -4,6 +4,7 @@
  */
 
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import {
@@ -77,25 +78,47 @@ export async function getCourseHoles(courseId: string): Promise<CourseHoleRow[]>
   return CourseHoleRowsSchema.parse(data);
 }
 
+/**
+ * Tag for the global, unscoped course-geometry reads (getAllCourseTees /
+ * getAllTeeYardages). They feed the SG tee-distance fill on every analytics
+ * page, but the geometry itself changes only when Setup is edited — so we cache
+ * them and bust the cache from the course-mutating actions (and the sandbox
+ * seed, as a backstop). Not user-scoped and no cookies read inside, so no
+ * per-request key is needed and they're safe under unstable_cache. The 1h
+ * revalidate is just a backstop for any out-of-band DB edit; tag invalidation
+ * handles the normal Setup-edit path immediately. The per-course readers
+ * (getCourseTees / getTeeYardages) are intentionally left uncached so the
+ * Setup screen always reflects edits live.
+ */
+export const COURSE_GEOMETRY_TAG = "course-geometry";
+
 /** Every tee across all courses (small table; used to map tee → course). */
-export async function getAllCourseTees(): Promise<CourseTeeRow[]> {
-  const supabase = createServerClient();
-  const { data, error } = await withRetry(() =>
-    supabase.from("course_tees").select("*"),
-  );
-  if (error) throw new Error(`Failed to fetch tees: ${error.message}`);
-  return CourseTeeRowsSchema.parse(data);
-}
+export const getAllCourseTees = unstable_cache(
+  async (): Promise<CourseTeeRow[]> => {
+    const supabase = createServerClient();
+    const { data, error } = await withRetry(() =>
+      supabase.from("course_tees").select("*"),
+    );
+    if (error) throw new Error(`Failed to fetch tees: ${error.message}`);
+    return CourseTeeRowsSchema.parse(data);
+  },
+  ["all-course-tees"],
+  { tags: [COURSE_GEOMETRY_TAG], revalidate: 3600 },
+);
 
 /** Every tee yardage across all courses (used to default tee-shot distances). */
-export async function getAllTeeYardages(): Promise<TeeYardageRow[]> {
-  const supabase = createServerClient();
-  const { data, error } = await withRetry(() =>
-    supabase.from("tee_yardages").select("*"),
-  );
-  if (error) throw new Error(`Failed to fetch tee yardages: ${error.message}`);
-  return TeeYardageRowsSchema.parse(data);
-}
+export const getAllTeeYardages = unstable_cache(
+  async (): Promise<TeeYardageRow[]> => {
+    const supabase = createServerClient();
+    const { data, error } = await withRetry(() =>
+      supabase.from("tee_yardages").select("*"),
+    );
+    if (error) throw new Error(`Failed to fetch tee yardages: ${error.message}`);
+    return TeeYardageRowsSchema.parse(data);
+  },
+  ["all-tee-yardages"],
+  { tags: [COURSE_GEOMETRY_TAG], revalidate: 3600 },
+);
 
 /** A course's tees, ordered back-to-forward. */
 export async function getCourseTees(courseId: string): Promise<CourseTeeRow[]> {

@@ -89,6 +89,37 @@ unlocks the next). Decisions already made this session are inlined.
   open the round's entry flow, go to hole 8, tap **Clear hole & restart**, and
   re-log the correct sequence.
 
+## Navigation performance (snappier tab switching)
+
+Goal: make every tab feel as instant as the shot-entry flow. Shot entry is fast
+because it's a client island with local state; the tabs were slow because every
+destination is `force-dynamic` (cold Supabase fetch per tap), had **no
+`loading.tsx`** (so navigation *blocked* on the full server render before the
+screen changed), and the nav gave no tap feedback (so taps felt dropped →
+multi-tap).
+
+- **Tier 0 + Tier 1 — ✅ done (2026-06-26).** Added route-level `loading.tsx`
+  skeletons for every tab (`app/loading`, `app/stats/loading`, `app/rounds/
+  loading`, `app/courses/loading`) plus focused-flow guards (`rounds/new`,
+  `rounds/[id]/log`) so the list skeleton never bleeds into them; a `Skeleton`
+  primitive (`components/ui/skeleton.tsx`). Nav now lights the tapped tab
+  instantly via `useLinkStatus().pending` in `BottomNav` (kills the multi-tap).
+  Killed redundant enrichment: home page enriched shots 3× sequentially →
+  `getDashboardSG` (one enrich); holes page fetched all shots twice → pass
+  prefetched to `getHoleAttribution`. Verified: tsc + 168 tests green, every tab
+  streams the skeleton fallback, no console/server errors.
+- **Tier 2 — DEFERRED, the next lever (measure first).** Drop `force-dynamic`
+  and cache reads with a tagged cache keyed by data scope (owner vs sandbox),
+  invalidated on write — the `revalidatePath` calls in `actions/` already exist.
+  Cached routes also become genuinely prefetchable, so tab nav goes near-instant.
+  **Caveat to design deliberately:** `force-dynamic` partly exists so direct DB
+  edits (the sheet import) show up immediately (see comment in `app/page.tsx`);
+  that path needs an explicit revalidation hook or a short `revalidate` window.
+  Next 16 also offers `cacheComponents` + `unstable_instant` (prefetched static
+  shell) as the deeper version — bigger change, evaluate after Tier 2.
+- **Tier 3 — HOLD.** SPA-grade client data cache (fetch-once/hydrate or a query
+  lib) for instant cross-tab nav from memory. Likely unnecessary if Tier 2 lands.
+
 ## Entry & editing
 
 - **"Redo / clear hole" flow** — ✅ done (2026-06-09). The entry wizard's club

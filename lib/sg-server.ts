@@ -101,6 +101,25 @@ export async function getMomentum(prefetched?: {
   return computeMomentum(shots, rounds);
 }
 
+/**
+ * Everything the dashboard needs from the SG engine in a single enrich pass.
+ * The home page used to call getStrokesGained, getLeaks and getMomentum
+ * separately — each ran its own getEnrichedShots, re-fetching course tees +
+ * yardages and re-filling tee distances three times, sequentially. This shares
+ * one enrich and runs the (pure, synchronous) computes off it.
+ */
+export async function getDashboardSG(prefetched?: {
+  shots: ShotRow[];
+  rounds: RoundRow[];
+}): Promise<{ sg: StrokesGained; leaks: Leak[]; momentum: Momentum }> {
+  const { shots, rounds } = await getEnrichedShots(prefetched);
+  return {
+    sg: computeStrokesGained(shots),
+    leaks: computeLeaks(shots).leaks,
+    momentum: computeMomentum(shots, rounds),
+  };
+}
+
 /** Per-hole SG attribution (spec Part 3, the killer screen). Shares the tee-fill. */
 export async function getHoleAttribution(prefetched?: {
   shots: ShotRow[];

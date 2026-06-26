@@ -40,7 +40,14 @@ function fmtVsPar(n: number): string {
   return n > 0 ? `+${n}` : `−${Math.abs(n)}`;
 }
 
-export function WelcomeOverlay({ owner }: { owner: boolean }) {
+export function WelcomeOverlay({
+  owner,
+  shotCount,
+}: {
+  owner: boolean;
+  /** Matt's real total shots (all scopes) — the splash usage credential. */
+  shotCount: number;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [signin, setSignin] = useState(false);
@@ -188,10 +195,20 @@ export function WelcomeOverlay({ owner }: { owner: boolean }) {
                 >
                   Connect on LinkedIn
                 </a>
+                {shotCount > 0 && (
+                  <div className="mt-5 flex justify-center">
+                    <span className="inline-flex items-center gap-2 rounded-full border border-border px-3 py-1.5">
+                      <span className="h-[5px] w-[5px] rounded-full bg-primary" aria-hidden />
+                      <span className="font-mono text-[10px] tabular-nums text-muted-foreground">
+                        {shotCount.toLocaleString()} shots logged from memory
+                      </span>
+                    </span>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setSignin(true)}
-                  className="mt-4 w-full text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
+                  className="mt-3 w-full text-center text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
                 >
                   Owner sign-in
                 </button>

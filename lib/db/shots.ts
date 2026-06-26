@@ -11,8 +11,32 @@ import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { ShotRowSchema, type ShotRow } from "@/lib/schemas/shot";
 import { getDataScopeUserId } from "@/lib/auth/scope";
+import { V1_USER_ID } from "@/lib/constants";
 
 const ShotRowsSchema = z.array(ShotRowSchema);
+
+/**
+ * Total shots the OWNER has logged — always `V1_USER_ID`, regardless of the
+ * caller's scope. Used by the welcome splash credential ("N shots logged from
+ * memory"), which is a fact about Matt's real usage, not the visitor's mutable
+ * sandbox. A head-only `count` (no rows fetched). Returns 0 on error so the
+ * chip degrades silently rather than breaking the landing.
+ */
+export async function getOwnerShotCount(): Promise<number> {
+  try {
+    const supabase = createServerClient();
+    // head + count: a row-count only, no rows fetched. Not wrapped in withRetry
+    // (it surfaces `count`, which the wrapper's typed result doesn't) — this is
+    // a cosmetic credential, so any failure just hides the chip.
+    const { count, error } = await supabase
+      .from("shots")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", V1_USER_ID);
+    return error ? 0 : (count ?? 0);
+  } catch {
+    return 0;
+  }
+}
 
 /**
  * Fetch every shot for the v1 user, ordered for determinism

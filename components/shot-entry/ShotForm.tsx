@@ -11,11 +11,21 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
   DECISION_QUALITIES,
+  OBSTRUCTION,
+  OBSTRUCTION_COPY,
+  OBSTRUCTION_DEFAULT,
+  SHOT_CONTACTS,
+  SHOT_SHAPES,
+  SHOT_STARTS,
+  type Obstruction,
   type Result,
   type MissDirection,
   type PuttSide,
   type PuttLength,
   type DecisionQuality,
+  type ShotContact,
+  type ShotShape,
+  type ShotStart,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +40,10 @@ export interface ShotFormValues {
   puttLength: PuttLength | null;
   penalty: number;
   decisionQuality: DecisionQuality;
+  obstruction: Obstruction;
+  shotShape: ShotShape | null;
+  shotContact: ShotContact | null;
+  shotStart: ShotStart | null;
 }
 
 /** Results that automatically incur a penalty stroke. */
@@ -98,6 +112,14 @@ export function ShotForm({
   const [decisionQuality, setDecisionQuality] = useState<DecisionQuality>(
     initial?.decisionQuality ?? "Good",
   );
+  const [obstruction, setObstruction] = useState<Obstruction>(
+    initial?.obstruction ?? OBSTRUCTION_DEFAULT,
+  );
+  const [shotShape, setShotShape] = useState<ShotShape | null>(initial?.shotShape ?? null);
+  const [shotContact, setShotContact] = useState<ShotContact | null>(
+    initial?.shotContact ?? null,
+  );
+  const [shotStart, setShotStart] = useState<ShotStart | null>(initial?.shotStart ?? null);
   const [error, setError] = useState<string | null>(null);
 
   function handleResultChange(r: Result | null) {
@@ -126,6 +148,10 @@ export function ShotForm({
     puttLength,
     penalty,
     decisionQuality,
+    obstruction,
+    shotShape,
+    shotContact,
+    shotStart,
   };
 
   function handleSubmit() {
@@ -140,6 +166,7 @@ export function ShotForm({
 
   const showMissDirection = result !== null && MISS_RESULTS.has(result);
   const showPuttExtras = club === "Putter";
+  const showFlightFields = club !== null && club !== "Putter";
 
   return (
     <div className="flex flex-col gap-5">
@@ -162,6 +189,110 @@ export function ShotForm({
         <Label>Execution</Label>
         <ExecutionButtons value={execution} onChange={setExecution} />
       </div>
+
+      {/* Obstruction — shown for all non-putter shots */}
+      {showFlightFields && (
+        <div className="flex flex-col gap-2">
+          <Label>Obstruction</Label>
+          <div className="flex gap-2">
+            {OBSTRUCTION.map((o) => (
+              <button
+                key={o}
+                type="button"
+                onClick={() => setObstruction(o)}
+                className={cn(
+                  "flex-1 rounded-xl border-2 px-3 py-2 text-left text-sm transition-colors",
+                  obstruction === o
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-background text-foreground",
+                )}
+              >
+                <span className="font-semibold">{OBSTRUCTION_COPY[o].label}</span>
+                <span className="mt-0.5 block text-xs opacity-70">
+                  {OBSTRUCTION_COPY[o].hint}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flight fields: shape, start line, contact — full shots only */}
+      {showFlightFields && (
+        <>
+          <div className="flex flex-col gap-2">
+            <Label>
+              Shot shape{" "}
+              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <div className="flex gap-1.5 flex-wrap">
+              {SHOT_SHAPES.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setShotShape(shotShape === s ? null : s)}
+                  className={cn(
+                    "h-9 rounded-xl border-2 px-3 text-sm font-medium transition-colors",
+                    shotShape === s
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>
+              Start line{" "}
+              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <div className="flex gap-1.5">
+              {SHOT_STARTS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setShotStart(shotStart === s ? null : s)}
+                  className={cn(
+                    "h-9 flex-1 rounded-xl border-2 text-sm font-medium transition-colors",
+                    shotStart === s
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground",
+                  )}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label>
+              Contact{" "}
+              <span className="text-xs font-normal text-muted-foreground">(optional)</span>
+            </Label>
+            <div className="flex gap-1.5">
+              {SHOT_CONTACTS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setShotContact(shotContact === c ? null : c)}
+                  className={cn(
+                    "h-9 flex-1 rounded-xl border-2 text-sm font-medium transition-colors",
+                    shotContact === c
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground",
+                  )}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="flex flex-col gap-2">
         <Label>Result</Label>

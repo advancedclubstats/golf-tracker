@@ -581,6 +581,10 @@ export function ShotEntryFlow({
           puttLength: d.puttLength ?? null,
           penalty: d.penalty ?? 0,
           decisionQuality: d.decisionQuality ?? "Good",
+          obstruction: d.obstruction ?? "Clear",
+          shotShape: d.shotShape ?? null,
+          shotContact: d.shotContact ?? null,
+          shotStart: d.shotStart ?? null,
         },
       });
       // Record the shot so the back arrow can step back into it.

@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/nav/BottomNav";
 import { SandboxBootstrap } from "@/components/SandboxBootstrap";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { isOwner } from "@/lib/auth/owner";
+import { getOwnerShotCount } from "@/lib/db/shots";
 import { TAGLINE } from "@/lib/constants";
 import "./globals.css";
 
@@ -68,7 +69,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const owner = await isOwner();
+  // Owner gate + the splash credential count (Matt's real shots, all scopes) in
+  // parallel — the count is a cheap head-only query.
+  const [owner, ownerShotCount] = await Promise.all([
+    isOwner(),
+    getOwnerShotCount(),
+  ]);
   return (
     <html
       lang="en"
@@ -78,7 +84,7 @@ export default async function RootLayout({
         {children}
         <BottomNav />
         {!owner && <SandboxBootstrap />}
-        <WelcomeOverlay owner={owner} />
+        <WelcomeOverlay owner={owner} shotCount={ownerShotCount} />
         <Toaster />
         <Analytics />
       </body>

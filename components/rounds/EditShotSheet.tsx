@@ -63,6 +63,10 @@ export function EditShotSheet({
         putt_length: values.puttLength,
         penalty: values.penalty,
         decision_quality: values.decisionQuality,
+        obstruction: values.obstruction,
+        shot_shape: values.shotShape,
+        shot_contact: values.shotContact,
+        shot_start: values.shotStart,
       });
       toast.success("Shot updated.");
       onClose();
@@ -92,6 +96,10 @@ export function EditShotSheet({
         putt_length: values.puttLength ?? undefined,
         penalty: values.penalty,
         decision_quality: values.decisionQuality,
+        obstruction: values.obstruction,
+        shot_shape: values.shotShape ?? undefined,
+        shot_contact: values.shotContact ?? undefined,
+        shot_start: values.shotStart ?? undefined,
       });
       toast.success("Shot inserted.");
       onClose();
@@ -154,6 +162,10 @@ export function EditShotSheet({
                   puttLength: shot.putt_length,
                   penalty: shot.penalty,
                   decisionQuality: shot.decision_quality,
+                  obstruction: shot.obstruction,
+                  shotShape: shot.shot_shape,
+                  shotContact: shot.shot_contact,
+                  shotStart: shot.shot_start,
                 }}
                 secondaryAction={
                   <Button

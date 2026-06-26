@@ -387,6 +387,46 @@ section first (highest value, self-contained), then the three table treatments.
   mobile + desktop (forced-open during local owner dev). *Follow-up option: swap
   the static proof for a live-rendered mini recall once it's worth the data
   plumbing — today a curated example is intentional.*
+  *Effort/credibility chip* — ✅ done (2026-06-25). A subtle footer credential on
+  the splash (between LinkedIn and Owner sign-in): an outline pill + small lime
+  dot reading "{N} shots logged from memory". N is Matt's REAL total via
+  `getOwnerShotCount()` (`lib/db/shots.ts`) — always `V1_USER_ID`, never the
+  visitor's mutable sandbox count — fetched in `layout.tsx` and passed as
+  `shotCount`. Head-only count; hides the chip on 0/error. Deliberately
+  understated (a "lived-in" signal, not a metrics block); we explicitly rejected
+  coding-hours and tokens-used as effort signals (input/AI-vanity, off-brand for
+  a PM portfolio). No link yet — see "The thinking page" below.
+- **The thinking page (`/thinking`)** — QUEUED. A short, designed in-app page a
+  hiring manager can reach from the splash chip / a "the thinking →" link,
+  proving PM judgment (not just that the app exists). It's the single best
+  artifact to hand a serious evaluator, and the splash credibility chip is built
+  to point at it (today the chip is text-only, no link, until this exists).
+  - **Why:** the splash shows the *product*; this shows the *thinking behind it*
+    — framing, the hard tradeoffs, what got killed. That's the PM-vs-vibe-coder
+    tell. Keep it skimmable (~30–60s read), declarative, numbers-first, on-brand
+    (Calm Brief single column, the three fonts, CSS-var tokens — never hardcode).
+  - **Raw material (don't re-derive, distill):** `docs/POSITIONING.md` (the
+    one-liner, the wedge, "memory is the moat", the domino metaphor),
+    `PROJECT_CONTEXT.md` Layer 1 (the core decision, "the one field SG can't
+    compute", the key diagnostic insight, the killer screen, "why this exists
+    beyond golf"), and `DECISIONS.md` (D-01…D-13). The strongest beats: SG as the
+    single engine; **building a heuristic "Strokes Lost"/"What to Work On" system
+    then deleting it** to get to one rigorous engine; gating every prescription on
+    sample size instead of overclaiming; adding exactly **one** new field
+    (`decision_quality`) only where the data demanded it, and removing two
+    (`situation_created`/`short_sided`) once SG did their job; the
+    putting-leak-was-really-an-approach-problem insight as the argument for the
+    engine.
+  - **Voice:** follow `~/CoWork/ABOUT ME/anti-ai-writing-style.md` and the
+    `docs/design/the_read_brief.md` "banned moves" (no hype/metaphor-as-drama, no
+    throat-clearing, one number per clause). Terse and declarative.
+  - **Scope/shape (Design to lock first):** likely a single editorial column —
+    a one-line thesis, then 3–5 short "decision → why" beats, optionally a small
+    "by the numbers" line (reuse `getOwnerShotCount()` + a rounds count + the 13
+    decisions / 22 migrations as quiet proof of depth). Static content is fine
+    (no analytics engine needed). Then wire the splash chip (and/or a hero "the
+    thinking →" link) to `/thinking`. Add a back-to-app affordance; respect that
+    a visitor mid-sandbox shouldn't lose their place.
 - **Dashboard "Calm Brief" reskin (Direction D)** — ✅ done (2026-06-09). Flat
   editorial single-column dashboard per `docs/design/design_handoff_dashboard/`:
   lime stacked hero + lime New Round pill (the only two lime moments), 40px SG

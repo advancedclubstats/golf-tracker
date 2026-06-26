@@ -210,6 +210,8 @@ export const ShotUpdateSchema = ShotInsertSchema.pick({
   miss_direction: true,
   shot_shape: true,
   shot_contact: true,
+  shot_start: true,
+  obstruction: true,
   putt_side: true,
   putt_length: true,
   penalty: true,

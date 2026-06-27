@@ -10,6 +10,97 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
+## NEXT — First-domino root-cause read (from the PM loop, DL-016)
+
+Source: PM-loop ideation, shipped 2026-06-27 (see `docs/pm-loop/decisions.json`
+DL-016). Lane 3 (break the wall). Honor D-05 (analytics are pure TypeScript,
+plain typed arrays, zero Supabase imports, tests first) and the sample/coverage
+honesty rules. Do not touch the SG engine, the gates, or `EditableHoleList`.
+
+The idea: SG blames each shot on a hole independently, but golf is a cascade. On
+a blow-up hole, surface the one shot where the round turned (the first domino)
+and de-emphasize the forced recoveries after it. This is the `docs/POSITIONING.md`
+domino metaphor made real.
+
+**Step 1 (the gate) — ✅ DONE (2026-06-27, branch `feat/first-domino`).**
+- `lib/analytics/firstDomino.ts` (pure, D-05): `firstDominoForHole(shots, sgEntries)`
+  + `computeFirstDominoes(shots)`. Output per blow-up hole
+  `{ hole, rootCauseShotNo|null, rootCauseCategory, rootCauseSg, recoveryShotNos[], holeSgTotal, sgCovered }`;
+  routine holes return null.
+- Logic: blow-up gate = `vsPar >= +2` OR **gross** SG loss `<= -2.0` (net SG is
+  just the score gate in disguise — gross loss catches the recovered bogey).
+  Root cause = first shot with SG `<= -0.5`, then **walk blame upstream** across
+  forced recoveries to the shot that created the trouble: an explicit
+  `obstruction != Clear` tag, OR a structural punch-out tell (full shot ≥80y out
+  that advanced <35% of its distance). Coverage gap → `rootCauseShotNo: null,
+  sgCovered: false` (never guess).
+- Validated against Matt's eyeball read (2026-06-27): the walk-back flips
+  06-06 H3 and 06-03 H10 to name the drive-behind-a-tree (his real mistake),
+  while par-5 layups correctly stay on the leaky lay-up shot. 9 unit tests +
+  full suite/lint/types green.
+- **Key finding for Step 2 / DL-017:** the obstruction field is `Clear` on all
+  historical shots, so the "behind a tree" cause is only inferred heuristically
+  on history. Going forward it's deterministic *iff* Matt taps Blocked/Partial at
+  entry — i.e. obstruction IS the structured why-layer DL-017 wanted.
+
+**Step 2 — recall-view surfacing. Awaiting Matt's go-ahead (read now matches his gut).**
+- Add a `getFirstDominoes` to `lib/sg-server.ts` (mirror `getHoleAttribution`:
+  `getEnrichedShots` → `computeFirstDominoes`) so the UI gets the same tee-filled
+  input as every other SG view. Do NOT call `lib/analytics` from a client component.
+- Surface on the recall view (`components/rounds/RoundRecall.tsx`): on a blow-up
+  hole, a one-line "the round turned on shot N (the <category>)" and visually
+  mute the recovery shots. Calm Brief style, CSS vars in `app/globals.css`, no
+  hardcoded hex. Keep the existing ledger and editing intact.
+
+If `perShotSG` or the recall data shape differs from the above, stop and flag it
+before building. Branch, small commits, run `vitest` + lint, update this backlog
+and `PROJECT_CONTEXT.md` in the same pass.
+
+Note: the related freeform "what happened" capture (DL-017) was deferred. If the
+read above proves frequently wrong, the fix is a structured, tap-based why-layer
+(extend `decision_quality`), never a freeform text box.
+
+---
+
+## NEXT — Owner-only PM-loop dashboard route (tooling, not a product feature)
+
+Source: PM-loop access decision, 2026-06-27. This surfaces the decision log
+(`docs/pm-loop/decisions.json`) as a private page inside the app so Matt can check
+it without serving a folder. It is internal tooling, deliberately NOT logged in
+`decisions.json` (that log stays a clean record of Round Recall product calls).
+Keep it owner-only for now; making it public is a separate future decision, worth
+revisiting once the accuracy curve has roughly 15 to 20 predictions and a real
+trend.
+
+**Goal:** an owner-gated route (suggest `/pm`) that renders the same view as
+`docs/pm-loop/dashboard.html`, reading the live `decisions.json`.
+
+**Build**
+- `app/pm/page.tsx`, server component, `force-dynamic`. Gate it owner-only the
+  same way the other owner pages do (redirect visitors; reuse `requireOwner` /
+  the owner check in `lib/auth/owner.ts`). Visitors must never see it.
+- Read the log at request time from `docs/pm-loop/decisions.json` (fs read from
+  `process.cwd()`, or a JSON import). One source of truth; do not duplicate the
+  data into the component.
+- Render in the app's own design system (Calm Brief column, the three fonts, CSS
+  vars in `app/globals.css`, no hardcoded hex), not the standalone HTML's inline
+  styles. Sections: the metric cards (decisions, kill rate, shipped, deferred,
+  predictions logged + accuracy), the prediction-accuracy curve, and the decision
+  feed (badge, title, reason, source, prediction vs actual).
+- Curve: reuse the existing `components/dashboard/Sparkline.tsx` (or a small
+  inline SVG) rather than adding a chart dependency. With few predictions, show
+  the honest empty/early state (mirror the standalone dashboard's copy): the curve
+  fills in only as engine-run predictions accumulate. Never fake points.
+- Keep `docs/pm-loop/dashboard.html` as the decoupled/exportable version; both
+  read the same `decisions.json`.
+
+**Acceptance:** owner visits `/pm` and sees live metrics from `decisions.json`;
+non-owner is redirected; matches the app's look; the curve shows the honest
+early state until predictions accumulate. No new heavy dependency.
+**Do not:** make it public, or copy the decisions data into the component.
+
+---
+
 ## ACTIVE EPIC — Engine & Display Spec v1
 
 Source: `golf-app-spec.md` (Engine & Display Spec v1). Governing principle:

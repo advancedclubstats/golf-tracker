@@ -40,9 +40,9 @@ domino metaphor made real.
   suite/lint/types green): walk-back flips 06-06 H3 / 06-03 H10 to the
   drive-behind-a-tree; the swing signal flips 06-07 H18 to the bladed bunker
   shot; the green guard keeps 06-06 H15 on the four-putt; par-5 layups stay on
-  the leaky lay-up. Matches his gut on 4/5; the 5th (06-25 H7) names the bad-swing
-  tee shot that found the fescue vs the recovery he recalled — the "blame the
-  drive vs the recovery" call he flagged as genuinely ambiguous.
+  the leaky lay-up. Matches his gut on 4/5; on the 5th (06-25 H7) Matt confirmed
+  he's fine blaming the bad-swing tee shot that found the fescue (the read names
+  the *earliest* culpable shot — settled default, do not change).
 - **Key finding for Step 2 / DL-017:** the obstruction field is `Clear` on all
   historical shots, so the "behind a tree" cause is only inferred heuristically
   on history. Going forward it's deterministic *iff* Matt taps Blocked/Partial at

@@ -90,7 +90,7 @@ function HoleRow({ h }: { h: RoundRecallHole }) {
 
       {domino && (
         <p className="mt-1.5 pl-8 text-[11px] leading-snug text-ink-300">
-          The round turned on{" "}
+          The hole turned on{" "}
           <span className="font-semibold text-clay">shot {domino.shot}</span> —{" "}
           {domino.phrase}.
         </p>

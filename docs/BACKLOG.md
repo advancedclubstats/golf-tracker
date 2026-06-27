@@ -29,15 +29,20 @@ domino metaphor made real.
   routine holes return null.
 - Logic: blow-up gate = `vsPar >= +2` OR **gross** SG loss `<= -2.0` (net SG is
   just the score gate in disguise — gross loss catches the recovered bogey).
-  Root cause = first shot with SG `<= -0.5`, then **walk blame upstream** across
-  forced recoveries to the shot that created the trouble: an explicit
-  `obstruction != Clear` tag, OR a structural punch-out tell (full shot ≥80y out
-  that advanced <35% of its distance). Coverage gap → `rootCauseShotNo: null,
-  sgCovered: false` (never guess).
-- Validated against Matt's eyeball read (2026-06-27): the walk-back flips
-  06-06 H3 and 06-03 H10 to name the drive-behind-a-tree (his real mistake),
-  while par-5 layups correctly stay on the leaky lay-up shot. 9 unit tests +
-  full suite/lint/types green.
+  Root-cause candidate = first shot that's materially bad by **either** signal —
+  SG `<= -0.5`, OR a **bad swing** (execution `1`) that didn't reach the green /
+  hole out (SG forgives a bad swing with a lucky result; Matt thinks in swings).
+  Then **walk blame upstream** across forced recoveries to the shot that created
+  the trouble: an explicit `obstruction != Clear` tag, OR a structural punch-out
+  tell (full shot ≥80y out that advanced <35% of its distance). Coverage gap →
+  `rootCauseShotNo: null, sgCovered: false` (never guess).
+- Validated against Matt's eyeball read (2026-06-27, 11 unit tests, full
+  suite/lint/types green): walk-back flips 06-06 H3 / 06-03 H10 to the
+  drive-behind-a-tree; the swing signal flips 06-07 H18 to the bladed bunker
+  shot; the green guard keeps 06-06 H15 on the four-putt; par-5 layups stay on
+  the leaky lay-up. Matches his gut on 4/5; the 5th (06-25 H7) names the bad-swing
+  tee shot that found the fescue vs the recovery he recalled — the "blame the
+  drive vs the recovery" call he flagged as genuinely ambiguous.
 - **Key finding for Step 2 / DL-017:** the obstruction field is `Clear` on all
   historical shots, so the "behind a tree" cause is only inferred heuristically
   on history. Going forward it's deterministic *iff* Matt taps Blocked/Partial at

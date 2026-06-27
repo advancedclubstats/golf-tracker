@@ -47,6 +47,23 @@ export const BLOWUP_VS_PAR = 2;
  */
 export const BLOWUP_SG_LOSS = -2.0;
 
+/**
+ * Punch-out tell. A full shot only counts as a *forced recovery* (walk the blame
+ * upstream) when a real shot was on the table — at least this far from the hole.
+ * Inside it, a short advance is normal greenside play, not an escape.
+ */
+export const PUNCH_OUT_MIN_START = 80;
+
+/**
+ * …and the ball only crept forward — under this fraction of the distance it had
+ * to cover. A struck approach advances most of its yardage; a sideways/short
+ * escape from trouble (behind a tree) advances almost none. A genuine chunk
+ * lands in between and stays the offending shot's own fault, not a walk-back.
+ * Calibrated against Matt's real punch-outs (3 of 115 yds ≈ 3%, 35 of 140 ≈ 25%)
+ * vs. a par-5 layup (~43%), which must NOT trip it.
+ */
+export const PUNCH_OUT_ADVANCE_FRACTION = 0.35;
+
 export interface FirstDomino {
   /** Hole number (1–18). */
   hole: number;
@@ -62,6 +79,27 @@ export interface FirstDomino {
   holeSgTotal: number;
   /** True only when every shot on the hole has a computable SG. */
   sgCovered: boolean;
+}
+
+/**
+ * Was this shot a *forced recovery* — played from trouble the previous shot
+ * created, rather than a fresh mistake? Two tells:
+ *   1. Explicit: it started behind/under an obstruction (Blocked / Partial).
+ *   2. Structural: a real full shot was available (≥ PUNCH_OUT_MIN_START to go)
+ *      but the ball only crept forward (< PUNCH_OUT_ADVANCE_FRACTION of it) — a
+ *      sideways/short escape, not a struck approach.
+ * Tee shots and putts are never "forced" in this sense. SG can't see a tree, so
+ * this is how the read walks blame back to the shot that put the ball there.
+ */
+function isForcedRecovery(shot: ShotRow, next: ShotRow | null): boolean {
+  if (shot.start_lie === "Green" || shot.start_lie === "Tee") return false;
+  if (shot.obstruction != null && shot.obstruction !== "Clear") return true;
+
+  if (next == null || next.start_lie === "Green") return false;
+  const start = shot.yardage == null ? null : Number(shot.yardage);
+  const leave = next.yardage == null ? null : Number(next.yardage);
+  if (start == null || leave == null || start < PUNCH_OUT_MIN_START) return false;
+  return (start - leave) / start < PUNCH_OUT_ADVANCE_FRACTION;
 }
 
 /**
@@ -113,11 +151,13 @@ export function firstDominoForHole(
     };
   }
 
-  // The first shot whose SG is materially negative is the root cause; every
-  // shot after it is a recovery.
-  const ordered = [...sgEntries].sort((a, b) => a.shot.shot_no - b.shot.shot_no);
-  const root = ordered.find((e) => e.sg <= ROOT_CAUSE_SG_THRESHOLD);
-  if (!root) {
+  // The first shot whose SG is materially negative is the root-cause candidate.
+  const sgByNo = new Map(sgEntries.map((e) => [e.shot.shot_no, e]));
+  const firstMaterial = shots.find((s) => {
+    const e = sgByNo.get(s.shot_no);
+    return e != null && e.sg <= ROOT_CAUSE_SG_THRESHOLD;
+  });
+  if (!firstMaterial) {
     // A blow-up with no single materially-bad shot (death by small leaks). Be
     // honest: surface the loss but name no domino.
     return {
@@ -131,6 +171,14 @@ export function firstDominoForHole(
     };
   }
 
+  // Walk the blame upstream: if the candidate (or the shot before it, in a chain
+  // of escapes) was a forced recovery, the real domino is the shot that put the
+  // ball into that trouble. Stop at the first shot that wasn't itself forced.
+  let idx = shots.indexOf(firstMaterial);
+  while (idx > 0 && isForcedRecovery(shots[idx], shots[idx + 1] ?? null)) {
+    idx -= 1;
+  }
+  const root = sgByNo.get(shots[idx].shot_no) ?? sgByNo.get(firstMaterial.shot_no)!;
   const rootShotNo = root.shot.shot_no;
   const recoveryShotNos = shots
     .filter((s) => s.shot_no > rootShotNo)

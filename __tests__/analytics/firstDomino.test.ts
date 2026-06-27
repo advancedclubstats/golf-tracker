@@ -119,6 +119,55 @@ function sgGateBogey(round: string, hole: number): ShotRow[] {
   ];
 }
 
+/**
+ * Par 4, double bogey 6. A good-looking drive into the rough (~neutral SG) that
+ * actually left Matt blocked — the next shot is a forced punch-out that creeps
+ * 115→112 (a 6i that went 3 yards). SG blames the punch-out; the read must walk
+ * blame back to the drive (shot 1). Mirrors 2026-06-06 H3.
+ */
+function droveBehindTree(round: string, hole: number): ShotRow[] {
+  return [
+    shot({ round_id: round, hole, shot_no: 1, club: "5W", start_lie: "Tee", yardage: 400, result: "Rough" }),
+    shot({ round_id: round, hole, shot_no: 2, club: "6i", start_lie: "Rough", yardage: 115, result: "Rough" }),
+    shot({ round_id: round, hole, shot_no: 3, club: "4i", start_lie: "Rough", yardage: 112, result: "Rough" }),
+    shot({ round_id: round, hole, shot_no: 4, club: "LW", start_lie: "Rough", yardage: 28, result: "Green" }),
+    shot({ round_id: round, hole, shot_no: 5, club: "Putter", start_lie: "Green", yardage: ft(25), result: null }),
+    shot({ round_id: round, hole, shot_no: 6, club: "Putter", start_lie: "Green", yardage: ft(3), result: "Make" }),
+  ];
+}
+
+/**
+ * Par 5, bogey: drive in play, then a *deliberate layup* from 248→142 (advances
+ * 43% — not a punch-out) that leaks into the rough. The leaky layup is the real
+ * mistake and must NOT be walked back to the (fine) drive. Mirrors 2026-06-07 H6.
+ */
+function par5Layup(round: string, hole: number): ShotRow[] {
+  return [
+    shot({ round_id: round, hole, par: 5, shot_no: 1, club: "3W", start_lie: "Tee", yardage: 456, result: "Fairway" }),
+    shot({ round_id: round, hole, par: 5, shot_no: 2, club: "5W", start_lie: "Fairway", yardage: 248, result: "Rough" }),
+    shot({ round_id: round, hole, par: 5, shot_no: 3, club: "6i", start_lie: "Rough", yardage: 142, result: "Bunker" }),
+    shot({ round_id: round, hole, par: 5, shot_no: 4, club: "LW", start_lie: "Bunker", yardage: 25, result: "Green" }),
+    shot({ round_id: round, hole, par: 5, shot_no: 5, club: "Putter", start_lie: "Green", yardage: ft(25), result: null }),
+    shot({ round_id: round, hole, par: 5, shot_no: 6, club: "Putter", start_lie: "Green", yardage: ft(8), result: "Make" }),
+  ];
+}
+
+/**
+ * Par 4, double bogey 6: the drive is *tagged* Blocked at its finish (carried to
+ * shot 2's start) — the explicit obstruction signal, independent of advance. The
+ * forced wedge out is shot 2; blame must walk back to the drive.
+ */
+function taggedBlocked(round: string, hole: number): ShotRow[] {
+  return [
+    shot({ round_id: round, hole, shot_no: 1, club: "D", start_lie: "Tee", yardage: 400, result: "Rough" }),
+    shot({ round_id: round, hole, shot_no: 2, club: "SW", start_lie: "Rough", obstruction: "Blocked", yardage: 150, result: "Fairway" }),
+    shot({ round_id: round, hole, shot_no: 3, club: "9i", start_lie: "Fairway", yardage: 110, result: "Green" }),
+    shot({ round_id: round, hole, shot_no: 4, club: "Putter", start_lie: "Green", yardage: ft(20), result: null }),
+    shot({ round_id: round, hole, shot_no: 5, club: "Putter", start_lie: "Green", yardage: ft(6), result: null }),
+    shot({ round_id: round, hole, shot_no: 6, club: "Putter", start_lie: "Green", yardage: ft(2), result: "Make" }),
+  ];
+}
+
 describe("firstDominoForHole", () => {
   it("names the single mistake on a clean blow-up hole", () => {
     const d = readHole(obDoubleBogey("r1", 1));
@@ -155,6 +204,35 @@ describe("firstDominoForHole", () => {
 
   it("surfaces nothing on a routine hole", () => {
     expect(readHole(routinePar("r1", 4))).toBeNull();
+  });
+
+  it("walks blame from a forced punch-out back to the drive that caused it", () => {
+    const shots = droveBehindTree("r1", 6);
+    const d = readHole(shots);
+    expect(d).not.toBeNull();
+    // SG's materially-negative shot is the punch-out (2), not the drive…
+    const { entries } = perShotSG(shots);
+    const s2 = entries.find((e) => e.shot.shot_no === 2)!;
+    expect(s2.sg).toBeLessThanOrEqual(ROOT_CAUSE_SG_THRESHOLD);
+    // …but the read names the drive, the shot that created the trouble.
+    expect(d!.rootCauseShotNo).toBe(1);
+    expect(d!.rootCauseCategory).toBe("Off the tee");
+    expect(d!.recoveryShotNos).toEqual([2, 3, 4, 5, 6]);
+  });
+
+  it("does NOT walk a deliberate layup back to a fine drive", () => {
+    const d = readHole(par5Layup("r1", 6));
+    expect(d).not.toBeNull();
+    // The leaky layup (shot 2) advanced too far to be a forced escape — it stays
+    // the named mistake rather than blaming the drive.
+    expect(d!.rootCauseShotNo).toBe(2);
+  });
+
+  it("walks back on an explicit Blocked tag regardless of advance", () => {
+    const d = readHole(taggedBlocked("r1", 8));
+    expect(d).not.toBeNull();
+    expect(d!.rootCauseShotNo).toBe(1);
+    expect(d!.rootCauseCategory).toBe("Off the tee");
   });
 
   it("flags a bogey on gross loss even though net SG recovered above the gate", () => {

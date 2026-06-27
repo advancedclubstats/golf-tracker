@@ -79,6 +79,20 @@ tee / approach / short-game / putting breakdown. Shipped as "Cost by hole"
 on the Holes page. No commercial app can do this, because no commercial app
 has clean retrospective shot data for one player on one course.
 
+### The first-domino read
+
+SG grades each shot independently, but a blow-up hole is a cascade. On the
+per-round recall ledger, blow-up holes now name **the one shot the round turned
+on** — "The round turned on shot N — off the tee / the approach / the putt" —
+and treat what follows as forced recovery. It corrects two ways SG's
+shot-by-shot view misleads: it walks blame back from a forced punch-out to the
+drive that created the trouble (difficulty SG can't see, e.g. a tree), and it
+folds in the player's own swing rating so a bad swing with a lucky bounce isn't
+forgiven. This is the `docs/POSITIONING.md` domino metaphor made literal, and a
+concrete demonstration of where to trust the model vs. where to patch its blind
+spots (PM judgment for the portfolio narrative). Engine in
+`lib/analytics/firstDomino.ts`; surfaced via `roundRecall`.
+
 ### On the horizon
 
 A practice module that is engine-prescribed (diagnose → practice → verify)

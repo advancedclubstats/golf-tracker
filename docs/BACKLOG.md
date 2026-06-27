@@ -10,60 +10,35 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
-## NEXT — First-domino root-cause read (from the PM loop, DL-016)
+## DONE — First-domino root-cause read (DL-016) — 2026-06-27, branch `feat/first-domino`
 
-Source: PM-loop ideation, shipped 2026-06-27 (see `docs/pm-loop/decisions.json`
-DL-016). Lane 3 (break the wall). Honor D-05 (analytics are pure TypeScript,
-plain typed arrays, zero Supabase imports, tests first) and the sample/coverage
-honesty rules. Do not touch the SG engine, the gates, or `EditableHoleList`.
+The `docs/POSITIONING.md` domino metaphor made real: SG blames each shot
+independently, but a blow-up hole is a cascade, so name the one shot the round
+turned on and tag the rest as forced recoveries.
 
-The idea: SG blames each shot on a hole independently, but golf is a cascade. On
-a blow-up hole, surface the one shot where the round turned (the first domino)
-and de-emphasize the forced recoveries after it. This is the `docs/POSITIONING.md`
-domino metaphor made real.
+- **Engine** `lib/analytics/firstDomino.ts` (pure, D-05): `firstDominoForHole` +
+  `computeFirstDominoes`. Blow-up gate = `vsPar >= +2` OR **gross** SG loss
+  `<= -2.0`. Root-cause candidate = first shot materially bad by **either** SG
+  (`<= -0.5`) OR a **bad swing** (execution `1`) that didn't reach the green —
+  then **walk blame upstream** across forced recoveries (`obstruction != Clear`,
+  or a punch-out tell: full shot ≥80y that advanced <35%) to the shot that made
+  the trouble. Coverage gap → names nothing (`sgCovered:false`).
+- **UI** folded into `roundRecall` (carries `rootCause*` + `recoveryShotNos`);
+  `RoundRecall.tsx` renders the calm "The round turned on shot N — <phrase>" line
+  on blow-up rows. Verified live on 2026-06-06 (H3 → the drive; H15 → the
+  four-putt). 12 firstDomino + roundRecall tests, full suite/lint/types green.
+- Validated against Matt's eyeball read (matched 4/5; H7 settled = blame the
+  earliest culpable shot).
 
-**Step 1 (the gate) — ✅ DONE (2026-06-27, branch `feat/first-domino`).**
-- `lib/analytics/firstDomino.ts` (pure, D-05): `firstDominoForHole(shots, sgEntries)`
-  + `computeFirstDominoes(shots)`. Output per blow-up hole
-  `{ hole, rootCauseShotNo|null, rootCauseCategory, rootCauseSg, recoveryShotNos[], holeSgTotal, sgCovered }`;
-  routine holes return null.
-- Logic: blow-up gate = `vsPar >= +2` OR **gross** SG loss `<= -2.0` (net SG is
-  just the score gate in disguise — gross loss catches the recovered bogey).
-  Root-cause candidate = first shot that's materially bad by **either** signal —
-  SG `<= -0.5`, OR a **bad swing** (execution `1`) that didn't reach the green /
-  hole out (SG forgives a bad swing with a lucky result; Matt thinks in swings).
-  Then **walk blame upstream** across forced recoveries to the shot that created
-  the trouble: an explicit `obstruction != Clear` tag, OR a structural punch-out
-  tell (full shot ≥80y out that advanced <35% of its distance). Coverage gap →
-  `rootCauseShotNo: null, sgCovered: false` (never guess).
-- Validated against Matt's eyeball read (2026-06-27, 11 unit tests, full
-  suite/lint/types green): walk-back flips 06-06 H3 / 06-03 H10 to the
-  drive-behind-a-tree; the swing signal flips 06-07 H18 to the bladed bunker
-  shot; the green guard keeps 06-06 H15 on the four-putt; par-5 layups stay on
-  the leaky lay-up. Matches his gut on 4/5; on the 5th (06-25 H7) Matt confirmed
-  he's fine blaming the bad-swing tee shot that found the fescue (the read names
-  the *earliest* culpable shot — settled default, do not change).
-- **Key finding for Step 2 / DL-017:** the obstruction field is `Clear` on all
-  historical shots, so the "behind a tree" cause is only inferred heuristically
-  on history. Going forward it's deterministic *iff* Matt taps Blocked/Partial at
-  entry — i.e. obstruction IS the structured why-layer DL-017 wanted.
+**Deferred sub-item:** visually mute the individual recovery shots in
+`EditableHoleList` (left untouched per the item's guardrail). `recoveryShotNos`
+is already exposed on `RoundRecallHole` for whoever picks this up.
 
-**Step 2 — recall-view surfacing. Awaiting Matt's go-ahead (read now matches his gut).**
-- Add a `getFirstDominoes` to `lib/sg-server.ts` (mirror `getHoleAttribution`:
-  `getEnrichedShots` → `computeFirstDominoes`) so the UI gets the same tee-filled
-  input as every other SG view. Do NOT call `lib/analytics` from a client component.
-- Surface on the recall view (`components/rounds/RoundRecall.tsx`): on a blow-up
-  hole, a one-line "the round turned on shot N (the <category>)" and visually
-  mute the recovery shots. Calm Brief style, CSS vars in `app/globals.css`, no
-  hardcoded hex. Keep the existing ledger and editing intact.
-
-If `perShotSG` or the recall data shape differs from the above, stop and flag it
-before building. Branch, small commits, run `vitest` + lint, update this backlog
-and `PROJECT_CONTEXT.md` in the same pass.
-
-Note: the related freeform "what happened" capture (DL-017) was deferred. If the
-read above proves frequently wrong, the fix is a structured, tap-based why-layer
-(extend `decision_quality`), never a freeform text box.
+**Tie to DL-017 (the why-layer):** the `obstruction` field is `Clear` on all
+historical shots, so "behind a tree" is only *inferred* on history; it becomes
+deterministic the moment Matt taps Blocked/Partial at entry — obstruction IS the
+structured, tap-based why-layer DL-017 wanted (never a freeform text box). If the
+read later proves frequently wrong, that's the path, not free text.
 
 ---
 

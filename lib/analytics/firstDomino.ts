@@ -34,6 +34,21 @@ import type { ShotRow } from "@/lib/schemas/shot";
  */
 export const ROOT_CAUSE_SG_THRESHOLD = -0.5;
 
+/**
+ * A shot also counts as a domino candidate when it was a *bad swing* by the
+ * player's own strike rating (execution scale: 1 bad, 2 okay, 3 good, 4
+ * excellent), even if SG forgave the result. This catches the bad swing that got
+ * a lucky bounce — e.g. a bladed bunker shot that scuttles back into play: SG
+ * sees a neutral outcome, but it's the swing the hole turned on. Only the "bad"
+ * tier (1) qualifies; an "okay" (2) shot is within normal play, not a mistake.
+ *
+ * Guard: this fires only when the bad swing left you still needing to recover. A
+ * bad swing that nonetheless reached the green (or holed out) didn't cost
+ * position — the hole turned elsewhere (e.g. the later three-/four-putt), so it
+ * must not hijack the domino. See `isBadSwing`.
+ */
+export const BAD_SWING_EXECUTION = 1;
+
 /** Score-side blow-up gate: a hole at or past double bogey. */
 export const BLOWUP_VS_PAR = 2;
 
@@ -79,6 +94,19 @@ export interface FirstDomino {
   holeSgTotal: number;
   /** True only when every shot on the hole has a computable SG. */
   sgCovered: boolean;
+}
+
+/**
+ * A bad swing that still cost you: the player rated it the worst tier AND it
+ * didn't reach the green or hole out. Reaching the green ends the long-game
+ * sequence, so an ugly-but-successful approach isn't where the hole turned.
+ */
+function isBadSwing(shot: ShotRow): boolean {
+  return (
+    shot.execution === BAD_SWING_EXECUTION &&
+    shot.result !== "Green" &&
+    shot.result !== "Make"
+  );
 }
 
 /**
@@ -151,15 +179,18 @@ export function firstDominoForHole(
     };
   }
 
-  // The first shot whose SG is materially negative is the root-cause candidate.
+  // The root-cause candidate is the first shot that went wrong by EITHER signal:
+  // a materially-negative SG outcome, or a bad swing (execution 1) the result
+  // happened to forgive. Whichever came first is where the hole turned.
   const sgByNo = new Map(sgEntries.map((e) => [e.shot.shot_no, e]));
-  const firstMaterial = shots.find((s) => {
+  const firstCandidate = shots.find((s) => {
     const e = sgByNo.get(s.shot_no);
-    return e != null && e.sg <= ROOT_CAUSE_SG_THRESHOLD;
+    if (e == null) return false;
+    return e.sg <= ROOT_CAUSE_SG_THRESHOLD || isBadSwing(s);
   });
-  if (!firstMaterial) {
-    // A blow-up with no single materially-bad shot (death by small leaks). Be
-    // honest: surface the loss but name no domino.
+  if (!firstCandidate) {
+    // A blow-up with no single materially-bad shot or bad swing (death by small
+    // leaks). Be honest: surface the loss but name no domino.
     return {
       hole,
       rootCauseShotNo: null,
@@ -174,11 +205,11 @@ export function firstDominoForHole(
   // Walk the blame upstream: if the candidate (or the shot before it, in a chain
   // of escapes) was a forced recovery, the real domino is the shot that put the
   // ball into that trouble. Stop at the first shot that wasn't itself forced.
-  let idx = shots.indexOf(firstMaterial);
+  let idx = shots.indexOf(firstCandidate);
   while (idx > 0 && isForcedRecovery(shots[idx], shots[idx + 1] ?? null)) {
     idx -= 1;
   }
-  const root = sgByNo.get(shots[idx].shot_no) ?? sgByNo.get(firstMaterial.shot_no)!;
+  const root = sgByNo.get(shots[idx].shot_no) ?? sgByNo.get(firstCandidate.shot_no)!;
   const rootShotNo = root.shot.shot_no;
   const recoveryShotNos = shots
     .filter((s) => s.shot_no > rootShotNo)

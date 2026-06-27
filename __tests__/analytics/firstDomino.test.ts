@@ -168,6 +168,40 @@ function taggedBlocked(round: string, hole: number): ShotRow[] {
   ];
 }
 
+/**
+ * Par 4, double bogey 6. The bunker shot (2) is a bad swing — Matt rates it
+ * execution 1 — but it scuttles back into the fairway, so SG forgives it (~−0.2).
+ * A later wedge (3) is the SG-material shot. The blend must name the bad swing
+ * (2), not the costlier-by-outcome wedge. Mirrors 2026-06-07 H18.
+ */
+function badSwingLuckyResult(round: string, hole: number): ShotRow[] {
+  return [
+    shot({ round_id: round, hole, shot_no: 1, club: "D", start_lie: "Tee", yardage: 400, result: "Bunker", execution: 2 }),
+    shot({ round_id: round, hole, shot_no: 2, club: "SW", start_lie: "Bunker", yardage: 94, result: "Fairway", execution: 1 }),
+    shot({ round_id: round, hole, shot_no: 3, club: "LW", start_lie: "Fairway", yardage: 25, result: "Fringe", execution: 2 }),
+    shot({ round_id: round, hole, shot_no: 4, club: "LW", start_lie: "Fringe", yardage: 12, result: "Green", execution: 2 }),
+    shot({ round_id: round, hole, shot_no: 5, club: "Putter", start_lie: "Green", yardage: ft(18), result: null }),
+    shot({ round_id: round, hole, shot_no: 6, club: "Putter", start_lie: "Green", yardage: ft(2), result: "Make" }),
+  ];
+}
+
+/**
+ * Par 4, double bogey 6 via a four-putt. The approach (2) is an ugly swing
+ * (execution 1) but it REACHES THE GREEN — on in 2, no recovery needed. The hole
+ * turns on the missed short putt (4), not the successful-but-ugly approach. The
+ * swing signal must not hijack the domino. Mirrors 2026-06-06 H15.
+ */
+function badSwingReachedGreen(round: string, hole: number): ShotRow[] {
+  return [
+    shot({ round_id: round, hole, shot_no: 1, club: "3W", start_lie: "Tee", yardage: 400, result: "Rough", execution: 2 }),
+    shot({ round_id: round, hole, shot_no: 2, club: "LW", start_lie: "Rough", yardage: 40, result: "Green", execution: 1 }),
+    shot({ round_id: round, hole, shot_no: 3, club: "Putter", start_lie: "Green", yardage: ft(60), result: null }),
+    shot({ round_id: round, hole, shot_no: 4, club: "Putter", start_lie: "Green", yardage: ft(5), result: null }),
+    shot({ round_id: round, hole, shot_no: 5, club: "Putter", start_lie: "Green", yardage: ft(4), result: null }),
+    shot({ round_id: round, hole, shot_no: 6, club: "Putter", start_lie: "Green", yardage: ft(1), result: "Make" }),
+  ];
+}
+
 describe("firstDominoForHole", () => {
   it("names the single mistake on a clean blow-up hole", () => {
     const d = readHole(obDoubleBogey("r1", 1));
@@ -226,6 +260,29 @@ describe("firstDominoForHole", () => {
     // The leaky layup (shot 2) advanced too far to be a forced escape — it stays
     // the named mistake rather than blaming the drive.
     expect(d!.rootCauseShotNo).toBe(2);
+  });
+
+  it("names a bad swing (execution 1) even when SG forgave its lucky result", () => {
+    const shots = badSwingLuckyResult("r1", 18);
+    const d = readHole(shots);
+    expect(d).not.toBeNull();
+    // SG forgives the bunker blade (it scuttled into the fairway)…
+    const { entries } = perShotSG(shots);
+    const s2 = entries.find((e) => e.shot.shot_no === 2)!;
+    expect(s2.sg).toBeGreaterThan(ROOT_CAUSE_SG_THRESHOLD);
+    // …and a later wedge is the SG-material shot, but the bad swing is the domino.
+    const s3 = entries.find((e) => e.shot.shot_no === 3)!;
+    expect(s3.sg).toBeLessThanOrEqual(ROOT_CAUSE_SG_THRESHOLD);
+    expect(d!.rootCauseShotNo).toBe(2);
+  });
+
+  it("does NOT let a bad swing that reached the green hijack a later disaster", () => {
+    const shots = badSwingReachedGreen("r1", 15);
+    const d = readHole(shots);
+    expect(d).not.toBeNull();
+    // Shot 2 is a bad swing (exec 1) but reached the green — not the domino.
+    expect(d!.rootCauseShotNo).toBe(4);
+    expect(d!.rootCauseCategory).toBe("Putting");
   });
 
   it("walks back on an explicit Blocked tag regardless of advance", () => {

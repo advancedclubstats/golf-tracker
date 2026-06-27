@@ -21,6 +21,17 @@ import { V1_USER_ID } from "@/lib/constants";
 
 export const SANDBOX_COOKIE = "gt_sandbox";
 
+/**
+ * Cache tag for a scope's shots+rounds reads. The per-scope `getAllShots` /
+ * `getAllRounds` are cached under this tag so every read for a `user_id` shares
+ * one entry; any write to that scope busts it via `revalidateTag`. Keyed by
+ * `user_id` so the owner and each sandbox visitor invalidate independently and
+ * never cross scopes.
+ */
+export function userDataTag(userId: string): string {
+  return `user-data-${userId}`;
+}
+
 /** True when the caller is a logged-out visitor operating in a sandbox. */
 export async function isSandbox(): Promise<boolean> {
   return !(await isOwner());

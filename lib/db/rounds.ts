@@ -5,10 +5,11 @@
  */
 
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { RoundRowSchema, type RoundRow } from "@/lib/schemas/round";
-import { getDataScopeUserId } from "@/lib/auth/scope";
+import { getDataScopeUserId, userDataTag } from "@/lib/auth/scope";
 
 const RoundRowsSchema = z.array(RoundRowSchema);
 
@@ -42,20 +43,36 @@ export async function getRound(id: string): Promise<RoundRow | null> {
  * Throws on DB or validation error.
  */
 export async function getAllRounds(): Promise<RoundRow[]> {
-  const supabase = createServerClient();
+  // Scope (cookie read) resolved outside the cache; user_id keys the entry so
+  // owner and sandbox visitors never share a cache entry. See getAllShots.
   const userId = await getDataScopeUserId();
+  return getAllRoundsCached(userId);
+}
 
-  const { data, error } = await withRetry(() =>
-    supabase
-      .from("rounds")
-      .select("*")
-      .eq("user_id", userId)
-      .order("date", { ascending: false }),
-  );
+/**
+ * Cached body of getAllRounds, keyed by scope `user_id`. Busted via
+ * `userDataTag(userId)` from the round write actions (create/delete) and the
+ * sandbox seed; the 60s revalidate backstops out-of-band writes.
+ */
+function getAllRoundsCached(userId: string): Promise<RoundRow[]> {
+  return unstable_cache(
+    async () => {
+      const supabase = createServerClient();
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from("rounds")
+          .select("*")
+          .eq("user_id", userId)
+          .order("date", { ascending: false }),
+      );
 
-  if (error) {
-    throw new Error(`Failed to fetch rounds: ${error.message}`);
-  }
+      if (error) {
+        throw new Error(`Failed to fetch rounds: ${error.message}`);
+      }
 
-  return RoundRowsSchema.parse(data);
+      return RoundRowsSchema.parse(data);
+    },
+    ["all-rounds", userId],
+    { tags: [userDataTag(userId)], revalidate: 60 },
+  )();
 }

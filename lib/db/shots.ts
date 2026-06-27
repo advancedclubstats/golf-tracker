@@ -7,10 +7,11 @@
  */
 
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { withRetry } from "@/lib/supabase/retry";
 import { ShotRowSchema, type ShotRow } from "@/lib/schemas/shot";
-import { getDataScopeUserId } from "@/lib/auth/scope";
+import { getDataScopeUserId, userDataTag } from "@/lib/auth/scope";
 import { V1_USER_ID } from "@/lib/constants";
 
 const ShotRowsSchema = z.array(ShotRowSchema);
@@ -46,24 +47,43 @@ export async function getOwnerShotCount(): Promise<number> {
  * Throws on DB or validation error — never returns a partial/silent result.
  */
 export async function getAllShots(): Promise<ShotRow[]> {
-  const supabase = createServerClient();
+  // Resolve the scope (reads cookies) OUTSIDE the cache, then hand the plain
+  // user_id to the cached body — unstable_cache can't read cookies/headers. The
+  // user_id is part of the cache key, so owner and each sandbox stay isolated.
   const userId = await getDataScopeUserId();
+  return getAllShotsCached(userId);
+}
 
-  const { data, error } = await withRetry(() =>
-    supabase
-      .from("shots")
-      .select("*")
-      .eq("user_id", userId)
-      .order("round_id", { ascending: true })
-      .order("hole", { ascending: true })
-      .order("shot_no", { ascending: true }),
-  );
+/**
+ * Cached body of getAllShots, keyed by scope `user_id`. The shots table is read
+ * on every analytics page; the rows only change when this scope writes a shot,
+ * so we cache and bust via `userDataTag(userId)` from the shot write actions.
+ * The 60s revalidate is a backstop for out-of-band writes (the direct-DB sheet
+ * import, which can't call revalidateTag) — app writes refresh instantly.
+ */
+function getAllShotsCached(userId: string): Promise<ShotRow[]> {
+  return unstable_cache(
+    async () => {
+      const supabase = createServerClient();
+      const { data, error } = await withRetry(() =>
+        supabase
+          .from("shots")
+          .select("*")
+          .eq("user_id", userId)
+          .order("round_id", { ascending: true })
+          .order("hole", { ascending: true })
+          .order("shot_no", { ascending: true }),
+      );
 
-  if (error) {
-    throw new Error(`Failed to fetch shots: ${error.message}`);
-  }
+      if (error) {
+        throw new Error(`Failed to fetch shots: ${error.message}`);
+      }
 
-  return ShotRowsSchema.parse(data);
+      return ShotRowsSchema.parse(data);
+    },
+    ["all-shots", userId],
+    { tags: [userDataTag(userId)], revalidate: 60 },
+  )();
 }
 
 /**

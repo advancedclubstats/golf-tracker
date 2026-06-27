@@ -17,10 +17,11 @@ function revalidateCourseViews(id?: string) {
   if (id) revalidatePath(`/courses/${id}`);
   revalidatePath("/rounds/new");
   // Bust the cached global tee/yardage geometry that the SG enrich path reads,
-  // so analytics pages pick up Setup edits (tees, yardages, new courses).
-  // "max" = stale-while-revalidate, the recommended form for rarely-changing
-  // reference data like course geometry.
-  revalidateTag(COURSE_GEOMETRY_TAG, "max");
+  // so analytics pages pick up Setup edits (tees, yardages, new courses)
+  // immediately on the next read. { expire: 0 } = read-your-writes (next read
+  // refetches), not stale-while-revalidate — and it's valid from both Server
+  // Actions and Route Handlers, unlike updateTag.
+  revalidateTag(COURSE_GEOMETRY_TAG, { expire: 0 });
 }
 
 /** Create a course and scaffold its 18 holes at par 4 (edit pars after). */

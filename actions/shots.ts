@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   ShotInsertSchema,
   ShotUpdateSchema,
@@ -9,12 +9,18 @@ import {
 } from "@/lib/schemas/shot";
 import { createServerClient } from "@/lib/supabase/server";
 import { renumberContiguous } from "@/lib/shots/sequence";
-import { getDataScopeUserId } from "@/lib/auth/scope";
+import { getDataScopeUserId, userDataTag } from "@/lib/auth/scope";
 
-/** Revalidate the views that depend on shot data (cache hard rule). */
-function revalidateShotViews(roundId: string) {
+/**
+ * Revalidate the views that depend on shot data (cache hard rule), and bust the
+ * scope's cached shots/rounds reads so the dashboard/stats reflect the write
+ * immediately. `userId` is the writer's scope, so the bust never crosses into
+ * another scope's cache.
+ */
+function revalidateShotViews(roundId: string, userId: string) {
   revalidatePath("/");
   revalidatePath(`/rounds/${roundId}`);
+  revalidateTag(userDataTag(userId), { expire: 0 });
 }
 
 /**
@@ -66,7 +72,7 @@ export async function createShot(data: ShotInsert): Promise<{ id: string }> {
     throw new Error(`Failed to save shot: ${error.message}`);
   }
 
-  revalidateShotViews(validated.round_id);
+  revalidateShotViews(validated.round_id, userId);
 
   return { id: shot.id };
 }
@@ -121,7 +127,7 @@ export async function insertShot(data: ShotInsert): Promise<{ id: string }> {
   // Positions shifted → re-derive the hole's start-lie chain (carry-forward).
   await recomputeHoleStartLie(supabase, validated.round_id, validated.hole);
 
-  revalidateShotViews(validated.round_id);
+  revalidateShotViews(validated.round_id, userId);
   return { id: shot.id };
 }
 
@@ -169,7 +175,7 @@ export async function updateShot(
   // doesn't change a shot's own start_lie, so nothing the user set is clobbered.
   await recomputeHoleStartLie(supabase, roundId, shot.hole);
 
-  revalidateShotViews(roundId);
+  revalidateShotViews(roundId, userId);
 }
 
 /**
@@ -227,7 +233,7 @@ export async function deleteShot(id: string, roundId: string): Promise<void> {
   // Positions shifted → re-derive the hole's start-lie chain (carry-forward).
   await recomputeHoleStartLie(supabase, roundId, shot.hole);
 
-  revalidateShotViews(roundId);
+  revalidateShotViews(roundId, userId);
 }
 
 /**
@@ -251,7 +257,7 @@ export async function clearHole(roundId: string, hole: number): Promise<void> {
     throw new Error(`Failed to clear hole: ${error.message}`);
   }
 
-  revalidateShotViews(roundId);
+  revalidateShotViews(roundId, userId);
 }
 
 /**
@@ -288,5 +294,5 @@ export async function concedeHole(roundId: string, hole: number): Promise<void> 
     throw new Error(`Failed to pick up hole: ${updErr.message}`);
   }
 
-  revalidateShotViews(roundId);
+  revalidateShotViews(roundId, userId);
 }

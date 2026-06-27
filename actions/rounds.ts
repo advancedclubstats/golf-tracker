@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { RoundInsertSchema, type RoundInsert } from "@/lib/schemas/round";
 import { createServerClient } from "@/lib/supabase/server";
-import { getDataScopeUserId } from "@/lib/auth/scope";
+import { getDataScopeUserId, userDataTag } from "@/lib/auth/scope";
 
 /**
  * Create a new round. Validates input with RoundInsertSchema before touching
@@ -31,6 +31,8 @@ export async function createRound(data: RoundInsert): Promise<{ id: string }> {
   }
 
   revalidatePath("/");
+  // Bust this scope's cached rounds/shots so the new round shows immediately.
+  revalidateTag(userDataTag(userId), { expire: 0 });
 
   return { id: round.id };
 }
@@ -58,4 +60,6 @@ export async function deleteRound(id: string): Promise<void> {
 
   revalidatePath("/");
   revalidatePath("/rounds");
+  // Bust this scope's cached rounds/shots so the deletion is reflected at once.
+  revalidateTag(userDataTag(userId), { expire: 0 });
 }

@@ -121,17 +121,29 @@ multi-tap).
   `revalidateCourseViews` and the sandbox seed. Removes the entire second fetch
   wave (tees+yardages) per analytics page with zero scope-keying complexity. The
   per-course Setup readers stay uncached so Setup edits show live.
-- **Tier 2b — DEFERRED: cache the user-scoped shots/rounds.** The bigger half.
-  `getAllShots`/`getAllRounds` read cookies via `getDataScopeUserId`, so they
-  can't be wrapped directly — read the scope userId in the request, pass it as a
-  cache key (`unstable_cache(fn, [userId], …)`), tag per scope, invalidate on the
-  shot/round writes that already `revalidatePath`. Wrinkle: sandbox visitors each
-  have their own userId → many cache entries (fine at this traffic, but key it
-  deliberately). **Region co-location (#2) still pending the user's Supabase
-  region.** Deeper option after this: `cacheComponents` + `unstable_instant`
-  (prefetched static shell, truly instant nav) — bigger migration.
+- **Tier 2b — user-scoped shots/rounds cache — ✅ done (2026-06-26).**
+  `getAllShots`/`getAllRounds` resolve the scope `user_id` (cookie) *outside*
+  the cache, then call a `getAll*Cached(userId)` body wrapped in `unstable_cache`
+  keyed by `["all-*", userId]`, tagged `userDataTag(userId)`, 60s revalidate
+  backstop. `userDataTag` lives in `lib/auth/scope.ts`; owner and each sandbox
+  invalidate independently (never cross scopes). Every write busts its own
+  scope: `revalidateShotViews(roundId, userId)` covers all 6 shot actions (and
+  the `/api/shots` + clear-hole + concede route handlers, which delegate to
+  them); `createRound`/`deleteRound` and the sandbox seed bust too. Uses
+  `revalidateTag(tag, { expire: 0 })` (read-your-writes — next read refetches;
+  works from both Server Actions and Route Handlers, unlike `updateTag`), so
+  there's no stale-while-revalidate gap after logging. The 60s backstop covers
+  the direct-DB sheet import (can't call revalidateTag). Pages stay
+  `force-dynamic` — only the DB reads are cached, so per-request scope is intact.
+  Verified end-to-end: created a round → appeared on /rounds immediately (19),
+  deleted it → gone immediately (18); tsc + 168 tests green; no errors.
+- **Region co-location — still the open lever.** Pending the user's Supabase
+  region (Dashboard → Settings → General) to pin Vercel's function region. With
+  shots/rounds now cached, this mainly helps cold/backstop refetches + writes.
+- **Deeper option (after region):** `cacheComponents` + `unstable_instant`
+  (prefetched static shell, truly instant nav, no skeleton) — bigger migration.
 - **Tier 3 — HOLD.** SPA-grade client data cache (fetch-once/hydrate or a query
-  lib) for instant cross-tab nav from memory. Likely unnecessary if Tier 2 lands.
+  lib) for instant cross-tab nav from memory. Likely unnecessary now Tier 2 landed.
 
 ## Entry & editing
 

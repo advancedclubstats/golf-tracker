@@ -26,9 +26,10 @@ memory-based-input moat and scales beyond one course.
 
 Naming status: the name is **locked as Round Recall** and `roundrecall.com`
 is the canonical domain (decided 2026-06-10; see `docs/POSITIONING.md` for the
-positioning and name rationale). The app already says Round Recall in the
-welcome overlay; the repo, page metadata, and most UI still say "Golf Tracker."
-Full rename is a pending backlog item.
+positioning and name rationale). The UI and page metadata now read Round Recall
+everywhere (tab title, PWA manifest name, OG/share card, welcome overlay). The
+only remaining rename is the GitHub repo (`advancedclubstats/golf-tracker`) — a
+pending backlog item, deferred until right before the link is actively shared.
 
 ### Who it's for
 

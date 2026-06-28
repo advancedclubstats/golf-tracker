@@ -13,7 +13,7 @@ deferrals. Each item should be self-contained enough to act on cold.
 ## DONE — First-domino root-cause read (DL-016) — 2026-06-27, branch `feat/first-domino`
 
 The `docs/POSITIONING.md` domino metaphor made real: SG blames each shot
-independently, but a blow-up hole is a cascade, so name the one shot the round
+independently, but a blow-up hole is a cascade, so name the one shot the hole
 turned on and tag the rest as forced recoveries.
 
 - **Engine** `lib/analytics/firstDomino.ts` (pure, D-05): `firstDominoForHole` +
@@ -24,7 +24,7 @@ turned on and tag the rest as forced recoveries.
   or a punch-out tell: full shot ≥80y that advanced <35%) to the shot that made
   the trouble. Coverage gap → names nothing (`sgCovered:false`).
 - **UI** folded into `roundRecall` (carries `rootCause*` + `recoveryShotNos`);
-  `RoundRecall.tsx` renders the calm "The round turned on shot N — <phrase>" line
+  `RoundRecall.tsx` renders the calm "The hole turned on shot N — <phrase>" line
   on blow-up rows. Verified live on 2026-06-06 (H3 → the drive; H15 → the
   four-putt). 12 firstDomino + roundRecall tests, full suite/lint/types green.
 - Validated against Matt's eyeball read (matched 4/5; H7 settled = blame the

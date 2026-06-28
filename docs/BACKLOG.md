@@ -42,42 +42,31 @@ read later proves frequently wrong, that's the path, not free text.
 
 ---
 
-## NEXT — Owner-only PM-loop dashboard route (tooling, not a product feature)
+## DONE — Owner-only PM-loop dashboard route (`/pm`) — 2026-06-27, branch `feat/pm-dashboard`
 
-Source: PM-loop access decision, 2026-06-27. This surfaces the decision log
-(`docs/pm-loop/decisions.json`) as a private page inside the app so Matt can check
-it without serving a folder. It is internal tooling, deliberately NOT logged in
-`decisions.json` (that log stays a clean record of Round Recall product calls).
-Keep it owner-only for now; making it public is a separate future decision, worth
-revisiting once the accuracy curve has roughly 15 to 20 predictions and a real
-trend.
+Mirrors `docs/pm-loop/dashboard.html` inside the app: the decision log as a
+private page, in the app's own design system (Calm Brief column, the three
+fonts, CSS-var tokens — no hardcoded hex). Internal tooling, kept out of
+`decisions.json`. Both the page and the standalone HTML read the same file.
 
-**Goal:** an owner-gated route (suggest `/pm`) that renders the same view as
-`docs/pm-loop/dashboard.html`, reading the live `decisions.json`.
+- `app/pm/page.tsx`, `force-dynamic` server component. **Owner-gated via
+  `notFound()` on non-owner** (404 hides the route's existence; chosen over a
+  redirect, which would leak that `/pm` exists).
+- Reads `docs/pm-loop/decisions.json` live at request time (fs). Added
+  `outputFileTracingIncludes` in `next.config.ts` so the file ships to the
+  serverless bundle in production (it isn't traced by default).
+- Pure summary + types in `lib/pm/decisions.ts` (cards, kill rate, cumulative
+  accuracy curve), tested in `__tests__/pm/decisions.test.ts` (4 cases).
+- Curve is a dependency-free inline SVG (`components/pm/AccuracyCurve.tsx`); no
+  Chart.js. Shows the honest early state until ≥3 predictions accumulate (today:
+  2 predictions logged, both missed → "0% · too few for a trend yet").
+- Verified live: 17 decisions, 21% kill rate, 11 shipped / 3 deferred, feed with
+  ship/kill/defer badges + per-row "model guessed X ✓/✗". No new dependency.
 
-**Build**
-- `app/pm/page.tsx`, server component, `force-dynamic`. Gate it owner-only the
-  same way the other owner pages do (redirect visitors; reuse `requireOwner` /
-  the owner check in `lib/auth/owner.ts`). Visitors must never see it.
-- Read the log at request time from `docs/pm-loop/decisions.json` (fs read from
-  `process.cwd()`, or a JSON import). One source of truth; do not duplicate the
-  data into the component.
-- Render in the app's own design system (Calm Brief column, the three fonts, CSS
-  vars in `app/globals.css`, no hardcoded hex), not the standalone HTML's inline
-  styles. Sections: the metric cards (decisions, kill rate, shipped, deferred,
-  predictions logged + accuracy), the prediction-accuracy curve, and the decision
-  feed (badge, title, reason, source, prediction vs actual).
-- Curve: reuse the existing `components/dashboard/Sparkline.tsx` (or a small
-  inline SVG) rather than adding a chart dependency. With few predictions, show
-  the honest empty/early state (mirror the standalone dashboard's copy): the curve
-  fills in only as engine-run predictions accumulate. Never fake points.
-- Keep `docs/pm-loop/dashboard.html` as the decoupled/exportable version; both
-  read the same `decisions.json`.
-
-**Acceptance:** owner visits `/pm` and sees live metrics from `decisions.json`;
-non-owner is redirected; matches the app's look; the curve shows the honest
-early state until predictions accumulate. No new heavy dependency.
-**Do not:** make it public, or copy the decisions data into the component.
+**Deferred (optional):** the standalone HTML's interactive ship/kill/defer filter
+buttons were skipped to keep `/pm` a pure server component; add a small client
+filter if the feed grows. **One deploy-time check:** confirm the file-tracing
+include actually lands the JSON in the Vercel function on first deploy.
 
 ---
 

@@ -10,83 +10,50 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
-## NEXT — Practice games: SG-scored, personal leaderboard, new tab (DL-022)
+## DONE — Practice games: SG-scored, personal leaderboard (DL-022) — 2026-06-28, branch `feat/practice-games`
 
-Lane 3 (break the wall), both jobs. Turn the 90/70/50 practice-ball routine into a
-scored, repeatable game with a personal number-to-beat. Light entry (no
-shot-by-shot), real strokes gained on the same scratch baseline as rounds, a
-leaderboard per game. Built so new games are config, not code surgery (Matt adds
-games via Claude Code).
+Lane 3 (break the wall). The 90/70/50 practice-ball routine is now a scored,
+repeatable game with a personal number-to-beat, real strokes gained on the same
+scratch baseline as rounds. Shipped exactly **one** game (the Lane-3 gate): "The
+Zone — 9" — 9 balls, 3 each at 90/70/50 yd off the fairway, par 27.
 
-**First game (ship this one only):** "The Zone — 9" (rename at will). Structure:
-9 balls holed out, 3 each from **90 / 70 / 50 yds**, fairway lie. Headline score =
-total strokes vs par (par 3/ball → par 27) — the number to beat; total SG vs
-scratch shown beside it as the honest read.
+- **Data — walled off.** Migration `023_practice_games.sql` (applied live): two
+  new tables `practice_sessions` + `practice_results`, scoped by `user_id` like
+  rounds/shots. `lib/db/practice.ts` is the ONLY reader of `practice_*` and never
+  touches `shots`/`rounds`; no real-round analytic reads practice data. Only raw
+  per-ball `strokes` stored (D-01); everything derived.
+- **Registry = code (D-02).** `lib/practice/games.ts` holds the games as config
+  objects (`stations[{yards,lie,balls}]`, parPerBall, metric); `game_id` is a
+  text key into it. Adding a game = a config object + deploy, no DB change. Entry
+  + leaderboard read the registry generically.
+- **Scoring — pure + tested (D-05).** `lib/practice/scoring.ts`: per-station +
+  total strokes, score-to-par, SG = Σ(`expectedStrokes(yards,lie)` − strokes)
+  off `sg-baseline.ts`; `rankLeaderboard` (strokes asc, SG tiebreak) + record /
+  clean-sweep markers. 9 tests incl. Matt's `[2,3,3]@90 + [3,3,3]@70` example
+  (→ −0.20 SG) and leaderboard ordering/ties.
+- **Entry point — FAB menu, not a tab.** Per Matt's call: the bottom-bar **+** is
+  now a two-option start menu (Log a round / Practice game); no 5th tab.
+  `/practice` = game header + personal leaderboard ("your number to beat" hero,
+  record/clean-sweep badges, your best highlighted). `/practice/[gameId]/new` =
+  owner-gated light entry (one stepper per ball, live running score). Public
+  read-only leaderboard; writes owner-only (`requireOwner`).
+- **Badges included (DL-023):** "new personal record" (beat every earlier
+  session) + "clean sweep" (every ball ≤ par) — earned achievements only, no
+  activity points. Social/multi-player board stays an anti-goal.
+- **Baseline caveat (DL-002 posture):** the 90/70/50 wedge cells are marked
+  VERIFY, so the board ranks by strokes; SG shown but its magnitude is
+  provisional (copy says so). Note: par on every wedge is ~−2 SG vs scratch —
+  scratch holes wedges out in under 3 — which reads correctly.
+- build / lint / type-check / 193 tests green; live-verified end-to-end (FAB
+  menu, entry, two sessions → record + clean-sweep badges, ranking). Test
+  sessions cleaned from the owner's data afterward. `PROJECT_CONTEXT.md` updated
+  (Layer 1 practice-games shipped; Layer 2 walled-off data path documented).
 
-**Core insight (why entry is light):** SG to hole-out needs only start state +
-strokes taken, not shot-by-shot. Per ball you enter just the score (stepper);
-putts/finish optional color. Everything else is derived.
-
-**Game registry (scales):**
-- Games are CODE-defined config objects in `lib/practice/games.ts` (id, name,
-  stations `[{yards, lie, balls}]`, par-per-ball, leaderboard metric). Adding a
-  game = add a config object (code deploy) — mirrors the D-02 "enums live in code"
-  pattern. No DB change to add a game.
-- Entry UI + scoring read the registry generically, so one game or ten share the
-  same screens. Game selection / leaderboard toggle iterate the registry.
-
-**Data model — walled off (hard requirement: must not pollute rounds):**
-- New tables ONLY: `practice_sessions` `{id, user_id, game_id, played_on,
-  created_at}` and `practice_results` `{session_id, station_index, ball_index,
-  strokes, putts?, finish?}`. NEVER the `shots` / `rounds` tables.
-- No real-round analytic (dashboard / leaks / holes / momentum / streaks /
-  distance) may read practice data; practice SG reads only `practice_*`. Verify in
-  review.
-- Derive score / GIR / putts / SG; store none of them (D-01).
-- **Flag (adjacent to D-08):** D-08 says practice *rounds* count in all analytics
-  on purpose; this new practice-game entity deliberately does NOT count in
-  real-round analytics. Different entity, so not a re-open of D-08 — but the
-  deliberate split is noted.
-
-**Scoring (pure, D-05 + tests):**
-- `lib/practice/scoring.ts`: pure functions over plain arrays, zero Supabase.
-  Per-station + total: strokes, score-to-par, and SG = Σ(`expected_to_hole(yards,
-  lie)` from `sg-baseline.ts` − actual strokes). Leaderboard ranks a game's
-  sessions by its metric (default total strokes asc; SG secondary / tiebreak).
-- Tests: score-to-par, SG total from a known session (use Matt's example
-  `[2,3,3]@90` + `[3,3,3]@70`), leaderboard ordering + ties.
-- **Baseline caveat:** the 90/70/50 wedge expected-strokes are long-game scratch
-  magnitudes marked VERIFY in code. Leaderboard-by-strokes is robust now; SG
-  magnitudes are provisional until those cells are verified (same posture as
-  DL-002). Show SG, don't over-trust the magnitude in copy.
-
-**Routes / UI:**
-- New bottom-nav tab (`BottomNav`) — "Practice". New `app/practice/` section with a
-  `loading.tsx` skeleton (match the tab-perf pattern).
-- `/practice`: game selection (easy toggle across games) + the selected game's
-  leaderboard, your best highlighted as the number to beat.
-- `/practice/[gameId]/new`: owner-only (`requireOwner`, like all writes) — light
-  entry: pick game → per-station score steppers → done. Easy station progression.
-- Public read-only leaderboard (like rounds); writes owner-only.
-
-**Gamification guardrail (stay on-brand):** the leaderboard is PERSONAL — your own
-sessions ranked, a number to beat (honest measurement, the Tiger-5 precedent). A
-social / multi-player leaderboard stays out (explicit anti-goal). Badges/markers
-are fair game here when they mark a real, earned achievement — a new personal
-record on a game, a clean sweep (updated 2026-06-27, DL-023) — but not points for
-mere activity. Honest-achievement vs. manufactured-engagement is the test.
-
-**Lane-3 cheap-test-first gate:** design the registry abstraction from the start
-(cheap to do right), but ship only the one Zone-9 game. Before generalizing to
-multiple games / fancier toggles, confirm the loop pulls Matt — he logs a couple
-of real sessions and reaches to beat his number unprompted. If logging dies after
-one session, stop before expanding. (Zero-code pre-check: log tomorrow's session in
-notes, compute SG by hand, sanity-check the read is compelling.)
-
-**Build protocol:** branch `feat/practice-games`; migration for the two new tables;
-pure scoring module + tests; owner-gated entry; tab + leaderboard; build / lint /
-tests green; update `PROJECT_CONTEXT.md` (move practice-games from Layer 1 "On the
-horizon" to shipping, and document the walled-off data path in Layer 2).
+**Next, before expanding (Lane-3 gate):** confirm the loop pulls Matt — he logs a
+couple of real sessions and reaches to beat his number unprompted. If logging
+dies after one session, stop before adding more games. Deferred optional color:
+per-ball putts/finish (table + schema already support them; entry omits them to
+stay light).
 
 ---
 

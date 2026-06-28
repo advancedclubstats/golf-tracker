@@ -2,8 +2,12 @@
 
 /**
  * Icon-only bottom navigation — the app's primary chrome. Four destinations
- * plus a central FAB that starts a round, in a deep fairway-charcoal "ink" bar
- * floating in the thumb zone over the warm-paper background.
+ * plus a central FAB, in a deep fairway-charcoal "ink" bar floating in the thumb
+ * zone over the warm-paper background.
+ *
+ * The FAB is a "start" menu: tapping it opens two choices — log a round, or
+ * start a practice game (DL-022). Practice has no top-level tab of its own; it's
+ * reached as the second tap off the +, and its leaderboard lives at `/practice`.
  *
  * Active state reads through a lime glyph + slight scale + a small lime dot
  * rendered *inside* the active tab (centered by flexbox, so it can never drift
@@ -16,15 +20,18 @@
  * scroll clearance so page content is never tucked behind the bar.
  */
 
+import { useState } from "react";
 import Link from "next/link";
 import { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
+import { Popover } from "@base-ui/react/popover";
 import {
   Home,
   FlagTriangleRight,
   Plus,
   ChartNoAxesColumn,
   Settings,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -56,7 +63,11 @@ function activeKey(pathname: string): TabKey | null {
 // Focused flows hide the bar (they carry their own top escape, no tab rail):
 // the shot-entry flow `/rounds/<id>/log` and the New Round create form.
 function isFocusedFlow(pathname: string): boolean {
-  return /^\/rounds\/[^/]+\/log\/?$/.test(pathname) || pathname === "/rounds/new";
+  return (
+    /^\/rounds\/[^/]+\/log\/?$/.test(pathname) ||
+    pathname === "/rounds/new" ||
+    /^\/practice\/[^/]+\/new\/?$/.test(pathname)
+  );
 }
 
 export function BottomNav() {
@@ -92,18 +103,8 @@ export function BottomNav() {
               <NavTab key={t.key} tab={t} active={active === t.key} />
             ))}
 
-          {/* Center FAB — start a round */}
-          <Link
-            href="/rounds/new"
-            aria-label="Log a round"
-            className="relative z-[3] mx-1.5 flex h-14 w-14 shrink-0 -translate-y-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-150 active:translate-y-[-14px] active:scale-95 motion-reduce:transition-none"
-            style={{
-              boxShadow:
-                "0 12px 26px -6px rgba(11,46,30,.55), 0 0 0 5px rgba(205,242,62,.28), inset 0 1px 1px rgba(255,255,255,.35)",
-            }}
-          >
-            <Plus className="h-[26px] w-[26px]" strokeWidth={2.25} />
-          </Link>
+          {/* Center FAB — opens the start menu (log a round / practice game) */}
+          <StartMenu />
 
           {/* Right half: Stats, Setup */}
           {tabs
@@ -114,6 +115,85 @@ export function BottomNav() {
         </nav>
       </div>
     </>
+  );
+}
+
+/**
+ * The center FAB as a "start" menu. Tapping the + opens a small popup with the
+ * two ways to log: a real round, or a practice game (DL-022). The + rotates into
+ * an × while open. Choosing an option navigates (and the popup unmounts).
+ */
+function StartMenu() {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover.Root open={open} onOpenChange={setOpen}>
+      <Popover.Trigger
+        aria-label="Start logging"
+        className="relative z-[3] mx-1.5 flex h-14 w-14 shrink-0 -translate-y-3.5 items-center justify-center rounded-full bg-primary text-primary-foreground transition-transform duration-150 active:scale-95 motion-reduce:transition-none"
+        style={{
+          boxShadow:
+            "0 12px 26px -6px rgba(11,46,30,.55), 0 0 0 5px rgba(205,242,62,.28), inset 0 1px 1px rgba(255,255,255,.35)",
+        }}
+      >
+        <Plus
+          className={cn(
+            "h-[26px] w-[26px] transition-transform duration-200 motion-reduce:transition-none",
+            open && "rotate-45",
+          )}
+          strokeWidth={2.25}
+        />
+      </Popover.Trigger>
+      <Popover.Portal>
+        <Popover.Positioner side="top" sideOffset={16} className="z-[60]">
+          <Popover.Popup className="origin-bottom rounded-2xl border border-border bg-card p-1.5 shadow-xl outline-none transition data-[ending-style]:scale-95 data-[ending-style]:opacity-0 data-[starting-style]:scale-95 data-[starting-style]:opacity-0">
+            <StartMenuItem
+              href="/rounds/new"
+              icon={FlagTriangleRight}
+              label="Log a round"
+              sub="Tap through 18 holes from memory"
+              onSelect={() => setOpen(false)}
+            />
+            <StartMenuItem
+              href="/practice"
+              icon={Target}
+              label="Practice game"
+              sub="Scored drills · beat your number"
+              onSelect={() => setOpen(false)}
+            />
+          </Popover.Popup>
+        </Popover.Positioner>
+      </Popover.Portal>
+    </Popover.Root>
+  );
+}
+
+function StartMenuItem({
+  href,
+  icon: Icon,
+  label,
+  sub,
+  onSelect,
+}: {
+  href: string;
+  icon: LucideIcon;
+  label: string;
+  sub: string;
+  onSelect: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onSelect}
+      className="flex w-[248px] items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-muted active:bg-muted"
+    >
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+        <Icon className="size-[18px]" strokeWidth={2} />
+      </span>
+      <span className="flex flex-col">
+        <span className="text-[15px] font-semibold leading-tight text-foreground">{label}</span>
+        <span className="text-xs leading-tight text-muted-foreground">{sub}</span>
+      </span>
+    </Link>
   );
 }
 

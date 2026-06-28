@@ -94,13 +94,27 @@ concrete demonstration of where to trust the model vs. where to patch its blind
 spots (PM judgment for the portfolio narrative). Engine in
 `lib/analytics/firstDomino.ts`; surfaced via `roundRecall`.
 
-### On the horizon
+### Practice games (shipped)
 
-A practice module that is engine-prescribed (diagnose → practice → verify)
-rather than a static drill menu, scored against the same scratch baseline as
-real rounds, with a personal leaderboard. Lead games: Money Zone ladder, lag
-ladder, knee-knockers, wedge ladder, up-and-down random. Not yet specced
-into the backlog.
+A practice module scored against the **same scratch baseline as real rounds**,
+with a personal leaderboard — your own sessions ranked, a number to beat (the
+Tiger-5 honest-measurement precedent; a social/multi-player board stays an
+explicit anti-goal). The core insight that keeps entry light: SG to hole-out
+needs only the start state (yards + lie) plus strokes taken — not shot-by-shot —
+so you tap one number per ball.
+
+First and only game shipped (deliberately, per the Lane-3 cheap-test-first
+gate): **The Zone — 9** — nine wedges holed out, three each from 90 / 70 / 50 yd
+off the fairway, par 3/ball (par 27). The headline is total strokes vs par (the
+number to beat); total SG vs scratch sits beside it as the honest read. Earned
+markers (new personal record, clean sweep) show on the leaderboard. Reached via
+the bottom-bar **+** (a two-option start menu: log a round / practice game), not
+its own tab.
+
+Still on the horizon: more games (adding one is a code config object, not a DB
+change), and making practice engine-*prescribed* (diagnose → practice → verify)
+rather than a fixed menu. Before generalizing, confirm the loop pulls Matt — he
+logs a couple of real sessions and reaches to beat his number unprompted.
 
 ### Why this project exists beyond golf
 
@@ -160,9 +174,34 @@ Conflicts: `DECISIONS.md` beats `SPEC.md` where they disagree (known case:
   CHECK constraints. Changing the bag or an enum is a code deploy.
 - **D-05**: `lib/analytics/` takes plain typed arrays, zero Supabase
   imports, independently testable.
-- **D-08**: practice rounds count in all analytics, on purpose.
+- **D-08**: practice *rounds* (logged in `rounds`) count in all analytics, on
+  purpose. **Practice *games* are a different entity and are walled off** (see
+  below) — they deliberately do NOT count in real-round analytics. Not a re-open
+  of D-08.
 - Sample-size gates (`lib/analytics/gates.ts`) govern prescription
   eligibility everywhere. Show the n next to every cut.
+
+### Practice games — walled-off data path
+
+Practice games (DL-022) must never pollute round/shot analytics. The wall:
+
+- **Tables:** `practice_sessions` + `practice_results` only (migration
+  `023_practice_games.sql`). The `shots` / `rounds` tables are never touched.
+- **Reads:** `lib/db/practice.ts` is the *only* path that touches `practice_*`,
+  and it never reads `shots`/`rounds`. Conversely, no real-round analytic
+  (dashboard / leaks / holes / momentum / streaks / distance) reads `practice_*`
+  — verify this stays true in review.
+- **Games are code, not data** (mirrors D-02): the registry lives in
+  `lib/practice/games.ts`; `practice_sessions.game_id` is a text key into it.
+  Adding a game is a config object + deploy, no DB change.
+- **Derive, don't store** (D-01): only raw per-ball `strokes` are stored. Score,
+  score-to-par, SG, leaderboard rank, and the record/clean-sweep markers are all
+  computed by the pure `lib/practice/scoring.ts` (D-05; tested) against the same
+  `sg-baseline.ts` scratch baseline as rounds. The 90/70/50 wedge cells are
+  marked VERIFY, so the leaderboard ranks by strokes; SG is shown but its
+  magnitude is provisional (DL-002 posture).
+- **Writes owner-only** (`requireOwner` in `actions/practice.ts`), unlike rounds
+  which allow sandbox writes; the leaderboard is public read-only.
 
 ### Working conventions
 

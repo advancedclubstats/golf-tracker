@@ -10,6 +10,77 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
+## DONE — First-domino root-cause read (DL-016) — 2026-06-27, branch `feat/first-domino`
+
+The `docs/POSITIONING.md` domino metaphor made real: SG blames each shot
+independently, but a blow-up hole is a cascade, so name the one shot the hole
+turned on and tag the rest as forced recoveries.
+
+- **Engine** `lib/analytics/firstDomino.ts` (pure, D-05): `firstDominoForHole` +
+  `computeFirstDominoes`. Blow-up gate = `vsPar >= +2` OR **gross** SG loss
+  `<= -2.0`. Root-cause candidate = first shot materially bad by **either** SG
+  (`<= -0.5`) OR a **bad swing** (execution `1`) that didn't reach the green —
+  then **walk blame upstream** across forced recoveries (`obstruction != Clear`,
+  or a punch-out tell: full shot ≥80y that advanced <35%) to the shot that made
+  the trouble. Coverage gap → names nothing (`sgCovered:false`).
+- **UI** folded into `roundRecall` (carries `rootCause*` + `recoveryShotNos`);
+  `RoundRecall.tsx` renders the calm "The hole turned on shot N — <phrase>" line
+  on blow-up rows. Verified live on 2026-06-06 (H3 → the drive; H15 → the
+  four-putt). 12 firstDomino + roundRecall tests, full suite/lint/types green.
+- Validated against Matt's eyeball read (matched 4/5; H7 settled = blame the
+  earliest culpable shot).
+
+**Deferred sub-item:** visually mute the individual recovery shots in
+`EditableHoleList` (left untouched per the item's guardrail). `recoveryShotNos`
+is already exposed on `RoundRecallHole` for whoever picks this up.
+
+**Tie to DL-017 (the why-layer):** the `obstruction` field is `Clear` on all
+historical shots, so "behind a tree" is only *inferred* on history; it becomes
+deterministic the moment Matt taps Blocked/Partial at entry — obstruction IS the
+structured, tap-based why-layer DL-017 wanted (never a freeform text box). If the
+read later proves frequently wrong, that's the path, not free text.
+
+---
+
+## NEXT — Owner-only PM-loop dashboard route (tooling, not a product feature)
+
+Source: PM-loop access decision, 2026-06-27. This surfaces the decision log
+(`docs/pm-loop/decisions.json`) as a private page inside the app so Matt can check
+it without serving a folder. It is internal tooling, deliberately NOT logged in
+`decisions.json` (that log stays a clean record of Round Recall product calls).
+Keep it owner-only for now; making it public is a separate future decision, worth
+revisiting once the accuracy curve has roughly 15 to 20 predictions and a real
+trend.
+
+**Goal:** an owner-gated route (suggest `/pm`) that renders the same view as
+`docs/pm-loop/dashboard.html`, reading the live `decisions.json`.
+
+**Build**
+- `app/pm/page.tsx`, server component, `force-dynamic`. Gate it owner-only the
+  same way the other owner pages do (redirect visitors; reuse `requireOwner` /
+  the owner check in `lib/auth/owner.ts`). Visitors must never see it.
+- Read the log at request time from `docs/pm-loop/decisions.json` (fs read from
+  `process.cwd()`, or a JSON import). One source of truth; do not duplicate the
+  data into the component.
+- Render in the app's own design system (Calm Brief column, the three fonts, CSS
+  vars in `app/globals.css`, no hardcoded hex), not the standalone HTML's inline
+  styles. Sections: the metric cards (decisions, kill rate, shipped, deferred,
+  predictions logged + accuracy), the prediction-accuracy curve, and the decision
+  feed (badge, title, reason, source, prediction vs actual).
+- Curve: reuse the existing `components/dashboard/Sparkline.tsx` (or a small
+  inline SVG) rather than adding a chart dependency. With few predictions, show
+  the honest empty/early state (mirror the standalone dashboard's copy): the curve
+  fills in only as engine-run predictions accumulate. Never fake points.
+- Keep `docs/pm-loop/dashboard.html` as the decoupled/exportable version; both
+  read the same `decisions.json`.
+
+**Acceptance:** owner visits `/pm` and sees live metrics from `decisions.json`;
+non-owner is redirected; matches the app's look; the curve shows the honest
+early state until predictions accumulate. No new heavy dependency.
+**Do not:** make it public, or copy the decisions data into the component.
+
+---
+
 ## ACTIVE EPIC — Engine & Display Spec v1
 
 Source: `golf-app-spec.md` (Engine & Display Spec v1). Governing principle:

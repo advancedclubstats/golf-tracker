@@ -112,6 +112,26 @@ describe("roundRecall", () => {
     expect(bad.hasBadDecision).toBe(true);
   });
 
+  it("carries the first-domino read on a blow-up hole, null on a routine one", () => {
+    // Double bogey via an OB tee shot — a blow-up; the domino is the drive.
+    const blowup = [
+      shot({ round_id: "r1", hole: 1, par: 4, shot_no: 1, club: "D", start_lie: "Tee", yardage: 400, result: "OB", penalty: 1 }),
+      shot({ round_id: "r1", hole: 1, par: 4, shot_no: 2, club: "D", start_lie: "Tee", yardage: 400, result: "Fairway" }),
+      shot({ round_id: "r1", hole: 1, par: 4, shot_no: 3, club: "8i", start_lie: "Fairway", yardage: 150, result: "Green" }),
+      shot({ round_id: "r1", hole: 1, par: 4, shot_no: 4, club: "Putter", start_lie: "Green", yardage: 20 / 3, result: null }),
+      shot({ round_id: "r1", hole: 1, par: 4, shot_no: 5, club: "Putter", start_lie: "Green", yardage: 1, result: "Make" }),
+    ];
+    const [h1] = roundRecall(blowup, "r1");
+    expect(h1.rootCauseShotNo).toBe(1);
+    expect(h1.rootCauseCategory).toBe("Off the tee");
+    expect(h1.recoveryShotNos).toEqual([2, 3, 4, 5]);
+
+    // A routine bogey is not a blow-up — no domino surfaces.
+    const [routine] = roundRecall(bogeyHole("r1", 1), "r1");
+    expect(routine.rootCauseShotNo).toBeNull();
+    expect(routine.recoveryShotNos).toEqual([]);
+  });
+
   it("sets sgCovered false when a shot breaks the SG chain", () => {
     // shot 2 has no start_lie/yardage → no baseline, so the chain has a gap.
     const gap = [

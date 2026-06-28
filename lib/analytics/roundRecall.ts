@@ -25,6 +25,7 @@ import {
   SG_CATEGORIES,
   type SgCategory,
 } from "@/lib/analytics/sg";
+import { computeFirstDominoes } from "@/lib/analytics/firstDomino";
 import type { RoundBreakdown } from "@/lib/analytics/roundCard";
 import type { ShotRow } from "@/lib/schemas/shot";
 
@@ -47,6 +48,15 @@ export interface RoundRecallHole {
   conceded: boolean;
   /** Every shot on the hole produced SG — false signals a coverage gap. */
   sgCovered: boolean;
+  /**
+   * First-domino read (blow-up holes only): the shot the round turned on. Null
+   * on a routine hole, a coverage gap, or a blow-up with no single domino.
+   */
+  rootCauseShotNo: number | null;
+  /** SG category of the root-cause shot, for the "turned on …" phrasing. */
+  rootCauseCategory: SgCategory | null;
+  /** Shot numbers after the root cause — the forced recoveries to de-emphasize. */
+  recoveryShotNos: number[];
 }
 
 /**
@@ -73,6 +83,11 @@ export function roundRecall(
     m.set(category, (m.get(category) ?? 0) + sg);
     coveredByHole.set(shot.hole, (coveredByHole.get(shot.hole) ?? 0) + 1);
   }
+
+  // First-domino read per blow-up hole (routine holes are absent from the map).
+  const dominoByHole = new Map(
+    computeFirstDominoes(mine).map((d) => [d.hole, d]),
+  );
 
   const out: RoundRecallHole[] = [];
   for (const rh of aggregateByRoundHole(mine)) {
@@ -105,6 +120,9 @@ export function roundRecall(
       sgCovered:
         rh.shots.length > 0 &&
         (coveredByHole.get(rh.hole) ?? 0) === rh.shots.length,
+      rootCauseShotNo: dominoByHole.get(rh.hole)?.rootCauseShotNo ?? null,
+      rootCauseCategory: dominoByHole.get(rh.hole)?.rootCauseCategory ?? null,
+      recoveryShotNos: dominoByHole.get(rh.hole)?.recoveryShotNos ?? [],
     });
   }
 

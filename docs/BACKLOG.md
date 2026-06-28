@@ -10,6 +10,47 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
+## NEXT — Finish the Round Recall rename in UI + metadata (DL-018)
+
+Lane 1 (dress it up), portfolio. The name is locked **Round Recall** (DL-007),
+but the browser tab title, the PWA install name, and scattered UI strings still
+read **"Golf Tracker"** while the splash, the `roundrecall.com` domain, and the
+OG/share card already say Round Recall. Close the visible mismatch a hiring
+manager hits in the first seconds. This is the visible 90%; the repo rename is
+explicitly out of scope.
+
+**Scope (do):**
+- `app/layout.tsx` metadata — `title` (+ any title template) and `description` →
+  Round Recall. This is the tab title, and it currently contradicts the OG card.
+- PWA manifest `name` / `short_name` (find which: `app/manifest.ts` or
+  `public/manifest.json`).
+- Any remaining user-visible "Golf Tracker" strings in chrome/UI. Grep
+  `Golf Tracker` across `app/` and `components/` and fix each user-facing hit.
+
+**Out of scope (separate ticket):** the GitHub repo rename
+(`advancedclubstats/golf-tracker`) — risky and broad. Do it as the last sweep
+right before actively sharing the link, so it happens once after the UI settles.
+
+**Acceptance criteria:**
+- Browser tab title reads Round Recall on home, `/stats`, and `/rounds`.
+- Installed-app (PWA) name reads Round Recall.
+- `grep -ri "golf tracker"` returns nothing in user-facing code (manifest,
+  metadata, UI copy). Code identifiers / repo paths may remain.
+- OG/share card and tab title now agree.
+
+**Build notes:**
+- String/metadata edits only — no analytics logic, so the D-05
+  pure-helper-plus-tests rule doesn't trigger (no new helper expected; if one is
+  added, it gets a test). No DB, no schema, SG-neutral.
+- Normal protocol: branch (`chore/round-recall-rename`), verify build + lint +
+  tests green.
+- Update `PROJECT_CONTEXT.md`: the line noting "the repo, page metadata, and most
+  UI still say Golf Tracker" should change to reflect UI + metadata done, repo
+  rename still pending.
+- Lane 1, not lane 3 — no cheap-test gate.
+
+---
+
 ## DONE — First-domino root-cause read (DL-016) — 2026-06-27, branch `feat/first-domino`
 
 The `docs/POSITIONING.md` domino metaphor made real: SG blames each shot

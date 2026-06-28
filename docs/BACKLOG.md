@@ -10,44 +10,106 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
-## NEXT — Finish the Round Recall rename in UI + metadata (DL-018)
+## NEXT — Practice games: SG-scored, personal leaderboard, new tab (DL-022)
 
-Lane 1 (dress it up), portfolio. The name is locked **Round Recall** (DL-007),
-but the browser tab title, the PWA install name, and scattered UI strings still
-read **"Golf Tracker"** while the splash, the `roundrecall.com` domain, and the
-OG/share card already say Round Recall. Close the visible mismatch a hiring
-manager hits in the first seconds. This is the visible 90%; the repo rename is
-explicitly out of scope.
+Lane 3 (break the wall), both jobs. Turn the 90/70/50 practice-ball routine into a
+scored, repeatable game with a personal number-to-beat. Light entry (no
+shot-by-shot), real strokes gained on the same scratch baseline as rounds, a
+leaderboard per game. Built so new games are config, not code surgery (Matt adds
+games via Claude Code).
 
-**Scope (do):**
-- `app/layout.tsx` metadata — `title` (+ any title template) and `description` →
-  Round Recall. This is the tab title, and it currently contradicts the OG card.
-- PWA manifest `name` / `short_name` (find which: `app/manifest.ts` or
-  `public/manifest.json`).
-- Any remaining user-visible "Golf Tracker" strings in chrome/UI. Grep
-  `Golf Tracker` across `app/` and `components/` and fix each user-facing hit.
+**First game (ship this one only):** "The Zone — 9" (rename at will). Structure:
+9 balls holed out, 3 each from **90 / 70 / 50 yds**, fairway lie. Headline score =
+total strokes vs par (par 3/ball → par 27) — the number to beat; total SG vs
+scratch shown beside it as the honest read.
 
-**Out of scope (separate ticket):** the GitHub repo rename
+**Core insight (why entry is light):** SG to hole-out needs only start state +
+strokes taken, not shot-by-shot. Per ball you enter just the score (stepper);
+putts/finish optional color. Everything else is derived.
+
+**Game registry (scales):**
+- Games are CODE-defined config objects in `lib/practice/games.ts` (id, name,
+  stations `[{yards, lie, balls}]`, par-per-ball, leaderboard metric). Adding a
+  game = add a config object (code deploy) — mirrors the D-02 "enums live in code"
+  pattern. No DB change to add a game.
+- Entry UI + scoring read the registry generically, so one game or ten share the
+  same screens. Game selection / leaderboard toggle iterate the registry.
+
+**Data model — walled off (hard requirement: must not pollute rounds):**
+- New tables ONLY: `practice_sessions` `{id, user_id, game_id, played_on,
+  created_at}` and `practice_results` `{session_id, station_index, ball_index,
+  strokes, putts?, finish?}`. NEVER the `shots` / `rounds` tables.
+- No real-round analytic (dashboard / leaks / holes / momentum / streaks /
+  distance) may read practice data; practice SG reads only `practice_*`. Verify in
+  review.
+- Derive score / GIR / putts / SG; store none of them (D-01).
+- **Flag (adjacent to D-08):** D-08 says practice *rounds* count in all analytics
+  on purpose; this new practice-game entity deliberately does NOT count in
+  real-round analytics. Different entity, so not a re-open of D-08 — but the
+  deliberate split is noted.
+
+**Scoring (pure, D-05 + tests):**
+- `lib/practice/scoring.ts`: pure functions over plain arrays, zero Supabase.
+  Per-station + total: strokes, score-to-par, and SG = Σ(`expected_to_hole(yards,
+  lie)` from `sg-baseline.ts` − actual strokes). Leaderboard ranks a game's
+  sessions by its metric (default total strokes asc; SG secondary / tiebreak).
+- Tests: score-to-par, SG total from a known session (use Matt's example
+  `[2,3,3]@90` + `[3,3,3]@70`), leaderboard ordering + ties.
+- **Baseline caveat:** the 90/70/50 wedge expected-strokes are long-game scratch
+  magnitudes marked VERIFY in code. Leaderboard-by-strokes is robust now; SG
+  magnitudes are provisional until those cells are verified (same posture as
+  DL-002). Show SG, don't over-trust the magnitude in copy.
+
+**Routes / UI:**
+- New bottom-nav tab (`BottomNav`) — "Practice". New `app/practice/` section with a
+  `loading.tsx` skeleton (match the tab-perf pattern).
+- `/practice`: game selection (easy toggle across games) + the selected game's
+  leaderboard, your best highlighted as the number to beat.
+- `/practice/[gameId]/new`: owner-only (`requireOwner`, like all writes) — light
+  entry: pick game → per-station score steppers → done. Easy station progression.
+- Public read-only leaderboard (like rounds); writes owner-only.
+
+**Gamification guardrail (stay on-brand):** the leaderboard is PERSONAL — your own
+sessions ranked, a number to beat (honest measurement, the Tiger-5 precedent). A
+social / multi-player leaderboard stays out (explicit anti-goal). Badges/markers
+are fair game here when they mark a real, earned achievement — a new personal
+record on a game, a clean sweep (updated 2026-06-27, DL-023) — but not points for
+mere activity. Honest-achievement vs. manufactured-engagement is the test.
+
+**Lane-3 cheap-test-first gate:** design the registry abstraction from the start
+(cheap to do right), but ship only the one Zone-9 game. Before generalizing to
+multiple games / fancier toggles, confirm the loop pulls Matt — he logs a couple
+of real sessions and reaches to beat his number unprompted. If logging dies after
+one session, stop before expanding. (Zero-code pre-check: log tomorrow's session in
+notes, compute SG by hand, sanity-check the read is compelling.)
+
+**Build protocol:** branch `feat/practice-games`; migration for the two new tables;
+pure scoring module + tests; owner-gated entry; tab + leaderboard; build / lint /
+tests green; update `PROJECT_CONTEXT.md` (move practice-games from Layer 1 "On the
+horizon" to shipping, and document the walled-off data path in Layer 2).
+
+---
+
+## DONE — Round Recall rename in UI + metadata (DL-018) — 2026-06-27, branch `chore/round-recall-rename`
+
+Lane 1 (dress it up), portfolio. Closed the visible "Golf Tracker" mismatch a
+hiring manager hits in the first seconds. **The code work had already landed
+incrementally** (via the OG-card + shared-`TAGLINE` commits): `app/layout.tsx`
+metadata (`title` + `openGraph`/`twitter`) all read "Round Recall",
+`public/manifest.json` `name`/`short_name` read "Round Recall", and `/stats` +
+`/rounds` inherit the root `title` (no per-route override, no title template), so
+all three tabs already agreed with the OG card. `grep -ri "golf tracker"` across
+`app/`/`components/`/`lib/`/`public/` returns only one code comment
+(`lib/constants.ts:2`), which the acceptance criteria explicitly allow. The lone
+"golf" in `WelcomeOverlay.tsx` is the sport, not the product name.
+
+So the only remaining work was the bookkeeping the item itself called for:
+updated the stale `PROJECT_CONTEXT.md` naming-status line (UI + metadata now
+done; only the GitHub repo rename pending) and moved this item to DONE.
+
+**Out of scope (still pending):** the GitHub repo rename
 (`advancedclubstats/golf-tracker`) — risky and broad. Do it as the last sweep
 right before actively sharing the link, so it happens once after the UI settles.
-
-**Acceptance criteria:**
-- Browser tab title reads Round Recall on home, `/stats`, and `/rounds`.
-- Installed-app (PWA) name reads Round Recall.
-- `grep -ri "golf tracker"` returns nothing in user-facing code (manifest,
-  metadata, UI copy). Code identifiers / repo paths may remain.
-- OG/share card and tab title now agree.
-
-**Build notes:**
-- String/metadata edits only — no analytics logic, so the D-05
-  pure-helper-plus-tests rule doesn't trigger (no new helper expected; if one is
-  added, it gets a test). No DB, no schema, SG-neutral.
-- Normal protocol: branch (`chore/round-recall-rename`), verify build + lint +
-  tests green.
-- Update `PROJECT_CONTEXT.md`: the line noting "the repo, page metadata, and most
-  UI still say Golf Tracker" should change to reflect UI + metadata done, repo
-  rename still pending.
-- Lane 1, not lane 3 — no cheap-test gate.
 
 ---
 

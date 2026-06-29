@@ -142,7 +142,7 @@ export function PracticeLeaderboard({
 
       <p className="px-1 text-xs text-muted-foreground">
         Ranked by total strokes; SG breaks ties. SG uses the same scratch baseline as your
-        rounds — the wedge cells are still being verified, so trust the ranking over the exact
+        rounds. The wedge cells are still being verified, so trust the ranking over the exact
         SG number for now.
       </p>
     </div>

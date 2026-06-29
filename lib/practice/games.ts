@@ -61,7 +61,7 @@ export interface PracticeGame {
 export const PRACTICE_GAMES: readonly PracticeGame[] = [
   {
     id: "zone-9",
-    name: "The Zone — 9",
+    name: "The Zone 9",
     blurb: "Nine wedges from the fairway: three each at 90, 70 and 50 yards. Hole them out.",
     stations: [
       { yards: 90, lie: "Fairway", balls: 3 },

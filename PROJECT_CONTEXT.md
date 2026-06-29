@@ -104,7 +104,7 @@ needs only the start state (yards + lie) plus strokes taken — not shot-by-shot
 so you tap one number per ball.
 
 First and only game shipped (deliberately, per the Lane-3 cheap-test-first
-gate): **The Zone — 9** — nine wedges holed out, three each from 90 / 70 / 50 yd
+gate): **The Zone 9** — nine wedges holed out, three each from 90 / 70 / 50 yd
 off the fairway, par 3/ball (par 27). The headline is total strokes vs par (the
 number to beat); total SG vs scratch sits beside it as the honest read. Earned
 markers (new personal record, clean sweep) show on the leaderboard. Reached via

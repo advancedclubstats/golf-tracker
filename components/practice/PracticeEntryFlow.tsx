@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { HomeIcon, MinusIcon, PlusIcon, CheckIcon } from "lucide-react";
+import { HomeIcon, MinusIcon, PlusIcon, CheckIcon, CalendarIcon } from "lucide-react";
 import type { PracticeGame } from "@/lib/practice/games";
 import { gamePar } from "@/lib/practice/games";
 import { scoreGame } from "@/lib/practice/scoring";
@@ -86,17 +86,23 @@ export function PracticeEntryFlow({ game }: { game: PracticeGame }) {
         </p>
       </div>
 
-      <label className="flex flex-col gap-1.5">
+      {/* Date — bare native date input inside a flex card (min-w-0), so it
+          flexes to fit and can't overflow on iOS WebKit (the round-form fix). */}
+      <div className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           Date
         </span>
-        <input
-          type="date"
-          value={playedOn}
-          onChange={(e) => setPlayedOn(e.target.value)}
-          className="min-h-12 w-full rounded-xl border-[1.5px] border-input bg-card px-4 text-base text-foreground shadow-sm transition-colors hover:border-ink-300"
-        />
-      </label>
+        <div className="flex min-h-12 items-center gap-3 rounded-xl border-[1.5px] border-input bg-card px-4 shadow-sm transition-colors focus-within:border-ring focus-within:ring-4 focus-within:ring-ring/15 hover:border-ink-300">
+          <CalendarIcon className="size-5 shrink-0 text-muted-foreground" />
+          <input
+            type="date"
+            aria-label="Date"
+            value={playedOn}
+            onChange={(e) => setPlayedOn(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-base text-foreground outline-none"
+          />
+        </div>
+      </div>
 
       {/* Live score-to-par + SG as the card forms. */}
       <div className="sticky top-2 z-10 flex items-center justify-between rounded-2xl border border-border bg-fairway-900 px-5 py-3 text-[#EAF1EC] shadow-sm">

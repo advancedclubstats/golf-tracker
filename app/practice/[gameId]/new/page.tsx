@@ -1,14 +1,13 @@
-import { redirect, notFound } from "next/navigation";
-import { isOwner } from "@/lib/auth/owner";
+import { notFound } from "next/navigation";
 import { getPracticeGame } from "@/lib/practice/games";
 import { PracticeEntryFlow } from "@/components/practice/PracticeEntryFlow";
 
 export const dynamic = "force-dynamic";
 
 /**
- * Log a practice-game session. Owner-only (like all writes — DL-022): a visitor
- * is bounced back to the read-only leaderboard. Focused flow (the bottom nav
- * hides here, like /rounds/new), so it carries its own escape.
+ * Log a practice-game session. Open to everyone (like /rounds/new): the owner
+ * logs into real data, a visitor logs into their own sandbox. Focused flow (the
+ * bottom nav hides here, like /rounds/new), so it carries its own escape.
  */
 export default async function NewPracticeSessionPage({
   params,
@@ -18,8 +17,6 @@ export default async function NewPracticeSessionPage({
   const { gameId } = await params;
   const game = getPracticeGame(gameId);
   if (!game) notFound();
-
-  if (!(await isOwner())) redirect("/practice");
 
   return (
     <PracticeEntryFlow

@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { PlayIcon } from "lucide-react";
-import { isOwner } from "@/lib/auth/owner";
 import { getPracticeSessions } from "@/lib/db/practice";
 import { PRACTICE_GAMES, getPracticeGame, gamePar, totalBalls } from "@/lib/practice/games";
 import { buildLeaderboard } from "@/lib/practice/scoring";
@@ -12,9 +11,9 @@ export const dynamic = "force-dynamic";
 
 /**
  * Practice hub: pick a game (registry-driven) and read your personal
- * leaderboard for it — your best highlighted as the number to beat. Public,
- * read-only; the Start CTA shows for the owner only (practice writes are
- * owner-gated, unlike rounds' sandbox writes).
+ * leaderboard for it — your best highlighted as the number to beat. Open to
+ * everyone: the owner sees real data, a visitor sees their own sandbox, and
+ * both get the Start CTA (practice writes follow the sandbox model, like rounds).
  */
 export default async function PracticePage({
   searchParams,
@@ -23,7 +22,7 @@ export default async function PracticePage({
 }) {
   const { game: gameParam } = await searchParams;
   const game = getPracticeGame(gameParam ?? "") ?? PRACTICE_GAMES[0];
-  const [sessions, owner] = await Promise.all([getPracticeSessions(game.id), isOwner()]);
+  const sessions = await getPracticeSessions(game.id);
   const ranked = buildLeaderboard(game, sessions);
 
   return (
@@ -61,15 +60,13 @@ export default async function PracticePage({
               {game.stations.map((s) => `${s.yards}y`).join(" / ")}
             </p>
           </div>
-          {owner && (
-            <Link
-              href={`/practice/${game.id}/new`}
-              className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95"
-            >
-              <PlayIcon className="size-4" strokeWidth={2.25} />
-              Start
-            </Link>
-          )}
+          <Link
+            href={`/practice/${game.id}/new`}
+            className="flex shrink-0 items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-transform active:scale-95"
+          >
+            <PlayIcon className="size-4" strokeWidth={2.25} />
+            Start
+          </Link>
         </div>
       </div>
 

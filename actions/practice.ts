@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { requireOwner } from "@/lib/auth/owner";
 import { getDataScopeUserId, userDataTag } from "@/lib/auth/scope";
 import { createServerClient } from "@/lib/supabase/server";
 import {
@@ -13,16 +12,17 @@ import { getPracticeGame } from "@/lib/practice/games";
 /**
  * Create a practice-game session and its per-ball results.
  *
- * Owner-only (like every write — DL-022): visitors can read the leaderboard but
- * not log. Validates the payload, checks the game exists in the code registry,
- * then writes the session + results. Throws on any failure — never silent.
+ * Scoped to the caller like rounds/shots (owner → real data; visitor → their
+ * sandbox): no owner gate, so a logged-out visitor logs into their own isolated,
+ * ephemeral copy — the same full-app sandbox they get for rounds. Validates the
+ * payload, checks the game exists in the code registry, then writes the session
+ * + results. Throws on any failure — never silent.
  *
  * Walled off: writes ONLY to `practice_*`, never `shots` / `rounds`.
  */
 export async function createPracticeSession(
   data: PracticeSessionInsert,
 ): Promise<{ id: string }> {
-  await requireOwner();
   const userId = await getDataScopeUserId();
   const validated = PracticeSessionInsertSchema.parse(data);
 

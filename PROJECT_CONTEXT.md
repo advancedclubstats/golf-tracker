@@ -200,8 +200,11 @@ Practice games (DL-022) must never pollute round/shot analytics. The wall:
   `sg-baseline.ts` scratch baseline as rounds. The 90/70/50 wedge cells are
   marked VERIFY, so the leaderboard ranks by strokes; SG is shown but its
   magnitude is provisional (DL-002 posture).
-- **Writes owner-only** (`requireOwner` in `actions/practice.ts`), unlike rounds
-  which allow sandbox writes; the leaderboard is public read-only.
+- **Writes follow the sandbox model**, like rounds/shots: `createPracticeSession`
+  scopes by `getDataScopeUserId` with no owner gate, so a logged-out visitor logs
+  into their own isolated, ephemeral sandbox (purged after 24h by
+  `purge_sandboxes`, migration 024). The owner writes real data. Each scope's
+  leaderboard shows only its own sessions.
 
 ### Working conventions
 

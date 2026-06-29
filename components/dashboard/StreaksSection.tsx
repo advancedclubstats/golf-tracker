@@ -20,6 +20,8 @@ function StreakRow({ s }: { s: Streak }) {
   const seen = s.opportunities > 0;
   const record = s.isRecord && s.current > 0;
   const pct = s.best > 0 ? Math.min(100, (s.current / s.best) * 100) : 0;
+  // DL-025 step-0 cheap test: surface the forward gap to the personal best.
+  const toGo = s.best - s.current;
 
   return (
     <div className="border-t border-border py-3">
@@ -62,6 +64,13 @@ function StreakRow({ s }: { s: Streak }) {
             </span>
           )}
         </div>
+      )}
+
+      {seen && !record && toGo > 0 && (
+        <p className="mt-1 text-[12px] text-ink-700">
+          <span className="font-mono font-semibold tabular-nums">{toGo}</span> to go to
+          your record
+        </p>
       )}
     </div>
   );

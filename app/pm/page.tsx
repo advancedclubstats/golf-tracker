@@ -7,12 +7,13 @@
  * 404, never see it) and intentionally absent from `decisions.json` itself (that
  * log stays a clean record of Round Recall product calls).
  *
- * Reads the live `docs/pm-loop/decisions.json` at request time — the single
- * source of truth the standalone HTML also reads (see next.config tracing).
+ * Reads `docs/pm-loop/decisions.json` — the single source of truth the standalone
+ * HTML also reads. Imported as a module so the data is bundled into the build
+ * (no runtime fs read / `process.cwd()` / output-file-tracing dependency, which
+ * was fragile in the Vercel function). In production the file is immutable per
+ * deploy anyway, so a build-time import is exactly as fresh as a request-time read.
  */
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { notFound } from "next/navigation";
 import { isOwner } from "@/lib/auth/owner";
 import {
@@ -21,20 +22,19 @@ import {
   type DecisionKind,
 } from "@/lib/pm/decisions";
 import { AccuracyCurve } from "@/components/pm/AccuracyCurve";
+import decisionsData from "@/docs/pm-loop/decisions.json";
 
 export const dynamic = "force-dynamic";
 
 /** Below this many predictions the curve is an honest early state, not a line. */
 const CURVE_MIN_POINTS = 3;
 
-/** Read the decision log live from the repo (single source of truth). */
-async function readDecisionLog(): Promise<Decision[]> {
-  const file = path.join(process.cwd(), "docs/pm-loop/decisions.json");
-  const parsed: unknown = JSON.parse(await readFile(file, "utf8"));
-  if (!Array.isArray(parsed)) {
+/** The decision log, bundled from the repo's single source of truth. */
+function loadDecisionLog(): Decision[] {
+  if (!Array.isArray(decisionsData)) {
     throw new Error("decisions.json did not parse to an array");
   }
-  return parsed as Decision[];
+  return decisionsData as Decision[];
 }
 
 const BADGE: Record<DecisionKind, string> = {
@@ -86,7 +86,7 @@ export default async function PmDashboardPage() {
   // redirect) so the route's existence doesn't leak.
   if (!(await isOwner())) notFound();
 
-  const s = summarizeDecisions(await readDecisionLog());
+  const s = summarizeDecisions(loadDecisionLog());
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4 pb-16">

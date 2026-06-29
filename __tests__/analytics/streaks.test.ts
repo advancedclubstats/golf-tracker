@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeStreaks } from "@/lib/analytics/streaks";
+import { computeStreaks, selectChase, CHASE_MIN_BEST } from "@/lib/analytics/streaks";
 import type { Streak } from "@/lib/analytics/streaks";
 import type { ShotRow } from "@/lib/schemas/shot";
 
@@ -216,5 +216,82 @@ describe("computeStreaks", () => {
     const m = get(computeStreaks(shots, rounds), "par5Bogey");
     expect(m.current).toBe(0); // most recent par 5 was the bogey
     expect(m.best).toBe(1); // the older clean one
+  });
+
+  it("exposes a chase derived from the computed metrics", () => {
+    const rounds = [{ id: "r1", date: "2026-01-01" }];
+    const shots = [
+      ...hole({ round: "r1", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 3, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 4, par: 5, strokes: 6 }), // bogey → current 0
+    ];
+    const { chase } = computeStreaks(shots, rounds);
+    // par5Bogey: best 3, current 0 → the only record clearing the floor.
+    expect(chase?.key).toBe("par5Bogey");
+    expect(chase?.personalBest).toBe(3);
+    expect(chase?.currentRun).toBe(0);
+    expect(chase?.toGo).toBe(3);
+  });
+});
+
+/** Build a bare Streak for selection tests (only the fields selectChase reads). */
+function mk(
+  key: Streak["key"],
+  current: number,
+  best: number,
+  opportunities = Math.max(best, current, 1),
+): Streak {
+  return {
+    key,
+    label: key,
+    unit: "",
+    current,
+    best,
+    opportunities,
+    isRecord: best > 0 && current === best,
+  };
+}
+
+describe("selectChase", () => {
+  it("picks the streak with the smallest positive gap to its record", () => {
+    const chase = selectChase([
+      mk("double", 11, 81), // gap 70
+      mk("threePutt", 24, 67), // gap 43
+      mk("par5Bogey", 5, 6), // gap 1 — closest
+    ]);
+    expect(chase?.key).toBe("par5Bogey");
+    expect(chase?.toGo).toBe(1);
+  });
+
+  it("breaks ties toward the higher-stakes category", () => {
+    const chase = selectChase([
+      mk("upDown", 3, 4), // gap 1
+      mk("double", 5, 6), // gap 1 — same, but costlier mistake
+    ]);
+    expect(chase?.key).toBe("double");
+  });
+
+  it("ignores live records (no gap left to chase)", () => {
+    const chase = selectChase([
+      mk("threePutt", 67, 67), // record, gap 0
+      mk("par5Bogey", 4, 6), // gap 2 — the only candidate
+    ]);
+    expect(chase?.key).toBe("par5Bogey");
+  });
+
+  it("skips thin records below the floor even when their gap is smaller", () => {
+    const chase = selectChase([
+      mk("upDown", 1, 2), // gap 1 but best < floor
+      mk("par5Bogey", 3, 6), // gap 3, best clears floor
+    ]);
+    expect(CHASE_MIN_BEST).toBeGreaterThan(2);
+    expect(chase?.key).toBe("par5Bogey");
+  });
+
+  it("returns null when nothing clears the floor or every streak is a record", () => {
+    expect(selectChase([mk("upDown", 1, 2)])).toBeNull(); // below floor
+    expect(selectChase([mk("double", 6, 6)])).toBeNull(); // a live record
+    expect(selectChase([mk("par5Bogey", 0, 0, 0)])).toBeNull(); // never seen
   });
 });

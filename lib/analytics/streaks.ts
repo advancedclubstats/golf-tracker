@@ -49,8 +49,74 @@ export interface Streak {
   isRecord: boolean;
 }
 
+/**
+ * The single forward target the dashboard hunts: the streak closest to beating
+ * its own record. `currentRun`/`personalBest`/`toGo` are the chase-framed names
+ * for the same `current`/`best`/gap the rows below carry.
+ */
+export interface Chase {
+  key: Streak["key"];
+  label: string;
+  unit: string;
+  currentRun: number;
+  personalBest: number;
+  /** personalBest − currentRun; always > 0 for a surfaced chase. */
+  toGo: number;
+}
+
 export interface Streaks {
   metrics: Streak[];
+  /** The one streak to chase, or null when nothing clears the floor. */
+  chase: Chase | null;
+}
+
+/**
+ * A record is only worth hunting once it's this long — below it a "chase" would
+ * be noise (e.g. "1 to go" toward a best of 2). Same honesty instinct as the
+ * other analytics floors: a thin record is no target at all.
+ */
+export const CHASE_MIN_BEST = 3;
+
+/**
+ * Tie-break order when two streaks are equally close to their record: the
+ * costlier mistake wins the slot. A double or 3-putt hurts more than a missed
+ * up-&-down, so we surface the one you'd least want to break.
+ */
+const STAKES_ORDER: readonly Streak["key"][] = [
+  "double",
+  "threePutt",
+  "par5Bogey",
+  "approach150",
+  "upDown",
+];
+
+/**
+ * Pick the active chase: among streaks whose record clears the floor and isn't
+ * already tied, the one with the smallest positive gap to its best (ties broken
+ * toward the higher-stakes category). Null when nothing qualifies — an honest
+ * empty state, never a manufactured goal. Pure (D-05).
+ */
+export function selectChase(metrics: readonly Streak[]): Chase | null {
+  const candidates = metrics.filter(
+    (m) => m.opportunities > 0 && m.best >= CHASE_MIN_BEST && m.current < m.best,
+  );
+  if (candidates.length === 0) return null;
+
+  const pick = candidates.reduce((a, b) => {
+    const gapA = a.best - a.current;
+    const gapB = b.best - b.current;
+    if (gapA !== gapB) return gapA < gapB ? a : b;
+    return STAKES_ORDER.indexOf(a.key) <= STAKES_ORDER.indexOf(b.key) ? a : b;
+  });
+
+  return {
+    key: pick.key,
+    label: pick.label,
+    unit: pick.unit,
+    currentRun: pick.current,
+    personalBest: pick.best,
+    toGo: pick.best - pick.current,
+  };
 }
 
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
@@ -154,13 +220,13 @@ export function computeStreaks(
     };
   };
 
-  return {
-    metrics: [
-      build("par5Bogey", "Bogey-free par 5s", "par 5s", par5Flags),
-      build("double", "Double-free holes", "holes", doubleFlags),
-      build("threePutt", "3-putt-free holes", "holes", threePuttFlags),
-      build("approach150", "Bogey-free approaches ≤150y", "approaches", approachFlags),
-      build("upDown", "Up-&-downs in a row", "up & downs", upDownFlags),
-    ],
-  };
+  const metrics = [
+    build("par5Bogey", "Bogey-free par 5s", "par 5s", par5Flags),
+    build("double", "Double-free holes", "holes", doubleFlags),
+    build("threePutt", "3-putt-free holes", "holes", threePuttFlags),
+    build("approach150", "Bogey-free approaches ≤150y", "approaches", approachFlags),
+    build("upDown", "Up-&-downs in a row", "up & downs", upDownFlags),
+  ];
+
+  return { metrics, chase: selectChase(metrics) };
 }

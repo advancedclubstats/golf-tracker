@@ -56,10 +56,15 @@ else "holding steady"; all-time stays the 38px moment.
 round over your last N rounds" framing (dropped the prior → recent arrow, which
 read as confusing). tsc + lint + 215 tests green; live-verified both surfaces.
 
-**Still deferred (proposal item 4):** trajectory/ETA (lane 1, highest honesty
-risk — projects a trend forward). **Off-app cheap test first** (compute one ETA
-by hand for the putting leak, sit with it); build only if a believable ETA makes
-the frozen number feel alive rather than distrusted. Most expendable of the four.
+**Item 4 — trajectory/ETA** — ❌ killed (2026-07-02, DL-028). Off-app cheap test
+with real data settled it. Putting N=19, all-time mean −1.15/round, recent-3 rate
+−0.375 (a big swing). ETA to move the cumulative mean: **~26 rounds to −0.70, ~99
+to −0.50, ~571 to −0.40, never to −0.30.** So even at 3× better recent form the
+number is glacial (an ETA confirms it's stuck, doesn't make it feel alive), the
+horizon is asymptotically fragile (false precision, all conditional on a 3-round
+rate holding for dozens of rounds), and the honest signal already shipped as the
+hero split-card strip. Recent-form proposal is now fully resolved: 1+2+3 shipped,
+4 killed.
 
 ---
 

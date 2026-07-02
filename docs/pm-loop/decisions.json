@@ -349,5 +349,18 @@
     "predictedCorrect": null,
     "undeferWhen": null,
     "outcome": "Items 1+2 of the recent-form proposal shipped and DL-025 closed. Items 3 (dual number on the hero) and 4 (trajectory/ETA) stay in docs/pm-loop/recent-form-proposal.md for later. Live-verified across 19 rounds; 215 tests green."
+  },
+  {
+    "id": "DL-028",
+    "date": "2026-07-02",
+    "title": "Kill the trajectory/ETA read (recent-form proposal item 4)",
+    "source": "matt",
+    "decision": "killed",
+    "reason": "Off-app cheap test with real data killed it. Putting N=19, all-time mean M=-1.15/round, recent-3 rate r=-0.375 (a big swing). ETA to move the cumulative mean: ~26 rounds to -0.70, ~99 to -0.50, ~571 to -0.40, never to -0.30. Three problems: (1) glacial even at 3x better recent form, so an ETA confirms the number is stuck rather than making it feel alive; (2) asymptotic false precision (tiny target changes explode the horizon, all conditional on a 3-round rate holding for dozens of rounds) - exactly the overclaim the principles guard against; (3) the honest signal already shipped as the split-card strip ('picked up 0.62/round over your last 3 rounds'). Item 4 was flagged the most expendable of the four from the start.",
+    "job": "both",
+    "prediction": null,
+    "predictedCorrect": null,
+    "undeferWhen": "Never, unless the cumulative-mean denominator is replaced by a windowed/decaying baseline that actually moves - then a projection could be honest.",
+    "outcome": "Recent-form workstream closes with items 1+2+3 shipped (DL-027 + the hero split card); item 4 killed by its own cheap test."
   }
 ]

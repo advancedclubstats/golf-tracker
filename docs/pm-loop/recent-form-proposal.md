@@ -150,7 +150,14 @@ where you are trending.
   the "real" trend. The hierarchy has to make all-time dominant and lately a
   quiet companion, not a competing headline.
 
-### 4. Trajectory / ETA (lane 1 / dress it up): highest honesty risk, build last
+### 4. Trajectory / ETA (lane 1 / dress it up): ❌ KILLED (2026-07-02, DL-028)
+
+Cheap test with real data killed it. Putting N=19, all-time mean -1.15/round,
+recent-3 rate -0.375. ETA to move the cumulative mean: ~26 rounds to -0.70, ~99
+to -0.50, ~571 to -0.40, never to -0.30. Glacial even at 3x better recent form
+(confirms the number is stuck, doesn't make it feel alive), asymptotically
+fragile (false precision), and the honest signal already shipped as the hero
+split-card strip. Original write-up kept below for the record.
 
 Turn a stuck number into a slope: "at your recent rate, this reaches -0.60 in
 about 8 rounds." Honest movement without faking that the all-time figure moved.

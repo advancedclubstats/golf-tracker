@@ -10,6 +10,134 @@ deferrals. Each item should be self-contained enough to act on cold.
 
 ---
 
+## DONE — Recent-form beat at the round-recall exit (DL-027) — 2026-07-01
+
+Lane 3 + lane 1 polish. Shipped items 1+2 of the proposal
+(`docs/pm-loop/recent-form-proposal.md`), which also closes DL-025's unshipped
+half. From a UXR observation: logging a round carries real activation energy, but
+the payoff at entry is flat because the all-time SG numbers barely move (a
+cumulative-mean denominator problem). The fix: a recent-form lens at the recall
+exit, next to the frozen all-time number.
+
+- **Shared primitive** `lib/analytics/recentForm.ts` (pure, D-05): per SG
+  category, `{recentMean, priorMean, delta, allTimeMean, sampleCount}` — last-N
+  vs prior-N per-round SG, reusing `perShotSG` + momentum's chronological
+  ordering. Honesty floor: below N → `recentMean` null; below 2N →
+  `priorMean`/`delta` null (never zeros). Plus `topRecentFormMove` (momentum's
+  |delta| ≥ 0.15 gate) and `shotsThroughRound` (the as-of-round window).
+- **Record detection** `recordsBrokenBy` in `lib/analytics/streaks.ts` (pure).
+- **Surface**: `components/rounds/RoundRecall.tsx` shows AT MOST one beat,
+  priority-selected in `app/rounds/[id]/page.tsx`: broken record ("◆ New best ·
+  5 up-&-downs in a row") outranks a recent-form move ("Approach: +0.27 over
+  your last 5, up from −1.51 the 5 before") outranks nothing. Both computed **as
+  of the round being viewed**.
+- **Key honesty fix (found in live verify):** the literal "current run passed
+  prior best" record rule fired on **12/19** of Matt's rounds — Matt rarely
+  doubles, so long streaks extend their own record nearly every round
+  (wallpaper). Redefined a record as a genuine **comeback** (a prior mark stood,
+  broke, then got beaten: `before.current < before.best`). Result: a healthy
+  **6 record / 8 move / 5 none** across the 19 rounds.
+- build / lint / tsc / **215 tests** green; live-verified across all 19 rounds
+  (record + move + none states, no console errors); `PROJECT_CONTEXT.md` updated;
+  DL-027 logged in `decisions.json`.
+
+**Still deferred (proposal items 3+4):** dual number on `BiggestLeakHero` (lane
+1) and trajectory/ETA (lane 1, highest honesty risk — projects a trend forward).
+Each has its own cheap-test gate in the proposal doc.
+
+---
+
+## DONE — The Chase: forward streak goals (DL-025) — closed 2026-07-01
+
+Lane 3 (break the wall). Shipped decision 2026-06-28. Reframe the dashboard's
+rear-view streak tracker into a forward goal + a quiet "new best" beat when a
+record falls. Step 0 (the "{n} to go to your record" line) and the single
+forward chase shipped earlier (commits `e5a5269`, `6af812f`); the **remaining
+"new best beat on the recall exit"** shipped as part of DL-027 above (with the
+comeback-only honesty fix). Nothing left open here — closed.
+
+<details>
+<summary>Original full-build notes (for reference)</summary>
+
+**Full build (only after the cheap test pays off):**
+- Selection logic in `lib/analytics/streaks.ts` (pure, D-05): pick the streak
+  with the smallest positive gap `(personalBest - currentRun)` as the active
+  chase; expose `{category, currentRun, personalBest, toGo}`. Ties broken toward
+  the higher-stakes mistake category (3-putt / double over up-and-down). Below
+  the existing opportunity floor → no chase surfaced (honest empty state).
+- Reframe `components/dashboard/StreaksSection.tsx`: one forward chase up top
+  (name + "{currentRun}/{personalBest}" + a progress bar toward the record),
+  the remaining streak rows below as today. Reuse existing tokens; no hardcoded
+  hex.
+- "New best" beat on the round recall exit (`components/rounds/RoundRecall.tsx`)
+  when a logged round pushes a streak past its prior record. One calm marker,
+  consistent with the Tiger 5 RECORD chip; not a celebration interstitial.
+
+**Constraints / acceptance:**
+- No schema, no migration, no new engine. Everything derives from real shots.
+- D-05: any new selection/gap logic is a pure helper in `lib/analytics/` with
+  unit tests (gap math, tie-break, below-floor empty state, record-broken
+  detection).
+- One place only (anti-goal: scattering trend/streak cues across screens).
+- Watch the steelman risk in review: a chase must not be framed in a way that
+  rewards conservative, streak-protecting golf over the honest play.
+- build / lint / type-check / tests green; live-verify on the dashboard; update
+  `PROJECT_CONTEXT.md`.
+
+</details>
+
+---
+
+## NEXT — Hayden Lake career: earned-milestone ladder (DL-026)
+
+Lane 3 (break the wall). Shipped decision 2026-06-28. Consolidate the currently
+scattered earned achievements (Tiger 5 clean streaks on the dashboard, course
+records, practice PRs, best-SG round) into one "career at this course" surface a
+reflector wants to revisit: a calm column of milestones genuinely earned, then a
+few not-yet-earned rungs with how close you are. Every item tied to real golf,
+zero activity points (DL-023 line: honest-achievement, not engagement-bait).
+
+**Cheap-test-first gate (lane 3, required before the full build):**
+Step 0 is off-app. Matt lists his real milestones on paper from what the app
+already shows (best round, longest clean streaks, firsts) and sits with it. Go
+only if (a) he wants to look at it again and (b) an unearned one makes him want
+to chase it. If the list reads as a one-glance trophy case, stop and log the
+result. Do NOT build the page before this.
+
+**Full build (only after the cheap test pays off):**
+- Pure assembler `lib/analytics/career.ts` (D-05): build a `Milestone[]` from
+  existing computed sources only — `streaks.ts` (clean streaks + bests), the
+  course-records logic, `roundRecall.ts` (best-round SG), and the
+  distance/up-and-down filters in `distanceSummary.ts`. Each milestone:
+  `{id, label, earned: boolean, value, achievedOn?, toGo?}`. Sample-gated
+  (Principle 3): a milestone that needs more data than exists is absent, never a
+  guess.
+- Practice records read through the existing `lib/practice/scoring.ts` markers,
+  READ-ONLY. Do NOT breach the practice data wall (PROJECT_CONTEXT "Practice
+  games — walled-off data path"): `career.ts` may consume already-computed
+  practice markers but must not make real-round analytics read `practice_*`.
+- New route `app/career/page.tsx` (public read-only, consistent with the rest of
+  the portfolio app; owner sees the same). Calm Brief single column, the three
+  fonts, CSS-var tokens, no hardcoded hex. Earned milestones first; an
+  "on the horizon" group below with "{toGo} to go."
+- Add a discoverable but unobtrusive entry point (e.g. from the dashboard
+  streak/records area). Do not add a 5th bottom-tab.
+
+**Constraints / acceptance:**
+- Derive, don't store (D-01): no new tables/columns; everything from raw shots
+  and existing pure analytics.
+- D-05: `career.ts` is pure, zero Supabase imports, unit-tested (earned vs.
+  unearned classification, sample-gating, toGo math, the practice-wall boundary).
+- Honest-achievement only: no milestone for mere activity (logging in, streaks
+  just for showing up). Watch the vanity-wall / thin-list risk in review; a
+  sparse honest list beats a padded one.
+- build / lint / type-check / tests green; live-verify the route; update
+  `PROJECT_CONTEXT.md`.
+- Sequencing note: The Chase (DL-025) is the cheaper, higher-pull move; if doing
+  one first, do that, since it may also satisfy part of the appetite this serves.
+
+---
+
 ## DONE — Practice games: SG-scored, personal leaderboard (DL-022) — 2026-06-28, branch `feat/practice-games`
 
 Lane 3 (break the wall). The 90/70/50 practice-ball routine is now a scored,
@@ -582,37 +710,54 @@ section first (highest value, self-contained), then the three table treatments.
   understated (a "lived-in" signal, not a metrics block); we explicitly rejected
   coding-hours and tokens-used as effort signals (input/AI-vanity, off-brand for
   a PM portfolio). No link yet — see "The thinking page" below.
-- **The thinking page (`/thinking`)** — QUEUED. A short, designed in-app page a
-  hiring manager can reach from the splash chip / a "the thinking →" link,
-  proving PM judgment (not just that the app exists). It's the single best
-  artifact to hand a serious evaluator, and the splash credibility chip is built
-  to point at it (today the chip is text-only, no link, until this exists).
-  - **Why:** the splash shows the *product*; this shows the *thinking behind it*
-    — framing, the hard tradeoffs, what got killed. That's the PM-vs-vibe-coder
-    tell. Keep it skimmable (~30–60s read), declarative, numbers-first, on-brand
-    (Calm Brief single column, the three fonts, CSS-var tokens — never hardcode).
-  - **Raw material (don't re-derive, distill):** `docs/POSITIONING.md` (the
-    one-liner, the wedge, "memory is the moat", the domino metaphor),
-    `PROJECT_CONTEXT.md` Layer 1 (the core decision, "the one field SG can't
-    compute", the key diagnostic insight, the killer screen, "why this exists
-    beyond golf"), and `DECISIONS.md` (D-01…D-13). The strongest beats: SG as the
-    single engine; **building a heuristic "Strokes Lost"/"What to Work On" system
-    then deleting it** to get to one rigorous engine; gating every prescription on
-    sample size instead of overclaiming; adding exactly **one** new field
-    (`decision_quality`) only where the data demanded it, and removing two
-    (`situation_created`/`short_sided`) once SG did their job; the
-    putting-leak-was-really-an-approach-problem insight as the argument for the
-    engine.
-  - **Voice:** follow `~/CoWork/ABOUT ME/anti-ai-writing-style.md` and the
-    `docs/design/the_read_brief.md` "banned moves" (no hype/metaphor-as-drama, no
-    throat-clearing, one number per clause). Terse and declarative.
-  - **Scope/shape (Design to lock first):** likely a single editorial column —
-    a one-line thesis, then 3–5 short "decision → why" beats, optionally a small
-    "by the numbers" line (reuse `getOwnerShotCount()` + a rounds count + the 13
-    decisions / 22 migrations as quiet proof of depth). Static content is fine
-    (no analytics engine needed). Then wire the splash chip (and/or a hero "the
-    thinking →" link) to `/thinking`. Add a back-to-app affordance; respect that
-    a visitor mid-sandbox shouldn't lose their place.
+- **The thinking page (`/thinking`)** — ✅ DONE (2026-06-29). Shipped
+  `app/thinking/page.tsx`: a static, server-rendered Calm Brief column (six
+  labeled beats — problem / bet / what the engine caught / restraint / honest /
+  why I built it), em-dash-free outward copy, the owner shot count + "13
+  decisions · 25 migrations" as a quiet by-the-numbers line, and CTAs back to the
+  app + LinkedIn. Wired the splash: the credibility chip area now has a "Read the
+  thinking behind it →" link (`goThinking` dismisses the intro, then routes), so
+  the overlay doesn't re-cover the page. Reconciled the copy against POSITIONING
+  (added the putting-leak-was-really-approach beat) and merged the memo's "hard
+  part" + "thing I cut" into one restraint beat. Left the "0% decisions" beat out
+  (default) and skipped a rounds count (scope-mismatch with the visitor sandbox).
+  tsc + eslint + 200 tests green; `PROJECT_CONTEXT.md` updated. **Not yet
+  live-verified in a browser** (sandbox couldn't `next build` — the running local
+  dev server holds `.next` via FUSE). Eyeball `/thinking` on local/deployed, and
+  run it through once after deploy.
+  - **Original item (for reference):** merged the memo's "one-screen case study"
+    (A4) and the CoWork `roundrecall-case-study.md` draft into this one page;
+    `docs/thinking-page-draft.md` is the canonical copy.
+  - **The job:** hand a serious evaluator (PM/PMM hiring manager, recruiter) one
+    skimmable in-app artifact that proves the *judgment* behind Round Recall, not
+    just that the app exists. The splash shows the product; this shows the
+    thinking. It's the single best thing to put in front of someone deciding
+    whether to interview Matt.
+  - **The solution:** one static, designed page at `/thinking` — Calm Brief
+    single editorial column (the three fonts, CSS-var tokens, never hardcode hex),
+    no analytics engine, ~30–60s read, declarative and numbers-first. Then wire
+    the splash credibility chip (today text-only, no link) and/or a hero "the
+    thinking →" link to it. Add a back-to-app affordance; a visitor mid-sandbox
+    must not lose their place (respect `gt_intro_seen`).
+  - **Copy:** ready at `docs/thinking-page-draft.md` (thesis → problem → the bet →
+    the hard part → a thing I cut → kept it honest → why I built it). Already
+    sharp and in Matt's voice. Reconcile only where the repo is more specific:
+    `docs/POSITIONING.md` (the wedge, "memory is the moat", the domino metaphor),
+    `PROJECT_CONTEXT.md` Layer 1 (the core decision, the
+    putting-leak-was-really-an-approach insight), `DECISIONS.md` (D-01…D-13).
+    Strongest beats to keep: SG as the one engine; building a heuristic "Strokes
+    Lost / What to Work On" system then deleting it; gating every prescription on
+    sample size; adding exactly one field (`decision_quality`) and removing two
+    (`situation_created`/`short_sided`) once SG did their job.
+  - **Open decision (Matt):** include a short "0% decision errors is honest, not
+    broken" beat under "kept it honest" only if that stat is still visible in the
+    live app. Default: leave it out unless confirmed.
+  - **Optional quiet-proof line:** a small "by the numbers" footnote reusing
+    `getOwnerShotCount()` + a rounds count + the decisions/migrations count, as
+    understated depth — not a metrics block. Cut it if it tips into vanity.
+  - **Voice:** `~/CoWork/ABOUT ME/anti-ai-writing-style.md` + `docs/design/
+    the_read_brief.md` banned moves (no hype, no throat-clearing, one number per
+    clause). Terse and declarative.
 - **Dashboard "Calm Brief" reskin (Direction D)** — ✅ done (2026-06-09). Flat
   editorial single-column dashboard per `docs/design/design_handoff_dashboard/`:
   lime stacked hero + lime New Round pill (the only two lime moments), 40px SG

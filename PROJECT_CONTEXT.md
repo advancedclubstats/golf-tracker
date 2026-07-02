@@ -94,6 +94,23 @@ concrete demonstration of where to trust the model vs. where to patch its blind
 spots (PM judgment for the portfolio narrative). Engine in
 `lib/analytics/firstDomino.ts`; surfaced via `roundRecall`.
 
+### The recall exit beat
+
+Logging a round carries real activation energy, but the all-time SG numbers
+barely move (a cumulative-mean denominator problem, not a display one). So the
+round-recall exit (`RoundRecall.tsx`) now shows at most **one** recent-form beat,
+priority-selected: a broken personal-best streak outranks a recent-form move
+outranks nothing. Most rounds show one calm line; some show none — that
+restraint is the point (one place only, never a stack of celebrations). Both
+reads are pure (D-05) and computed *as of the round being viewed*:
+`lib/analytics/recentForm.ts` (per-category last-N vs prior-N SG, the fast
+denominator all-time can't give) and `recordsBrokenBy` in `streaks.ts`. A
+notable honesty fix: a "record" only fires on a genuine *comeback* (a prior mark
+stood, broke, then got beaten), not when one long-lived streak extends its own
+record — the literal "passed prior best" rule fired on 12/19 of Matt's rounds
+and was wallpaper. Finishes DL-025's unshipped half; items 3–4 of the proposal
+(`docs/pm-loop/recent-form-proposal.md`) stay deferred.
+
 ### Practice games (shipped)
 
 A practice module scored against the **same scratch baseline as real rounds**,
@@ -145,7 +162,10 @@ in TypeScript in `lib/analytics/` (no SQL views, no Supabase imports there).
 - **Deployed** on Vercel, public read-only, owner writes via `OWNER_KEY`
   cookie. `requireOwner` enforced server-side in all mutating actions.
 - **Welcome overlay** (`components/WelcomeOverlay.tsx`) frames it as a
-  portfolio project and houses owner sign-in.
+  portfolio project and houses owner sign-in. Its credibility chip links to
+  **`/thinking`** (`app/thinking/page.tsx`), a static PM-judgment page (the bet,
+  the tradeoffs, what got cut) for serious evaluators; copy source of truth is
+  `docs/thinking-page-draft.md`.
 - Open follow-ups live in `docs/BACKLOG.md` (verify scratch long-game
   magnitudes, enable the self-baseline blend when cells fill, drop the two
   retired columns, OG/share metadata, full Round Recall rename).

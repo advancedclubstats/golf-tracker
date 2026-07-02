@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { computeStreaks, selectChase, CHASE_MIN_BEST } from "@/lib/analytics/streaks";
+import {
+  computeStreaks,
+  selectChase,
+  recordsBrokenBy,
+  CHASE_MIN_BEST,
+} from "@/lib/analytics/streaks";
 import type { Streak } from "@/lib/analytics/streaks";
 import type { ShotRow } from "@/lib/schemas/shot";
 
@@ -293,5 +298,75 @@ describe("selectChase", () => {
     expect(selectChase([mk("upDown", 1, 2)])).toBeNull(); // below floor
     expect(selectChase([mk("double", 6, 6)])).toBeNull(); // a live record
     expect(selectChase([mk("par5Bogey", 0, 0, 0)])).toBeNull(); // never seen
+  });
+});
+
+describe("recordsBrokenBy", () => {
+  const rounds = [
+    { id: "r1", date: "2026-01-01" },
+    { id: "r2", date: "2026-01-02" },
+  ];
+
+  it("fires on a comeback — a prior mark stood, broke, then got beaten", () => {
+    // r1: three clean par 5s then a bogey (best 3, current 0 — a standing,
+    // ended record). r2: FOUR clean par 5s → the run climbs 0→4 and crosses the
+    // old mark of 3. A genuine record broken.
+    const shots = [
+      ...hole({ round: "r1", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 3, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 4, par: 5, strokes: 6 }), // bogey resets → best 3, current 0
+      ...hole({ round: "r2", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 3, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 4, par: 5, strokes: 5 }),
+    ];
+    const broken = recordsBrokenBy(shots, rounds, "r2");
+    const par5 = broken.find((m) => m.key === "par5Bogey");
+    expect(par5).toBeTruthy();
+    expect(par5!.best).toBe(4);
+  });
+
+  it("does NOT fire when one still-growing run just extends itself (anti-flood)", () => {
+    // r1: three clean par 5s (best 3, current 3 — the record IS the live run).
+    // r2: two more clean par 5s → best climbs to 5, but nothing was ever broken;
+    // celebrating this every round is exactly the noise we're guarding against.
+    const shots = [
+      ...hole({ round: "r1", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 3, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 2, par: 5, strokes: 5 }),
+    ];
+    expect(recordsBrokenBy(shots, rounds, "r2")).toEqual([]);
+  });
+
+  it("does NOT fire on a tie of the prior best", () => {
+    // r1: three clean par 5s then a bogey (best 3, current 0). r2: three clean
+    // par 5s → current climbs back to 3, only TYING the record; best stays 3.
+    const shots = [
+      ...hole({ round: "r1", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 3, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 4, par: 5, strokes: 6 }), // bogey resets
+      ...hole({ round: "r2", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 2, par: 5, strokes: 5 }),
+      ...hole({ round: "r2", hole: 3, par: 5, strokes: 5 }),
+    ];
+    expect(recordsBrokenBy(shots, rounds, "r2")).toEqual([]);
+  });
+
+  it("does NOT fire on a first-ever run below the floor", () => {
+    // A single round with only two clean par 5s → best 2 (< CHASE_MIN_BEST).
+    const shots = [
+      ...hole({ round: "r1", hole: 1, par: 5, strokes: 5 }),
+      ...hole({ round: "r1", hole: 2, par: 5, strokes: 5 }),
+    ];
+    expect(recordsBrokenBy(shots, [rounds[0]], "r1")).toEqual([]);
+  });
+
+  it("returns [] for an unknown round", () => {
+    const shots = hole({ round: "r1", hole: 1, par: 5, strokes: 5 });
+    expect(recordsBrokenBy(shots, rounds, "nope")).toEqual([]);
   });
 });

@@ -119,6 +119,68 @@ export function selectChase(metrics: readonly Streak[]): Chase | null {
   };
 }
 
+/**
+ * The streaks a given round pushed to a NEW personal best — the "new best" beat
+ * for the round-recall exit (finishes DL-025). We compute streaks over every
+ * round up to and including this one, then over every round strictly before it,
+ * and report the metrics that genuinely *broke* a standing record on this round.
+ *
+ * The subtle part: `best` is monotonic as holes are appended, so a single
+ * long-lived run that has never reset extends its own record nearly every round
+ * (Matt rarely doubles → "double-free holes" would tick 63 → 68 → 73 …). That's
+ * not a record falling, it's one run growing, and celebrating it every round is
+ * noise. A real "new best" is a *comeback*: a prior mark stood, the streak
+ * broke, and a later run climbed back past it. We detect that by requiring the
+ * old record to have been held by a *separate, already-ended* run — i.e. before
+ * this round the current run was still short of the best (`before.current <
+ * before.best`). A still-growing run (`before.current === before.best`) is
+ * excluded, so the beat fires once, on the round you retake the lead.
+ *
+ * Also gated: the new best must clear `CHASE_MIN_BEST` (a thin record is no
+ * achievement) and strictly exceed the old one (a tie leaves `best` unchanged).
+ * Result is ordered by stakes (costliest mistake first) so a caller showing one
+ * beat can take `[0]`. Pure (D-05).
+ */
+export function recordsBrokenBy(
+  shots: readonly ShotRow[],
+  rounds: readonly Pick<RoundRow, "id" | "date">[],
+  roundId: string,
+): Streak[] {
+  const ordered = [...rounds].sort((a, b) => {
+    const da = new Date(a.date).getTime() || 0;
+    const db = new Date(b.date).getTime() || 0;
+    if (da !== db) return da - db;
+    return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+  });
+  const idx = ordered.findIndex((r) => r.id === roundId);
+  if (idx < 0) return [];
+
+  const upToIds = new Set(ordered.slice(0, idx + 1).map((r) => r.id));
+  const beforeIds = new Set(ordered.slice(0, idx).map((r) => r.id));
+  const after = computeStreaks(
+    shots.filter((s) => upToIds.has(s.round_id)),
+    rounds,
+  ).metrics;
+  const before = new Map(
+    computeStreaks(shots.filter((s) => beforeIds.has(s.round_id)), rounds).metrics.map(
+      (m) => [m.key, m],
+    ),
+  );
+
+  return after
+    .filter((m) => {
+      const prev = before.get(m.key);
+      const prevBest = prev?.best ?? 0;
+      const prevCurrent = prev?.current ?? 0;
+      return (
+        m.best >= CHASE_MIN_BEST &&
+        m.best > prevBest && // strictly beat the old mark (a tie doesn't count)
+        prevCurrent < prevBest // the old mark was a separate, ended run — a comeback
+      );
+    })
+    .sort((a, b) => STAKES_ORDER.indexOf(a.key) - STAKES_ORDER.indexOf(b.key));
+}
+
 const isNum = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 
 /**

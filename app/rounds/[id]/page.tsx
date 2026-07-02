@@ -11,8 +11,10 @@ import { roundRecall } from "@/lib/analytics/roundRecall";
 import { getEnrichedShots } from "@/lib/sg-server";
 import { isOwner } from "@/lib/auth/owner";
 import { isSandbox } from "@/lib/auth/scope";
+import { recordsBrokenBy } from "@/lib/analytics/streaks";
+import { recentForm, topRecentFormMove, shotsThroughRound } from "@/lib/analytics/recentForm";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
-import { RoundRecall } from "@/components/rounds/RoundRecall";
+import { RoundRecall, type ExitBeat } from "@/components/rounds/RoundRecall";
 import { RoundScoreHero } from "@/components/rounds/RoundScoreHero";
 import { SESSION_TYPE_LABELS, SESSION_HOLE_COUNTS } from "@/lib/constants";
 
@@ -38,6 +40,22 @@ export default async function RoundDetailPage({ params }: Props) {
   // hole-by-hole ledger. Absent for an all-in-progress round (no complete hole).
   const breakdown = computeRoundBreakdowns(enriched.shots).get(id) ?? null;
   const recall = breakdown ? roundRecall(enriched.shots, id) : [];
+  // The one recent-form beat this round earned, priority-selected: a broken
+  // personal-best streak outranks a recent-form move outranks nothing (at most
+  // one per round — see the one-place discipline). Both reads are computed
+  // AS OF this round (only rounds up to and including it), so an old round shows
+  // the form that existed right after it, not today's global state.
+  let exitBeat: ExitBeat | null = null;
+  if (breakdown) {
+    const records = recordsBrokenBy(enriched.shots, enriched.rounds, id);
+    if (records.length > 0) {
+      exitBeat = { kind: "record", best: records[0].best, label: records[0].label };
+    } else {
+      const asOf = shotsThroughRound(enriched.shots, enriched.rounds, id);
+      const move = topRecentFormMove(recentForm(asOf, enriched.rounds));
+      if (move) exitBeat = { kind: "move", move };
+    }
+  }
   // Reads are scoped to the caller, so a round we could load is always ours to
   // edit — the owner on real data, a visitor on their sandbox copy.
   const canWrite = owner || sandbox;
@@ -111,7 +129,7 @@ export default async function RoundDetailPage({ params }: Props) {
             />
           )}
           {breakdown && recall.length > 0 && (
-            <RoundRecall recall={recall} breakdown={breakdown} />
+            <RoundRecall recall={recall} breakdown={breakdown} exitBeat={exitBeat} />
           )}
           {/* The full editable shot-by-shot list, tucked behind a disclosure so
               the score splash leads. Native <details> — no client JS needed. */}

@@ -18,6 +18,45 @@ import { RoundChips } from "@/components/rounds/RoundChips";
 import { roundTakeaway, type RoundRecallHole } from "@/lib/analytics/roundRecall";
 import type { RoundBreakdown } from "@/lib/analytics/roundCard";
 import type { SgCategory } from "@/lib/analytics/sg";
+import type { RecentFormMove } from "@/lib/analytics/recentForm";
+
+/**
+ * The one recent-form beat this round earned, priority-selected upstream: a
+ * broken record outranks a recent-form move outranks nothing. At most one per
+ * round — stacking celebrations breaks the Calm Brief identity.
+ */
+export type ExitBeat =
+  | { kind: "record"; best: number; label: string }
+  | { kind: "move"; move: RecentFormMove };
+
+/** SG with a leading sign and a typographic minus, e.g. "−0.48" / "+0.30". */
+function fmtSigned(n: number): string {
+  return `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(2)}`;
+}
+
+/**
+ * The single calm exit beat. Descriptive, never predictive; always names the
+ * denominator ("last 5 rounds"), never a bare "lately".
+ */
+function ExitBeatLine({ beat }: { beat: ExitBeat }) {
+  if (beat.kind === "record") {
+    return (
+      <p className="eyebrow mb-3 inline-flex items-center gap-1.5 rounded bg-highlight/25 px-2 py-1 text-[11px] text-foreground">
+        <span className="text-[10px]">◆</span>
+        New best · {beat.best} {beat.label.toLowerCase()}
+      </p>
+    );
+  }
+  const { move } = beat;
+  const dir = move.delta > 0 ? "up from" : "down from";
+  return (
+    <p className="mb-3 text-[13px] leading-snug text-ink-300">
+      <span className="font-semibold text-foreground">{move.category}</span>:{" "}
+      {fmtSigned(move.recentMean)} over your last {move.windowN}, {dir}{" "}
+      {fmtSigned(move.priorMean)} the {move.windowN} before.
+    </p>
+  );
+}
 
 /** How each SG category reads in the "the round turned on …" line. */
 const DOMINO_PHRASE: Record<SgCategory, string> = {
@@ -102,12 +141,15 @@ function HoleRow({ h }: { h: RoundRecallHole }) {
 export function RoundRecall({
   recall,
   breakdown,
+  exitBeat = null,
 }: {
   recall: RoundRecallHole[];
   breakdown: RoundBreakdown;
+  exitBeat?: ExitBeat | null;
 }) {
   return (
     <section className="mb-8">
+      {exitBeat && <ExitBeatLine beat={exitBeat} />}
       <h2 className="font-heading mb-3 text-xl font-bold leading-snug text-balance">
         {roundTakeaway(breakdown)}
       </h2>

@@ -297,5 +297,57 @@
     "predictedCorrect": null,
     "undeferWhen": null,
     "outcome": null
+  },
+  {
+    "id": "DL-024",
+    "date": "2026-06-28",
+    "title": "Call your leak: guess-before-reveal on the round recall view",
+    "source": "ai",
+    "decision": "deferred",
+    "reason": "The guess-before-reveal interaction itself didn't land, but the engine mis-framed it: the calibration-streak / gamification element was written up as a liability in the case-against when Matt is actually drawn to earned streaks done right (DL-023, the Tiger 5 tracker). The streak instinct is a lead to pull forward, not a risk to steelman away.",
+    "job": "both",
+    "prediction": "defer",
+    "predictedCorrect": true,
+    "undeferWhen": "a gamification/earned-streak mechanic is designed in its own right (honest-achievement, not engagement-bait) and the guess-leak interaction can ride on top of it rather than carrying it",
+    "outcome": null
+  },
+  {
+    "id": "DL-025",
+    "date": "2026-06-28",
+    "title": "The Chase: turn the streak tracker from rear-view into a forward goal",
+    "source": "ai",
+    "decision": "shipped",
+    "reason": "Lands the earned-streak instinct Matt corrected me on: reframes the existing rear-view streak section into a forward chase (closest-to-record target + 'X to go'), all from real golf already played. Honest-achievement, not engagement-bait; low effort since streaks.ts already has run + personal best; and a tasteful retention loop that doubles as a growth-PM portfolio signal.",
+    "job": "both",
+    "prediction": "ship",
+    "predictedCorrect": true,
+    "undeferWhen": null,
+    "outcome": null
+  },
+  {
+    "id": "DL-026",
+    "date": "2026-06-28",
+    "title": "Hayden Lake career: one earned-milestone ladder that consolidates the scattered records",
+    "source": "ai",
+    "decision": "shipped",
+    "reason": "Pulls the scattered earned achievements (Tiger 5 streaks, course records, practice PRs, best-SG round) into one career surface a reflector wants to revisit, plus a 'not yet earned, how close' rung for forward pull. Every item tied to real golf, zero activity points (DL-023 line). Shipped despite my defer prediction; Matt's appetite for the gamification direction was stronger than I modeled.",
+    "job": "both",
+    "prediction": "defer",
+    "predictedCorrect": false,
+    "undeferWhen": null,
+    "outcome": null
+  },
+  {
+    "id": "DL-027",
+    "date": "2026-07-01",
+    "title": "Recent-form beat at the round-recall exit (finishes DL-025's unshipped half)",
+    "source": "matt",
+    "decision": "shipped",
+    "reason": "Logging a round has real activation energy but the all-time SG numbers barely move (a cumulative-mean denominator problem). Added a single, priority-selected beat at the recall exit \u2014 a broken-record streak outranks a recent-form move outranks nothing \u2014 reading a shared pure primitive (recentForm.ts) plus recordsBrokenBy in streaks.ts. Both computed AS OF the round being viewed. Key judgment landed in live verification: the literal 'current run passed prior best' record rule fired on 12/19 rounds (Matt rarely doubles, so long streaks extend their own record nearly every round \u2014 wallpaper, not a beat). Redefined a record as a genuine comeback (a prior mark stood, broke, then got beaten), which cut it to a healthy 6 record / 8 move / 5 none across history.",
+    "job": "both",
+    "prediction": null,
+    "predictedCorrect": null,
+    "undeferWhen": null,
+    "outcome": "Items 1+2 of the recent-form proposal shipped and DL-025 closed. Items 3 (dual number on the hero) and 4 (trajectory/ETA) stay in docs/pm-loop/recent-form-proposal.md for later. Live-verified across 19 rounds; 215 tests green."
   }
 ]

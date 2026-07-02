@@ -18,7 +18,7 @@ export default async function Home() {
   // Reads go through lib/db in Server Components; analytics are pure.
   const [shots, rounds] = await Promise.all([getAllShots(), getAllRounds()]);
   const data = computeDashboard(shots, rounds);
-  const { sg, leaks, momentum } = await getDashboardSG({ shots, rounds });
+  const { sg, leaks, momentum, recentForm } = await getDashboardSG({ shots, rounds });
   const streaks = computeStreaks(shots, rounds);
 
   // Empty state — no complete holes logged yet.
@@ -42,7 +42,14 @@ export default async function Home() {
     // (outer padding 24 / 22 / 30) — kept narrow on desktop too.
     <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
       <PageHeader title="Dashboard" />
-      <Dashboard data={data} sg={sg} leaks={leaks} momentum={momentum} streaks={streaks} />
+      <Dashboard
+        data={data}
+        sg={sg}
+        leaks={leaks}
+        momentum={momentum}
+        recentForm={recentForm}
+        streaks={streaks}
+      />
     </main>
   );
 }

@@ -19,6 +19,7 @@ import type { DashboardData } from "@/lib/analytics/dashboard";
 import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import type { Momentum } from "@/lib/analytics/momentum";
+import type { RecentForm } from "@/lib/analytics/recentForm";
 import type { Streaks } from "@/lib/analytics/streaks";
 import { LeakList } from "@/components/dashboard/LeakList";
 import { StreaksSection } from "@/components/dashboard/StreaksSection";
@@ -60,12 +61,14 @@ export function Dashboard({
   sg,
   leaks,
   momentum,
+  recentForm,
   streaks,
 }: {
   data: DashboardData;
   sg: StrokesGained;
   leaks: Leak[];
   momentum: Momentum;
+  recentForm: RecentForm;
   streaks: Streaks;
 }) {
   const { snapshot, statLine, scoringShape, recentRounds, records } = data;
@@ -75,7 +78,7 @@ export function Dashboard({
   return (
     <div className="flex flex-col gap-9">
       {/* The edge moment: the single biggest prescribable leak. */}
-      <BiggestLeakHero leaks={leaks} />
+      <BiggestLeakHero leaks={leaks} recentForm={recentForm} />
 
       {/* Dashboard answer order (spec Part 3). 1 — Scoring shape. */}
       <ScoringShapeSection shape={scoringShape} />

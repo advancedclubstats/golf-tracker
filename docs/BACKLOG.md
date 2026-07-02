@@ -41,9 +41,19 @@ exit, next to the frozen all-time number.
   (record + move + none states, no console errors); `PROJECT_CONTEXT.md` updated;
   DL-027 logged in `decisions.json`.
 
-**Still deferred (proposal items 3+4):** dual number on `BiggestLeakHero` (lane
-1) and trajectory/ETA (lane 1, highest honesty risk — projects a trend forward).
-Each has its own cheap-test gate in the proposal doc.
+**Item 3 — dual number on `BiggestLeakHero`** — ✅ done (2026-07-01). The hero
+now pairs the frozen all-time leak SG with a subordinate mono line: the leak's
+parent SG category trended over the last N rounds (prior → recent), labelled
+"{category} overall" because the headline is a sub-bucket. Reuses the existing
+`recentForm` primitive (threaded through `getDashboardSG` → `Dashboard` →
+`BiggestLeakHero`); only renders above the 2N floor, all-time stays the 38px
+moment. Live-verified: "Putting overall, last 5 rounds: −1.79 → −0.37" beside
+the −0.77/round leak. tsc + lint + tests green.
+
+**Still deferred (proposal item 4):** trajectory/ETA (lane 1, highest honesty
+risk — projects a trend forward). **Off-app cheap test first** (compute one ETA
+by hand for the putting leak, sit with it); build only if a believable ETA makes
+the frozen number feel alive rather than distrusted. Most expendable of the four.
 
 ---
 

@@ -15,6 +15,7 @@ import {
 } from "@/lib/analytics/sg";
 import { computeLeaks, type Leak } from "@/lib/analytics/leaks";
 import { computeMomentum, type Momentum } from "@/lib/analytics/momentum";
+import { recentForm, type RecentForm } from "@/lib/analytics/recentForm";
 import {
   computeHoleAttribution,
   type HoleAttribution,
@@ -111,12 +112,18 @@ export async function getMomentum(prefetched?: {
 export async function getDashboardSG(prefetched?: {
   shots: ShotRow[];
   rounds: RoundRow[];
-}): Promise<{ sg: StrokesGained; leaks: Leak[]; momentum: Momentum }> {
+}): Promise<{
+  sg: StrokesGained;
+  leaks: Leak[];
+  momentum: Momentum;
+  recentForm: RecentForm;
+}> {
   const { shots, rounds } = await getEnrichedShots(prefetched);
   return {
     sg: computeStrokesGained(shots),
     leaks: computeLeaks(shots).leaks,
     momentum: computeMomentum(shots, rounds),
+    recentForm: recentForm(shots, rounds),
   };
 }
 

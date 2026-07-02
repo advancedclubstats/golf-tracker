@@ -65,21 +65,36 @@ function getAllShotsCached(userId: string): Promise<ShotRow[]> {
   return unstable_cache(
     async () => {
       const supabase = createServerClient();
-      const { data, error } = await withRetry(() =>
-        supabase
-          .from("shots")
-          .select("*")
-          .eq("user_id", userId)
-          .order("round_id", { ascending: true })
-          .order("hole", { ascending: true })
-          .order("shot_no", { ascending: true }),
-      );
+      // PostgREST caps a single response at 1000 rows (the project's
+      // `db-max-rows`). A prolific user blows past that — every shot beyond row
+      // 1000 would silently vanish, so whole recent rounds drop out of the list
+      // and out of every SG/analytics view that reads this. Page through with
+      // `.range()` until a short page signals the end so we always get the full
+      // set, not just the first 1000.
+      const PAGE = 1000;
+      const rows: unknown[] = [];
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await withRetry(() =>
+          supabase
+            .from("shots")
+            .select("*")
+            .eq("user_id", userId)
+            .order("round_id", { ascending: true })
+            .order("hole", { ascending: true })
+            .order("shot_no", { ascending: true })
+            .range(from, from + PAGE - 1),
+        );
 
-      if (error) {
-        throw new Error(`Failed to fetch shots: ${error.message}`);
+        if (error) {
+          throw new Error(`Failed to fetch shots: ${error.message}`);
+        }
+
+        const page = data ?? [];
+        rows.push(...page);
+        if (page.length < PAGE) break;
       }
 
-      return ShotRowsSchema.parse(data);
+      return ShotRowsSchema.parse(rows);
     },
     ["all-shots", userId],
     { tags: [userDataTag(userId)], revalidate: 60 },

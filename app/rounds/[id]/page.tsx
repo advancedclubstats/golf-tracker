@@ -13,7 +13,8 @@ import { isOwner } from "@/lib/auth/owner";
 import { isSandbox } from "@/lib/auth/scope";
 import { EditableHoleList, type HoleView } from "@/components/rounds/EditableHoleList";
 import { RoundRecall } from "@/components/rounds/RoundRecall";
-import { SESSION_TYPE_LABELS } from "@/lib/constants";
+import { RoundScoreHero } from "@/components/rounds/RoundScoreHero";
+import { SESSION_TYPE_LABELS, SESSION_HOLE_COUNTS } from "@/lib/constants";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -51,6 +52,13 @@ export default async function RoundDetailPage({ params }: Props) {
       strokes: h.complete ? enrichRoundHole(h).strokes : null,
       shots: h.shots,
     }));
+
+  // Hero score: totals over complete holes only (mirrors the Rounds list rollup).
+  const completeHoles = holes.filter((h) => h.complete && h.strokes != null);
+  const heroStrokes = completeHoles.reduce((s, h) => s + (h.strokes ?? 0), 0);
+  const heroPar = completeHoles.reduce((s, h) => s + h.par, 0);
+  const heroVsPar = heroStrokes - heroPar;
+  const holesTotal = SESSION_HOLE_COUNTS[round.session_type];
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 p-4">
@@ -94,13 +102,33 @@ export default async function RoundDetailPage({ params }: Props) {
         </p>
       ) : (
         <>
+          {completeHoles.length > 0 && (
+            <RoundScoreHero
+              strokes={heroStrokes}
+              vsPar={heroVsPar}
+              holesComplete={completeHoles.length}
+              holesTotal={holesTotal}
+            />
+          )}
           {breakdown && recall.length > 0 && (
             <RoundRecall recall={recall} breakdown={breakdown} />
           )}
-          {canWrite && (
-            <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
-          )}
-          <EditableHoleList roundId={id} clubs={clubs} holes={holes} owner={canWrite} />
+          {/* The full editable shot-by-shot list, tucked behind a disclosure so
+              the score splash leads. Native <details> — no client JS needed. */}
+          <details className="group mt-2 rounded-2xl bg-card ring-1 ring-border">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
+              <span className="text-sm font-semibold">See shot-by-shot details</span>
+              <span className="text-xs text-muted-foreground transition-transform group-open:rotate-180">
+                ▾
+              </span>
+            </summary>
+            <div className="border-t border-border px-4 pb-4 pt-3">
+              {canWrite && (
+                <p className="mb-2 text-xs text-muted-foreground">Tap a shot to edit or delete it.</p>
+              )}
+              <EditableHoleList roundId={id} clubs={clubs} holes={holes} owner={canWrite} />
+            </div>
+          </details>
         </>
       )}
     </main>

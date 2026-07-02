@@ -41,14 +41,20 @@ exit, next to the frozen all-time number.
   (record + move + none states, no console errors); `PROJECT_CONTEXT.md` updated;
   DL-027 logged in `decisions.json`.
 
-**Item 3 — dual number on `BiggestLeakHero`** — ✅ done (2026-07-01). The hero
-now pairs the frozen all-time leak SG with a subordinate mono line: the leak's
-parent SG category trended over the last N rounds (prior → recent), labelled
-"{category} overall" because the headline is a sub-bucket. Reuses the existing
-`recentForm` primitive (threaded through `getDashboardSG` → `Dashboard` →
-`BiggestLeakHero`); only renders above the 2N floor, all-time stays the 38px
-moment. Live-verified: "Putting overall, last 5 rounds: −1.79 → −0.37" beside
-the −0.77/round leak. tsc + lint + tests green.
+**Item 3 — recent form on `BiggestLeakHero`** — ✅ done (2026-07-01). The hero is
+now a **split card**: the lime block carries the leak alone, and a paper strip
+below it carries recent form for the leak's parent SG category, framed as
+strokes/round picked up or lost ("Putting: picked up 0.62 / round over your last
+3 rounds", trend icon + positive/clay). Chosen over a second number on the yellow
+(too much to read, mixed scopes). Reuses `recentForm` (threaded
+`getDashboardSG` → `Dashboard` → `BiggestLeakHero`); only renders above the floor,
+else "holding steady"; all-time stays the 38px moment.
+
+**Window is now last 3 (both surfaces).** `recentForm` is called with
+`windowN: 3` at the hero and the round-recall exit beat (one definition, floor =
+6 rounds). The exit-beat move copy was aligned to the same "picked up/lost X /
+round over your last N rounds" framing (dropped the prior → recent arrow, which
+read as confusing). tsc + lint + 215 tests green; live-verified both surfaces.
 
 **Still deferred (proposal item 4):** trajectory/ETA (lane 1, highest honesty
 risk — projects a trend forward). **Off-app cheap test first** (compute one ETA

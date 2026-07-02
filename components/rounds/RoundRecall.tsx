@@ -29,17 +29,12 @@ export type ExitBeat =
   | { kind: "record"; best: number; label: string }
   | { kind: "move"; move: RecentFormMove };
 
-/** SG with a leading sign and a typographic minus, e.g. "−0.48" / "+0.30". */
-function fmtSigned(n: number): string {
-  return `${n >= 0 ? "+" : "−"}${Math.abs(n).toFixed(2)}`;
-}
-
 /**
  * The single calm exit beat — a compact caption that sits *under* the takeaway
  * headline as a secondary line, so the headline stays the one dominant read.
  * Descriptive, never predictive; always names the denominator ("last N rounds").
- * A move is shown as prior → recent (direction implied by the arrow) rather than
- * a full sentence, to read as data, not a competing headline.
+ * A move reads as strokes/round picked up or lost (not a prior → now hop), the
+ * same framing as the dashboard leak hero.
  */
 function ExitBeatLine({ beat }: { beat: ExitBeat }) {
   if (beat.kind === "record") {
@@ -51,10 +46,12 @@ function ExitBeatLine({ beat }: { beat: ExitBeat }) {
     );
   }
   const { move } = beat;
+  const up = move.delta > 0;
   return (
     <p className="mb-4 text-[13px] leading-snug text-ink-300">
-      <span className="font-semibold text-foreground">{move.category}</span>, last{" "}
-      {move.windowN} rounds: {fmtSigned(move.priorMean)} → {fmtSigned(move.recentMean)}
+      <span className="font-semibold text-foreground">{move.category}</span>:{" "}
+      {up ? "picked up" : "lost"} {Math.abs(move.delta).toFixed(2)} / round over your last{" "}
+      {move.windowN} rounds
     </p>
   );
 }

@@ -52,7 +52,7 @@ export default async function RoundDetailPage({ params }: Props) {
       exitBeat = { kind: "record", best: records[0].best, label: records[0].label };
     } else {
       const asOf = shotsThroughRound(enriched.shots, enriched.rounds, id);
-      const move = topRecentFormMove(recentForm(asOf, enriched.rounds));
+      const move = topRecentFormMove(recentForm(asOf, enriched.rounds, { windowN: 3 }));
       if (move) exitBeat = { kind: "move", move };
     }
   }

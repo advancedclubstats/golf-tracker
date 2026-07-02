@@ -123,7 +123,7 @@ export async function getDashboardSG(prefetched?: {
     sg: computeStrokesGained(shots),
     leaks: computeLeaks(shots).leaks,
     momentum: computeMomentum(shots, rounds),
-    recentForm: recentForm(shots, rounds),
+    recentForm: recentForm(shots, rounds, { windowN: 3 }),
   };
 }
 

@@ -35,25 +35,26 @@ function fmtSigned(n: number): string {
 }
 
 /**
- * The single calm exit beat. Descriptive, never predictive; always names the
- * denominator ("last 5 rounds"), never a bare "lately".
+ * The single calm exit beat — a compact caption that sits *under* the takeaway
+ * headline as a secondary line, so the headline stays the one dominant read.
+ * Descriptive, never predictive; always names the denominator ("last N rounds").
+ * A move is shown as prior → recent (direction implied by the arrow) rather than
+ * a full sentence, to read as data, not a competing headline.
  */
 function ExitBeatLine({ beat }: { beat: ExitBeat }) {
   if (beat.kind === "record") {
     return (
-      <p className="eyebrow mb-3 inline-flex items-center gap-1.5 rounded bg-highlight/25 px-2 py-1 text-[11px] text-foreground">
+      <p className="eyebrow mb-4 inline-flex items-center gap-1.5 rounded bg-highlight/25 px-2 py-1 text-[11px] text-foreground">
         <span className="text-[10px]">◆</span>
         New best · {beat.best} {beat.label.toLowerCase()}
       </p>
     );
   }
   const { move } = beat;
-  const dir = move.delta > 0 ? "up from" : "down from";
   return (
-    <p className="mb-3 text-[13px] leading-snug text-ink-300">
-      <span className="font-semibold text-foreground">{move.category}</span>:{" "}
-      {fmtSigned(move.recentMean)} over your last {move.windowN}, {dir}{" "}
-      {fmtSigned(move.priorMean)} the {move.windowN} before.
+    <p className="mb-4 text-[13px] leading-snug text-ink-300">
+      <span className="font-semibold text-foreground">{move.category}</span>, last{" "}
+      {move.windowN} rounds: {fmtSigned(move.priorMean)} → {fmtSigned(move.recentMean)}
     </p>
   );
 }
@@ -149,10 +150,10 @@ export function RoundRecall({
 }) {
   return (
     <section className="mb-8">
-      {exitBeat && <ExitBeatLine beat={exitBeat} />}
-      <h2 className="font-heading mb-3 text-xl font-bold leading-snug text-balance">
+      <h2 className="font-heading mb-2 text-xl font-bold leading-snug text-balance">
         {roundTakeaway(breakdown)}
       </h2>
+      {exitBeat && <ExitBeatLine beat={exitBeat} />}
 
       <div className="mb-6">
         <RoundChips breakdown={breakdown} />

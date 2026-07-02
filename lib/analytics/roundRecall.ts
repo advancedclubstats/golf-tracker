@@ -156,9 +156,9 @@ export function roundTakeaway(breakdown: RoundBreakdown): string {
     const holes = breakdown.holes;
     const holeLabel = `${holes} hole${holes === 1 ? "" : "s"}`;
     if (score) {
-      return `${fmtVsPar(score.value)} over ${holeLabel} — a few more rounds and I’ll show how this one compares.`;
+      return `${fmtVsPar(score.value)} over ${holeLabel}, and a few more rounds will show how this one compares.`;
     }
-    return `${holeLabel} logged — a few more rounds and I’ll show how this one compares.`;
+    return `${holeLabel} logged, and a few more rounds will show how this one compares.`;
   }
 
   // Largest eligible SG swing vs your average decides the headline.
@@ -173,12 +173,12 @@ export function roundTakeaway(breakdown: RoundBreakdown): string {
   }
 
   if (!best || Math.abs(best.delta as number) < TAKEAWAY_SG_THRESHOLD) {
-    return "A steady round — nothing strayed far from your average.";
+    return "A steady round, nothing strayed far from your average.";
   }
 
   const d = best.delta as number;
   const swing = fmtSg(d);
   return d > 0
-    ? `${best.label} carried this round — ${swing} vs your average.`
-    : `${best.label} was the leak this round — ${swing} vs your average.`;
+    ? `${best.label} carried this round, ${swing} vs your average.`
+    : `${best.label} was the leak this round, ${swing} vs your average.`;
 }

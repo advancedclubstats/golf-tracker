@@ -852,6 +852,24 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Tech debt / data integrity
 
+- **Fringe putts miscounted as green putts (3-putt inflation)** — ✅ done
+  (2026-07-06). The entry flow stamped `start_lie = "Green"` on *every* putter
+  stroke (`ShotEntryFlow.tsx` ~line 507), so a putt from the fringe (a putter
+  stroke off a `Fringe` carry-forward) was stored as Green. `isRealPutt` counts
+  `start_lie === "Green"`, so those fringe putts counted as real putts —
+  inflating putt totals and, when a fringe putt sat with 2 green putts on one
+  hole, manufacturing false 3-putts. Also mis-attributed their SG to putting
+  instead of around-the-green. The DB carry-forward trigger
+  (`recompute_hole_start_lie`, migration 019) was already correct
+  (`prev_result='Fringe' → 'Fringe'`); only the insert path forced Green, and
+  recompute doesn't run on insert. **Fix:** `lie = isPutt ? (effectiveLie ??
+  "Green") : effectiveLie` so a non-green carry (fringe putt / Texas wedge)
+  keeps its lie. **Data:** 12 mislabeled rows (all 2026-07-01…07-06 — `Fringe`
+  as a result is a recent addition, so the blast radius was bounded) corrected
+  Green → Fringe; 2 of them flipped a hole off a false 3-putt (Jul 4 h3, Jul 5
+  h15). Verified 0 remaining. *Follow-up option: a unit/e2e guard so a
+  fringe-lie putter stroke never persists as Green.*
+
 - **Intermittent "Load failed" while entering a shot** — ✅ done (2026-06-22).
   Diagnosed: "Load failed" is WebKit's message for a `fetch()` that rejects at
   the network layer (a TypeError — no HTTP response), distinct from a server

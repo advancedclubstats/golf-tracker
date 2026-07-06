@@ -501,10 +501,13 @@ export function ShotEntryFlow({
     const sn = (logged[hole]?.count ?? 0) + 1;
     // Carry-forward finish before this shot — restored if the shot is rewound.
     const prevLastShot = lastShot[hole] ?? null;
-    // Start lie: putts are always on the green; otherwise the effective lie
-    // (override or carry-forward default). distance_unit: feet for putts.
+    // Start lie: a putter stroke is usually on the green, but if the ball
+    // carried forward a non-green lie (a Fringe putt / Texas wedge), keep it —
+    // forcing "Green" here miscounted fringe putts as real putts (3-putt
+    // inflation) and mis-attributed their SG to putting. Mirrors the DB
+    // carry-forward trigger (recompute_hole_start_lie) and `isRealPutt`.
     const isPutt = d.club === "Putter";
-    const lie: StartLie | null = isPutt ? "Green" : effectiveLie;
+    const lie: StartLie | null = isPutt ? (effectiveLie ?? "Green") : effectiveLie;
     try {
       const { id } = await saveShot({
         round_id: roundId,

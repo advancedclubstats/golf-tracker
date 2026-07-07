@@ -20,11 +20,10 @@ import type { StrokesGained } from "@/lib/analytics/sg";
 import type { Leak } from "@/lib/analytics/leaks";
 import type { Momentum } from "@/lib/analytics/momentum";
 import type { RecentForm } from "@/lib/analytics/recentForm";
-import type { BirdieBoard as BirdieBoardData } from "@/lib/analytics/birdies";
 import type { Streaks } from "@/lib/analytics/streaks";
 import { LeakList } from "@/components/dashboard/LeakList";
 import { StreaksSection } from "@/components/dashboard/StreaksSection";
-import { BirdieBoard } from "@/components/dashboard/BirdieBoard";
+import { BirdieBoard, type BirdieBoardOption } from "@/components/dashboard/BirdieBoard";
 import { BiggestLeakHero } from "@/components/dashboard/BiggestLeakHero";
 import { ScoringShapeSection } from "@/components/dashboard/ScoringShapeSection";
 import { MomentumSection } from "@/components/dashboard/MomentumSection";
@@ -65,7 +64,7 @@ export function Dashboard({
   momentum,
   recentForm,
   streaks,
-  birdieBoard,
+  birdieBoards,
 }: {
   data: DashboardData;
   sg: StrokesGained;
@@ -73,7 +72,7 @@ export function Dashboard({
   momentum: Momentum;
   recentForm: RecentForm;
   streaks: Streaks;
-  birdieBoard: BirdieBoardData;
+  birdieBoards: BirdieBoardOption[];
 }) {
   const { snapshot, statLine, scoringShape, recentRounds, records } = data;
   // Spec Part 3 item 2: SG categories ranked by recoverable/round (worst first).
@@ -200,8 +199,8 @@ export function Dashboard({
       {/* Celebratory counterweight to the SG spine — sits with the records. */}
       <StreaksSection streaks={streaks} />
 
-      {/* Seasonal collection: which holes you've birdied this year. */}
-      <BirdieBoard board={birdieBoard} />
+      {/* Seasonal collection: which holes you've birdied (season selector). */}
+      <BirdieBoard boards={birdieBoards} />
 
       <Section title="Course records">
         <div className="divide-y divide-border">

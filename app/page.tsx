@@ -21,8 +21,19 @@ export default async function Home() {
   const data = computeDashboard(shots, rounds);
   const { sg, leaks, momentum, recentForm } = await getDashboardSG({ shots, rounds });
   const streaks = computeStreaks(shots, rounds);
-  // Seasonal: Hayden Lake runs April→October, so "this year" is one season.
-  const birdieBoard = computeBirdieBoard(shots, rounds, new Date().getFullYear());
+  // Seasonal: Hayden Lake runs April→October, so a year is one season. Build an
+  // "All time" board plus one per season (newest first) for the board's selector.
+  const seasonYears = [...new Set(rounds.map((r) => Number(r.date.slice(0, 4))))].sort(
+    (a, b) => b - a,
+  );
+  const birdieBoards = [
+    { key: "all", label: "All time", board: computeBirdieBoard(shots, rounds, null) },
+    ...seasonYears.map((y) => ({
+      key: String(y),
+      label: String(y),
+      board: computeBirdieBoard(shots, rounds, y),
+    })),
+  ];
 
   // Empty state — no complete holes logged yet.
   if (data.snapshot.holesLogged === 0) {
@@ -52,7 +63,7 @@ export default async function Home() {
         momentum={momentum}
         recentForm={recentForm}
         streaks={streaks}
-        birdieBoard={birdieBoard}
+        birdieBoards={birdieBoards}
       />
     </main>
   );

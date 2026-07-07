@@ -38,6 +38,8 @@ export interface HoleSummaryRow {
   avgPutts: number;
   /** Fraction of rounds with 3+ putts on this hole. */
   threePuttPct: number;
+  /** Fraction of rounds birdied-or-better (under par) on this hole. */
+  birdiePct: number;
   /** Average non-putt execution rating. `null` if no rated non-putt shots. */
   shotQuality: number | null;
   /** Vs-par trend over recent plays (Ask 2 — in-cell sparkline). */
@@ -131,6 +133,9 @@ export function computeHoleSummary(
     const avgPutts = group.reduce((s, r) => s + r.putts, 0) / n;
     const threePuttPct = group.filter((r) => r.putts >= 3).length / n;
 
+    // Birdie-or-better rate (under par), all-time on this hole.
+    const birdiePct = group.filter((r) => r.strokes <= par - 1).length / n;
+
     const tnps = group.reduce((s, r) => s + r.nonPuttExecSum, 0);
     const tnpc = group.reduce((s, r) => s + r.nonPuttExecCount, 0);
     const shotQuality = tnpc > 0 ? r2(tnps / tnpc) : null;
@@ -168,6 +173,7 @@ export function computeHoleSummary(
       scramblePct,
       avgPutts: r2(avgPutts),
       threePuttPct,
+      birdiePct,
       shotQuality,
       vsParTrend: {
         value: r2(avgScore - par),

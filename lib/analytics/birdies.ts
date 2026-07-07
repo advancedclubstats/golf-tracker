@@ -31,7 +31,8 @@ export interface HoleBirdie {
 }
 
 export interface BirdieBoard {
-  year: number;
+  /** The season this board covers, or null for all-time (every season). */
+  year: number | null;
   holes: HoleBirdie[];
   /** Holes birdied this season. */
   birdied: number;
@@ -46,17 +47,17 @@ const yearOf = (date: string): number => Number(date.slice(0, 4));
 export function computeBirdieBoard(
   shots: readonly ShotRow[],
   rounds: readonly Pick<RoundRow, "id" | "date">[],
-  year: number,
+  year: number | null,
 ): BirdieBoard {
   // Par + the full hole list from all-history (every hole has been played).
   const parByHole = new Map<number, number>();
   for (const s of shots) if (!parByHole.has(s.hole)) parByHole.set(s.hole, s.par);
 
-  // This season's completed, non-conceded holes.
-  const thisYearRoundIds = new Set(
-    rounds.filter((r) => yearOf(r.date) === year).map((r) => r.id),
+  // The window's completed, non-conceded holes. `year === null` → all-time.
+  const windowRoundIds = new Set(
+    rounds.filter((r) => year === null || yearOf(r.date) === year).map((r) => r.id),
   );
-  const seasonShots = shots.filter((s) => thisYearRoundIds.has(s.round_id));
+  const seasonShots = shots.filter((s) => windowRoundIds.has(s.round_id));
 
   const played = new Map<number, number>();
   const birdies = new Map<number, number>();

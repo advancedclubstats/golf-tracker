@@ -655,9 +655,16 @@ section first (highest value, self-contained), then the three table treatments.
   all-history shots so unplayed holes still list); `components/dashboard/
   BirdieBoard.tsx`; wired via `computeBirdieBoard(shots, rounds, currentYear)` in
   `app/page.tsx`, sits between Clean streaks and Course records. Live-verified
-  (15/18, holes 4/7/17 open). *Deferred: an "only remaining" toggle and a
-  birdie-rate column on the `/stats/holes` table (both offered; skipped for the
-  calm all-18 v1).*
+  (15/18, holes 4/7/17 open).
+  - **Season selector + remaining toggle + holes column** — ✅ done (2026-07-06).
+    `computeBirdieBoard` now takes `year: number | null` (null = all-time); the
+    page builds an "All time" board plus one per season (newest first) and passes
+    them to a now-client `BirdieBoard` with a season `<select>` (defaults to All
+    time; a plain label when only one window exists) and an "All 18 / Remaining"
+    segmented toggle (Remaining filters the grid to still-open holes). Added a
+    `Bird%` (birdie-or-better, under-par, all-time) column to
+    `computeHoleSummary` + the `/stats/holes` table. Live-verified: dropdown
+    ["All time","2026"], Remaining → holes 4/7/17, Bird% matches the board.
 
 - **Dashboard "Clean streaks" (Tiger 5 tracker)** — ✅ done (2026-06-24). New
   celebratory section above Course records: per classic mistake, how long since

@@ -103,6 +103,23 @@ describe("computeBirdieBoard", () => {
     expect(b.remaining).toBe(2); // neither birdied *this* season
   });
 
+  it("all-time (year = null) counts every season", () => {
+    const rounds = [
+      { id: "rOld", date: "2025-09-01" },
+      { id: "r1", date: "2026-05-01" },
+    ];
+    const shots = [
+      ...hole("rOld", 12, 3, 2), // birdied last season
+      ...hole("r1", 1, 4, 3), // birdied this season
+    ];
+    const b = computeBirdieBoard(shots, rounds, null);
+    expect(b.year).toBeNull();
+    expect(get(b, 12).birdied).toBe(true); // last-season birdie now counts
+    expect(get(b, 1).birdied).toBe(true);
+    expect(b.birdied).toBe(2);
+    expect(b.remaining).toBe(0);
+  });
+
   it("excludes conceded and in-progress holes from played", () => {
     const rounds = [{ id: "r1", date: "2026-05-01" }];
     const conceded = hole("r1", 3, 4, 4).map((x) => ({ ...x, result: "Fairway" as const }));

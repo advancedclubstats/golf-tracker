@@ -22,6 +22,7 @@ const columns: ColumnConfig<HoleSummaryRow>[] = [
   { header: "Scr%", key: "scramblePct", format: "pct", align: "right" },
   { header: "Putts", key: "avgPutts", format: "num", align: "right" },
   { header: "3pt%", key: "threePuttPct", format: "pct", align: "right" },
+  { header: "Bird%", key: "birdiePct", format: "pct", align: "right" },
   { header: "Qual", key: "shotQuality", format: "num", align: "right" },
 ];
 

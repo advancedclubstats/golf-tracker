@@ -645,6 +645,20 @@ section first (highest value, self-contained), then the three table treatments.
 
 ## Design & polish
 
+- **Dashboard "Birdie board" (seasonal, which holes birdied)** — ✅ done
+  (2026-07-06). A calm scorecard grid of all 18 holes: birdied-this-season holes
+  get the lime fill, played-but-not-yet holes are a quiet outline, unplayed holes
+  a muted dashed cell; each cell shows its birdie rate, with a "{birdied}/18 · N
+  to go" header. Seasonal (Hayden Lake runs April→October, so "this year" is one
+  season; a birdie = under par, eagles count). Pure `lib/analytics/birdies.ts`
+  (`computeBirdieBoard`, D-05, tested — par + the 18-hole list derived from
+  all-history shots so unplayed holes still list); `components/dashboard/
+  BirdieBoard.tsx`; wired via `computeBirdieBoard(shots, rounds, currentYear)` in
+  `app/page.tsx`, sits between Clean streaks and Course records. Live-verified
+  (15/18, holes 4/7/17 open). *Deferred: an "only remaining" toggle and a
+  birdie-rate column on the `/stats/holes` table (both offered; skipped for the
+  calm all-18 v1).*
+
 - **Dashboard "Clean streaks" (Tiger 5 tracker)** — ✅ done (2026-06-24). New
   celebratory section above Course records: per classic mistake, how long since
   it last happened as **current run + personal best**. Counted **per opportunity**

@@ -5,6 +5,7 @@ import { getAllShots } from "@/lib/db/shots";
 import { getAllRounds } from "@/lib/db/rounds";
 import { computeDashboard } from "@/lib/analytics/dashboard";
 import { computeStreaks } from "@/lib/analytics/streaks";
+import { computeBirdieBoard } from "@/lib/analytics/birdies";
 import { getDashboardSG } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
 import { PageHeader } from "@/components/nav/PageHeader";
@@ -20,6 +21,8 @@ export default async function Home() {
   const data = computeDashboard(shots, rounds);
   const { sg, leaks, momentum, recentForm } = await getDashboardSG({ shots, rounds });
   const streaks = computeStreaks(shots, rounds);
+  // Seasonal: Hayden Lake runs April→October, so "this year" is one season.
+  const birdieBoard = computeBirdieBoard(shots, rounds, new Date().getFullYear());
 
   // Empty state — no complete holes logged yet.
   if (data.snapshot.holesLogged === 0) {
@@ -49,6 +52,7 @@ export default async function Home() {
         momentum={momentum}
         recentForm={recentForm}
         streaks={streaks}
+        birdieBoard={birdieBoard}
       />
     </main>
   );

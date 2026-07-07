@@ -58,14 +58,11 @@ function Cell({ h }: { h: HoleBirdie }) {
 
 export function BirdieBoard({ boards }: { boards: BirdieBoardOption[] }) {
   const [key, setKey] = useState(boards?.[0]?.key ?? "all");
-  const [remainingOnly, setRemainingOnly] = useState(false);
 
   if (!boards || boards.length === 0) return null;
   const active = boards.find((b) => b.key === key) ?? boards[0];
   if (!active) return null;
   const { board } = active;
-
-  const cells = remainingOnly ? board.holes.filter((h) => !h.birdied) : board.holes;
 
   return (
     <section>
@@ -89,48 +86,18 @@ export function BirdieBoard({ boards }: { boards: BirdieBoardOption[] }) {
         )}
       </div>
 
-      <div className="mb-3 flex items-baseline justify-between gap-3">
-        <p className="text-[12px] text-muted-foreground">
-          <span className="font-semibold text-ink-700">
-            {board.birdied}/{board.total}
-          </span>{" "}
-          holes birdied · {board.remaining} to go
-        </p>
-        <div className="flex overflow-hidden rounded-md border border-border text-[11px]">
-          <button
-            type="button"
-            onClick={() => setRemainingOnly(false)}
-            className={cn(
-              "px-2 py-1",
-              !remainingOnly ? "bg-foreground text-background" : "text-muted-foreground",
-            )}
-          >
-            All 18
-          </button>
-          <button
-            type="button"
-            onClick={() => setRemainingOnly(true)}
-            className={cn(
-              "border-l border-border px-2 py-1",
-              remainingOnly ? "bg-foreground text-background" : "text-muted-foreground",
-            )}
-          >
-            Remaining
-          </button>
-        </div>
-      </div>
+      <p className="mb-3 text-[12px] text-muted-foreground">
+        <span className="font-semibold text-ink-700">
+          {board.birdied}/{board.total}
+        </span>{" "}
+        holes birdied · {board.remaining} to go
+      </p>
 
-      {cells.length === 0 ? (
-        <p className="rounded-lg border border-dashed border-border py-4 text-center text-[13px] text-ink-300">
-          Every hole birdied — nothing left this window.
-        </p>
-      ) : (
-        <div className="grid grid-cols-6 gap-2">
-          {cells.map((h) => (
-            <Cell key={h.hole} h={h} />
-          ))}
-        </div>
-      )}
+      <div className="grid grid-cols-6 gap-2">
+        {board.holes.map((h) => (
+          <Cell key={h.hole} h={h} />
+        ))}
+      </div>
     </section>
   );
 }

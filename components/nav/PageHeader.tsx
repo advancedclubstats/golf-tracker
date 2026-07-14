@@ -11,3 +11,16 @@ export function PageHeader({ title }: { title: string }) {
     </header>
   );
 }
+
+/**
+ * The Round Recall wordmark, mirroring the logged-out splash (green dot +
+ * name). Used as the dashboard's header in place of a plain "Dashboard" title.
+ */
+export function BrandHeader() {
+  return (
+    <header className="mb-4 flex items-center gap-2">
+      <span className="h-2.5 w-2.5 rounded-full bg-[#CDF23E]" aria-hidden />
+      <span className="font-heading text-lg font-bold tracking-[-0.02em]">Round Recall</span>
+    </header>
+  );
+}

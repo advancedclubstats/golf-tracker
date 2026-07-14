@@ -1,4 +1,4 @@
-import { PageHeader } from "@/components/nav/PageHeader";
+import { BrandHeader } from "@/components/nav/PageHeader";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function HomeLoading() {
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
-      <PageHeader title="Dashboard" />
+      <BrandHeader />
 
       {/* Hero (biggest leak) */}
       <Skeleton className="mb-9 h-28 w-full rounded-2xl" />

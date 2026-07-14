@@ -8,7 +8,7 @@ import { computeStreaks } from "@/lib/analytics/streaks";
 import { computeBirdieBoard } from "@/lib/analytics/birdies";
 import { getDashboardSG } from "@/lib/sg-server";
 import { Dashboard } from "@/components/dashboard/Dashboard";
-import { PageHeader } from "@/components/nav/PageHeader";
+import { BrandHeader } from "@/components/nav/PageHeader";
 import { TAGLINE } from "@/lib/constants";
 
 // Render on every request so direct DB changes (e.g. the sheet import) and
@@ -55,7 +55,7 @@ export default async function Home() {
     // Calm Brief is a single editorial column, designed mobile-first at 390px
     // (outer padding 24 / 22 / 30) — kept narrow on desktop too.
     <main className="mx-auto w-full max-w-md flex-1 px-[22px] pb-[30px] pt-6">
-      <PageHeader title="Dashboard" />
+      <BrandHeader />
       <Dashboard
         data={data}
         sg={sg}
